@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>20秒計時提醒器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft JhengHei', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        body::before {
+            content: '✨🎆🎉';
+            position: absolute;
+            top: 10%;
+            left: 10%;
+            font-size: 40px;
+            opacity: 0.3;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        body::after {
+            content: '🎊🎆✨';
+            position: absolute;
+            bottom: 10%;
+            right: 10%;
+            font-size: 40px;
+            opacity: 0.3;
+            animation: float 4s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+            position: relative;
+            border: 3px solid gold;
+        }
+        
+        .clock {
+            font-size: 48px;
+            font-weight: bold;
+            color: #ffd700;
+            margin-bottom: 10px;
+            font-variant-numeric: tabular-nums;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .date {
+            font-size: 20px;
+            color: #ff6b6b;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+        
+        .timer-display {
+            font-size: 72px;
+            font-weight: bold;
+            color: #333;
+            margin: 30px 0;
+            font-variant-numeric: tabular-nums;
+        }
+        
+        .start-btn {
+            background: linear-gradient(135deg, #ffd700 0%, #ff6b6b 100%);
+            color: white;
+            border: none;
+            padding: 15px 50px;
+            font-size: 24px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(255, 215, 0, 0.5);
+        }
+        
+        .start-btn:active {
+            transform: translateY(0);
+        }
+        
+        .start-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: linear-gradient(135deg, #ff6b6b 0%, #ffd700 100%);
+            color: white;
+            padding: 40px 60px;
+            border-radius: 20px;
+            font-size: 48px;
+            font-weight: bold;
+            box-shadow: 0 20px 60px rgba(255, 107, 107, 0.6);
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            border: 3px solid white;
+        }
+        
+        .notification.show {
+            transform: translate(-50%, -50%) scale(1);
+        }
+        
+        .progress {
+            margin: 20px 0;
+            color: #666;
+            font-size: 18px;
+        }
+        
+        .result-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        
+        .result-modal.show {
+            display: flex;
+        }
+        
+        .result-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            border: 3px solid gold;
+        }
+        
+        .result-content h2 {
+            color: #ff6b6b;
+            font-size: 32px;
+            margin-bottom: 30px;
+        }
+        
+        .result-btn {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 0 10px;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        
+        .result-btn.fail {
+            background: linear-gradient(135deg, #f44336 0%, #da190b 100%);
+        }
+        
+        .result-btn:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="color: #ff6b6b; margin-bottom: 10px; font-size: 36px; text-shadow: 2px 2px 4px rgba(0,0,0,0.1);">🎆 跨年吃葡萄挑戰 🎆</h1>
+        <p style="color: #666; margin-bottom: 20px; font-weight: bold;">🍇 20秒內吃完12顆葡萄 許下新年願望 🍇</p>
+        
+        <div style="background: linear-gradient(135deg, #fff5e6 0%, #ffe6f0 100%); padding: 20px; border-radius: 15px; margin-bottom: 20px; text-align: left; border-left: 4px solid #ff6b6b;">
+            <h3 style="color: #ff6b6b; margin-bottom: 10px; font-size: 18px;">🎉 挑戰規則</h3>
+            <p style="color: #555; line-height: 1.6; font-size: 14px;">
+                在跨年夜倒數進入最後20秒時開始，每顆葡萄對應一個月份，心中默念一個願望或關鍵字，全程專心咀嚼不分心，並在倒數結束前吃完最後一顆，象徵新的一年正式展開，也為自己許下好運與新年心願。
+            </p>
+        </div>
+        <div class="clock" id="clock">00:00:00</div>
+        <div class="date" id="date">2025年1月1日</div>
+        <div class="timer-display" id="timer">20.0</div>
+        <div class="progress" id="progress">準備開始</div>
+        <button class="start-btn" id="startBtn" onclick="startTimer()">開始</button>
+    </div>
+    
+    <div class="notification" id="notification"></div>
+    
+    <div class="result-modal" id="resultModal">
+        <div class="result-content">
+            <h2>🍇 你成功了嗎？ 🍇</h2>
+            <button class="result-btn" onclick="handleResult(true)">✅ 成功！</button>
+            <button class="result-btn fail" onclick="handleResult(false)">❌ 失敗...</button>
+        </div>
+    </div>
+
+    <script>
+        let timerInterval;
+        let notificationTimeout;
+        let startTime;
+        let currentSegment = 0;
+        const totalTime = 20; // 20秒
+        const segments = 12; // 12段
+        const segmentDuration = totalTime / segments; // 每段約1.667秒
+
+        // 更新台灣時間
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('clock').textContent = `${hours}:${minutes}:${seconds}`;
+            
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1;
+            const day = now.getDate();
+            document.getElementById('date').textContent = `${year}年${month}月${day}日`;
+        }
+
+        // 每秒更新時鐘
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        function showNotification(text) {
+            const notification = document.getElementById('notification');
+            notification.textContent = text;
+            notification.classList.add('show');
+            
+            if (notificationTimeout) {
+                clearTimeout(notificationTimeout);
+            }
+            
+            notificationTimeout = setTimeout(() => {
+                notification.classList.remove('show');
+            }, 1000);
+        }
+
+        function startTimer() {
+            const startBtn = document.getElementById('startBtn');
+            const timerDisplay = document.getElementById('timer');
+            const progressDisplay = document.getElementById('progress');
+            
+            startBtn.disabled = true;
+            currentSegment = 0;
+            startTime = Date.now();
+            
+            // 開始時立即顯示第一顆
+            showNotification('🍇 第1顆 🍇');
+            progressDisplay.textContent = '已提醒: 第1顆 (0/12)';
+            
+            timerInterval = setInterval(() => {
+                const elapsed = (Date.now() - startTime) / 1000;
+                const remaining = Math.max(0, totalTime - elapsed);
+                
+                timerDisplay.textContent = remaining.toFixed(1);
+                
+                // 檢查是否到達下一個段落
+                const targetSegment = Math.floor(elapsed / segmentDuration);
+                
+                if (targetSegment > currentSegment && targetSegment < segments) {
+                    currentSegment = targetSegment;
+                    const pillNumber = currentSegment + 1; // 第二顆開始
+                    showNotification(`🍇 第${pillNumber}顆 🍇`);
+                    progressDisplay.textContent = `已提醒: 第${pillNumber}顆 (${currentSegment}/${segments})`;
+                }
+                
+                if (remaining <= 0) {
+                    clearInterval(timerInterval);
+                    timerDisplay.textContent = '20.0';
+                    progressDisplay.textContent = '時間到！';
+                    startBtn.disabled = false;
+                    currentSegment = 0;
+                    
+                    // 顯示結果詢問
+                    setTimeout(() => {
+                        document.getElementById('resultModal').classList.add('show');
+                    }, 500);
+                }
+            }, 50);
+        }
+        
+        function handleResult(success) {
+            const modal = document.getElementById('resultModal');
+            const notification = document.getElementById('notification');
+            
+            modal.classList.remove('show');
+            
+            if (success) {
+                const successMessages = [
+                    '🎉 恭喜成功！2025年好運滿滿！',
+                    '✨ 太棒了！新的一年將充滿幸運！',
+                    '🌟 完美達成！12個月都會順順利利！',
+                    '🎊 厲害！你的願望都會實現！',
+                    '💫 成功了！2025年必定精彩！'
+                ];
+                notification.textContent = successMessages[Math.floor(Math.random() * successMessages.length)];
+                notification.style.background = 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)';
+            } else {
+                const failMessages = [
+                    '💪 別氣餒！明年再試一次！',
+                    '😅 差一點點！明年一定可以！',
+                    '🍇 沒關係！練習後明年再挑戰！',
+                    '💕 失敗是成功之母！明年加油！',
+                    '🌈 別放棄！明年的你會更厲害！'
+                ];
+                notification.textContent = failMessages[Math.floor(Math.random() * failMessages.length)];
+                notification.style.background = 'linear-gradient(135deg, #ff6b6b 0%, #ffd700 100%)';
+            }
+            
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                document.getElementById('progress').textContent = '準備開始';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

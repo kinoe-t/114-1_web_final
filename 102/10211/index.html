@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>蔬菜披薩轉盤</title>
+  <style>
+    body { font-family: sans-serif; background:#0f172a; color:#e5e7eb; margin:0; padding:20px; }
+    .container { display:flex; flex-wrap:wrap; gap:20px; }
+    .panel { flex:1 1 300px; background:#1e293b; padding:16px; border-radius:12px; }
+    input[type="text"] { width:100%; padding:8px; border-radius:8px; border:none; margin-bottom:8px; }
+    button { padding:8px 12px; margin-right:8px; border:none; border-radius:8px; cursor:pointer; }
+    #optionList { margin-top:10px; }
+    .chip { background:#334155; padding:6px 10px; border-radius:8px; margin:4px 0; display:flex; justify-content:space-between; align-items:center; }
+    canvas { width:100%; height:auto; }
+    .result { margin-top:12px; font-size:18px; font-weight:bold; color:#22c55e; }
+  </style>
+</head>
+<body>
+  <h1>蔬菜披薩轉盤</h1>
+  <div class="container">
+    <div class="panel">
+      <h2>選項設定</h2>
+      <input id="optionInput" type="text" placeholder="輸入選項，逗號分隔" />
+      <button id="addBtn">加入</button>
+      <button id="clearBtn">清空</button>
+      <div id="optionList"></div>
+    </div>
+    <div class="panel">
+      <h2>轉盤</h2>
+      <canvas id="wheelCanvas" width="500" height="500"></canvas>
+      <button id="spinBtn">開始轉動</button>
+      <button id="resetBtn">回到初始角度</button>
+      <div id="result" class="result">請先加入選項</div>
+    </div>
+  </div>
+
+  <script>
+    // 每片披薩的底色（不同顏色，方便分辨）
+    const SLICE_COLORS = ["#f87171","#60a5fa","#34d399","#fbbf24","#a78bfa","#fb7185","#22d3ee","#f472b6","#93c5fd","#10b981","#f59e0b","#8b5cf6","#ef4444"];
+    // 蔬菜配料顏色
+    const TOPPINGS = {
+      tomato: "#ef4444",   // 番茄
+      pepper: "#22c55e",   // 青椒
+      corn: "#fde047",     // 玉米
+      onion: "#a78bfa",    // 紫洋蔥
+      olive: "#000000",    // 黑橄欖
+      mushroom: "#d6d3d1"  // 蘑菇
+    };
+    const toppingKeys = Object.keys(TOPPINGS);
+
+    const state={options:["瑪格麗特","夏威夷","四季","海鮮"],rotation:0,spinning:false};
+
+    const optionInput=document.getElementById("optionInput");
+    const addBtn=document.getElementById("addBtn");
+    const clearBtn=document.getElementById("clearBtn");
+    const optionList=document.getElementById("optionList");
+    const wheelCanvas=document.getElementById("wheelCanvas");
+    const ctx=wheelCanvas.getContext("2d");
+    const spinBtn=document.getElementById("spinBtn");
+    const resetBtn=document.getElementById("resetBtn");
+    const resultBox=document.getElementById("result");
+
+    function renderList(){
+      optionList.innerHTML="";
+      state.options.forEach((opt,idx)=>{
+        const chip=document.createElement("div");
+        chip.className="chip";
+        chip.textContent=opt;
+        const del=document.createElement("button");
+        del.textContent="刪除";
+        del.onclick=()=>{state.options.splice(idx,1);drawWheel();renderList();};
+        chip.appendChild(del);
+        optionList.appendChild(chip);
+      });
+    }
+
+    function drawWheel(){
+      const W=wheelCanvas.width,H=wheelCanvas.height;
+      const cx=W/2,cy=H/2,R=W/2-10;
+      ctx.clearRect(0,0,W,H);
+      const n=state.options.length;
+      if(n===0) return;
+      const sweep=2*Math.PI/n;
+      ctx.save();
+      ctx.translate(cx,cy);
+      ctx.rotate(state.rotation);
+      for(let i=0;i<n;i++){
+        const start=i*sweep,end=start+sweep;
+        // 餅皮外圈
+        ctx.beginPath();
+        ctx.arc(0,0,R,start,end);
+        ctx.arc(0,0,R-20,end,start,true);
+        ctx.closePath();
+        ctx.fillStyle="#d97706"; // 餅皮顏色
+        ctx.fill();
+
+        // 起司區塊（每片不同顏色）
+        ctx.beginPath();
+        ctx.moveTo(0,0);
+        ctx.arc(0,0,R-20,start,end);
+        ctx.closePath();
+        ctx.fillStyle=SLICE_COLORS[i%SLICE_COLORS.length];
+        ctx.fill();
+
+        // 在起司區塊上隨機加蔬菜配料
+        for(let j=0;j<10;j++){
+          const angle=start+Math.random()*(end-start);
+          const radius=30+Math.random()*(R-50);
+          const x=Math.cos(angle)*radius;
+          const y=Math.sin(angle)*radius;
+          ctx.beginPath();
+          ctx.arc(x,y,5,0,Math.PI*2);
+          const topping=toppingKeys[Math.floor(Math.random()*toppingKeys.length)];
+          ctx.fillStyle=TOPPINGS[topping];
+          ctx.fill();
+        }
+
+        //文字
+        const mid=start+sweep/2;
+        ctx.save();
+        ctx.rotate(mid);
+        ctx.translate(R*0.5,0);
+        ctx.rotate(Math.PI/2);
+        ctx.fillStyle="#000";
+        ctx.font="16px sans-serif";
+        ctx.textAlign="center";
+        ctx.fillText(state.options[i],0,0);
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+
+    function spin(){
+      if(state.spinning||state.options.length<2) return;
+      state.spinning=true;
+      const n=state.options.length;
+      const sweep=2*Math.PI/n;
+      const targetIndex=Math.floor(Math.random()*n);
+      const targetAngle=targetIndex*sweep+sweep/2;
+      const extraTurns=6; // 固定圈數
+      const finalAngle=state.rotation+extraTurns*2*Math.PI+targetAngle;
+      const duration=1500; // 快速固定時間
+      const startAngle=state.rotation;
+      const startTime=performance.now();
+      function frame(now){
+        const t=Math.min((now-startTime)/duration,1);
+        const p=1-Math.pow(1-t,3);
+        state.rotation=startAngle+(finalAngle-startAngle)*p;
+        drawWheel();
+        if(t<1){requestAnimationFrame(frame);}
+        else{
+          state.spinning=false;
+          state.rotation=finalAngle;
+          drawWheel();
+          resultBox.textContent="結果："+state.options[targetIndex];
+        }
+      }
+      requestAnimationFrame(frame);
+    }
+
+    addBtn.onclick=()=>{
+      const items=optionInput.value.split(",").map(s=>s.trim()).filter(s=>s);
+      state.options.push(...items);
+      optionInput.value="";
+      renderList();drawWheel();
+    };
+    clearBtn.onclick=()=>{state.options=[];renderList();drawWheel();};
+    spinBtn.onclick=spin;
+    resetBtn.onclick=()=>{state.rotation=0;drawWheel();resultBox.textContent="已回到初始角度";};
+
+    renderList();drawWheel();
+  </script>
+</body>
+</html>

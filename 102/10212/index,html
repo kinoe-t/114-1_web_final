@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>歲末寄語 | 精選吉祥話</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #fcfaf2;
+            --primary-red: #962121;
+            --accent-gold: #b39355;
+            --text-dark: #3a3a3a;
+        }
+
+        * { box-sizing: border-box; transition: all 0.4s ease; }
+
+        body {
+            margin: 0;
+            background-color: var(--bg-color);
+            font-family: 'Noto Sans TC', sans-serif;
+            color: var(--text-dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-image: radial-gradient(rgba(179, 147, 85, 0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .main-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 3.5rem 2.5rem;
+            width: 92%;
+            max-width: 450px;
+            border-radius: 4px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.08);
+            border-top: 8px solid var(--primary-red);
+            text-align: center;
+            position: relative;
+        }
+
+        h1 {
+            font-family: 'Noto Serif TC', serif;
+            font-size: 2rem;
+            letter-spacing: 6px;
+            color: var(--primary-red);
+            margin: 0;
+        }
+
+        .subtitle {
+            font-size: 0.75rem;
+            color: var(--accent-gold);
+            letter-spacing: 3px;
+            margin-bottom: 3rem;
+            opacity: 0.8;
+        }
+
+        .select-group {
+            margin-bottom: 2.5rem;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-bottom: 1.5px solid #eaeaea;
+            font-size: 1.1rem;
+            font-family: 'Noto Serif TC', serif;
+            color: var(--text-dark);
+            background: transparent;
+            cursor: pointer;
+            text-align-last: center;
+        }
+
+        select:focus { outline: none; border-bottom-color: var(--primary-red); }
+
+        .btn-generate {
+            background-color: var(--primary-red);
+            color: #fff;
+            border: none;
+            padding: 16px 32px;
+            font-size: 1rem;
+            letter-spacing: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: 500;
+        }
+
+        .btn-generate:hover {
+            background-color: #7a1a1a;
+            box-shadow: 0 10px 20px rgba(150, 33, 33, 0.2);
+        }
+
+        #result-display {
+            margin-top: 3.5rem;
+            min-height: 120px;
+            opacity: 0;
+            transform: translateY(15px);
+        }
+
+        #result-display.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .greeting-quote {
+            font-family: 'Noto Serif TC', serif;
+            font-size: 1.3rem;
+            line-height: 1.8;
+            color: var(--text-dark);
+            word-break: break-all;
+        }
+
+        .copy-hint {
+            margin-top: 2rem;
+            font-size: 0.8rem;
+            color: var(--accent-gold);
+            cursor: pointer;
+            letter-spacing: 1px;
+        }
+
+        /* 裝飾線 */
+        .deco-line {
+            height: 1px;
+            width: 40px;
+            background: var(--accent-gold);
+            margin: 1.5rem auto;
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-card">
+    <h1>歲末寄語</h1>
+    <div class="subtitle">ELEGANT GREETINGS</div>
+    
+    <div class="select-group">
+        <select id="role-select">
+            <option value="grandparents">致 家族長輩</option>
+            <option value="parents">致 摯愛雙親</option>
+            <option value="elders">致 親友尊長</option>
+            <option value="boss">致 職場提攜</option>
+        </select>
+    </div>
+
+    <button class="btn-generate" onclick="generate()">抽取祝禱</button>
+
+    <div id="result-display">
+        <div class="deco-line"></div>
+        <div class="greeting-quote" id="text-target"></div>
+        <div class="copy-hint" onclick="copy()">— 點擊文字複製 —</div>
+    </div>
+</div>
+
+<script>
+    const quotes = {
+        grandparents: [
+            "歲月靜好，福壽綿長，願您如松柏長青，春日常在。",
+            "福慧雙增，如意康安。願新的一年，星辰璀璨，歲歲平安。",
+            "願您福如東海、壽比南山，在時光裡慢行，安享清福。",
+            "願您新春如意，身體康泰，笑口常開，日日是好日。",
+            "祝您松鶴長春，富貴安康，子孫繞膝，福滿堂前。",
+            "歲月增中減，福壽滿乾坤。願您新的一年平安喜樂。"
+        ],
+        parents: [
+            "感謝歲月溫柔，願父母身體安康，萬事隨心，喜樂常伴。",
+            "新歲序開，願您二位平安喜樂，萬事如意，笑口常開。",
+            "願生活如詩，願您健康如初。辛苦了，新春快樂。",
+            "吉星高照，歲歲平安。願未來的每一天，您都充滿笑容。",
+            "願您在新的的一年裡，日子紅火，心情舒暢，一切順心。",
+            "生活雖然平凡，但願您的每一天都閃閃發亮，平安健康。"
+        ],
+        elders: [
+            "願您歲歲平安，年年如意。在新的一年，大吉大利，萬事勝意。",
+            "吉星高照，財源廣進。願您前程似錦，生活美滿如初。",
+            "一元復始，萬象更新。祝您新春佳節，平安順遂，闔家歡樂。",
+            "祝您新春行大運，春風得意，福氣滿滿，萬事皆順。",
+            "願您財氣東來，好運連連，新的一年身體龍馬精神。",
+            "恭賀新禧，願您平安如意，心想事成，歲歲皆歡愉。"
+        ],
+        boss: [
+            "祝您事業大展鴻圖，如龍騰飛，業績輝煌，再創巔峰。",
+            "願新的一年，貴人扶持，順風順水，帶領我們共創燦爛明天。",
+            "祝您事業蒸蒸日上，財庫豐盈，步步高升，萬事亨通。",
+            "新春大吉，願您宏圖大展，運籌帷幄，帶領團隊再登高峰。",
+            "祝您財源廣進，生意興隆，新年事業更上一層樓。",
+            "感謝您過去的提攜，願您新年萬事勝意，龍騰虎躍。"
+        ]
+    };
+
+    let lastQuote = "";
+
+    function generate() {
+        const role = document.getElementById('role-select').value;
+        const options = quotes[role];
+        let randomQuote;
+        
+        // 確保不連續重複
+        do {
+            randomQuote = options[Math.floor(Math.random() * options.length)];
+        } while (randomQuote === lastQuote && options.length > 1);
+        
+        lastQuote = randomQuote;
+        
+        const display = document.getElementById('result-display');
+        const target = document.getElementById('text-target');
+        
+        display.classList.remove('show');
+        
+        setTimeout(() => {
+            target.innerText = randomQuote;
+            display.classList.add('show');
+        }, 300);
+    }
+
+    function copy() {
+        const text = document.getElementById('text-target').innerText;
+        if(!text) return;
+        navigator.clipboard.writeText(text).then(() => {
+            const hint = document.querySelector('.copy-hint');
+            hint.innerText = "— 已複製寄語 —";
+            setTimeout(() => hint.innerText = "— 點擊文字複製 —", 2000);
+        });
+    }
+</script>
+
+</body>
+</html>

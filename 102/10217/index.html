@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人生模擬器 - 優秀亞洲小孩篇</title>
+    <style>
+        body {
+            font-family: "Microsoft JhengHei", sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        #game-container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .step-img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            background-color: #ddd;
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 1.5rem;
+        }
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        button {
+            padding: 12px;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            background-color: #4A90E2;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #357ABD;
+        }
+        .death {
+            color: #e74c3c;
+            font-size: 3rem;
+            font-weight: bold;
+        }
+        .success {
+            color: #27ae60;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .restart-btn {
+            margin-top: 20px;
+            background-color: #666;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="game-content">
+        </div>
+</div>
+
+<script>
+    const questions = [
+        {
+            img: "1.jpeg",
+            text: "第一關：選擇你的性別",
+            options: [
+                { text: "男生", correct: true },
+                { text: "女生", correct: false }
+            ]
+        },
+        {
+            img: "9.png",
+            text: "第二關：選擇家庭出生",
+            options: [
+                { text: "金湯匙", correct: true },
+                { text: "免洗餐具", correct: false }
+            ]
+        },
+        {
+            img: "3.png",
+            text: "第三關：選擇興趣",
+            options: [
+                { text: "聽診器", correct: true },
+                { text: "麥克風", correct: false }
+            ]
+        },
+        {
+            img: "4.png",
+            text: "第四關：選擇課後活動",
+            options: [
+                { text: "出去散步", correct: true },
+                { text: "在家算數學", correct: false }
+            ]
+        },
+        {
+            img: "5.png",
+            text: "第五關：選擇食物",
+            options: [
+                { text: "義大利麵", correct: true },
+                { text: "泡麵", correct: false }
+            ]
+        }
+    ];
+
+    let currentStep = 0;
+    const container = document.getElementById('game-content');
+
+    function renderStep() {
+        if (currentStep >= questions.length) {
+            showSuccess();
+            return;
+        }
+
+        const q = questions[currentStep];
+        container.innerHTML = `
+            <img src="${q.img}" alt="Step Image" class="step-img" onerror="this.src='https://via.placeholder.com/400x200?text=Image+Not+Found'">
+            <h2>${q.text}</h2>
+            <div class="btn-group">
+                <button onclick="checkAnswer(true)">${q.options[0].text}</button>
+                <button onclick="checkAnswer(false)">${q.options[1].text}</button>
+            </div>
+        `;
+    }
+
+    function checkAnswer(isFirstOption) {
+        // 根據題目設定，數字 1 (陣列索引 0) 才是正確的
+        if (isFirstOption) {
+            currentStep++;
+            renderStep();
+        } else {
+            showDeath();
+        }
+    }
+
+    function showDeath() {
+        container.innerHTML = `
+            <div class="death">死亡</div>
+            <p>你未能符合亞洲家長的期待...</p>
+            <button class="restart-btn" onclick="restart()">重新投胎</button>
+        `;
+    }
+
+    function showSuccess() {
+        container.innerHTML = `
+            <div class="success">恭喜活到18歲</div>
+            <p>(優秀亞洲小孩)</p>
+            <button class="restart-btn" onclick="restart()">再玩一次</button>
+        `;
+    }
+
+    function restart() {
+        currentStep = 0;
+        renderStep();
+    }
+
+    // 初始化遊戲
+    renderStep();
+</script>
+
+</body>
+</html>

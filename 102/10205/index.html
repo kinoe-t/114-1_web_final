@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>理想型二分法測驗</title>
+    <style>
+        body {
+            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+        h1 { color: #333; margin-bottom: 1.5rem; }
+        .question-text { font-size: 1.25rem; margin-bottom: 2rem; color: #555; min-height: 3em; }
+        .btn-group { display: flex; gap: 1rem; justify-content: center; }
+        button {
+            padding: 10px 30px;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        .btn-yes { background-color: #4CAF50; color: white; }
+        .btn-yes:hover { background-color: #45a049; }
+        .btn-no { background-color: #f44336; color: white; }
+        .btn-no:hover { background-color: #da190b; }
+        .result-img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            margin-top: 1rem;
+            border: 2px solid #eee;
+        }
+        .restart-btn {
+            background-color: #2196F3;
+            color: white;
+            margin-top: 2rem;
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="quiz-section">
+        <h1 id="title">理想型二分法</h1>
+        <p class="question-text" id="question">準備好找出你的理想型了嗎？</p>
+        <div class="btn-group" id="btn-group">
+            <button class="btn-yes" onclick="startQuiz()">開始測驗</button>
+        </div>
+    </div>
+
+    <div id="result-section" class="hidden">
+        <h1>你的理想型是：</h1>
+        <h2 id="result-name"></h2>
+        <div id="image-container"></div>
+        <button class="restart-btn" onclick="location.reload()">重新測驗</button>
+    </div>
+</div>
+
+<script>
+    // 答案資料庫 (包含圖片連結與名稱)
+    const results = {
+        'A': { name: '川普', img: 'https://voicettank.org/20241111-3/' },
+        'B': { name: 'JYP', img: 'https://koreajoongangdaily.joins.com/news/2025-10-01/entertainment/kpop/JYPs-new-government-gig-Good-or-bad-news-for-Kpop/2411391' },
+        'C': { name: '金玟奎', img: 'https://upload.wikimedia.org/wikipedia/commons/b/b3/Min_Gyu_210925.png' }, // 修正為直接圖網
+        'D': { name: '崔然竣', img: 'https://www.instagram.com/p/Cwc9Dt_Sm7k/' },
+        'E': { name: '黃挺瑋', img: 'https://www.facebook.com/xiaoqi.huang.33/' },
+        'F': { name: '章昊', img: 'https://zh.wikipedia.org/zh-tw/%E7%AB%A0%E6%98%8A' },
+        'G': { name: '柯文哲', img: 'https://blog.hamibook.com.tw/%E6%96%B0%E8%81%9E%E6%99%82%E4%BA%8B/%E5%BF%AB%E8%AE%80_%E6%96%B0%E6%96%B0%E8%81%9E1641%E6%9C%9F_%E3%80%90%E5%B0%81%E9%9D%A2%E6%95%85%E4%BA%8B%E3%80%91' },
+        'H': { name: '賴清德', img: 'https://sports.ltn.com.tw/news/breakingnews/4963515' },
+        'I': { name: '明宰鉉', img: 'https://myship.7-11.com.tw/general/detail/GM2312198449060' },
+        'J': { name: '金道勳', img: 'https://zh.wikipedia.org/zh-tw/%E9%81%93%E5%8B%B3' },
+        'K': { name: '房時赫', img: 'https://zh.wikipedia.org/zh-tw/%E6%88%BF%E6%99%82%E7%88%80' },
+        'L': { name: '李秀滿', img: 'https://star.ettoday.net/news/2537705' },
+        'M': { name: '邊伯賢', img: 'http://korea.people.com.cn/BIG5/n1/2019/0610/c407920-31127970.html' },
+        'N': { name: '韓國瑜', img: 'https://news.pts.org.tw/article/462450' },
+        'O': { name: '李龍馥', img: 'https://www.dcard.tw/f/entertainer/p/259883434' },
+        'P': { name: '沈載倫', img: 'https://world.taobao.com/item/NzJKNG9lUkNtblkwbEpJWnEycVpHZz09.htm' }
+    };
+
+    let step = 1;
+    let currentPath = ""; // 紀錄選擇路徑，例如 YN (Yes, No)
+
+    function startQuiz() {
+        step = 1;
+        updateUI("第一個問題：是否在意身高？");
+    }
+
+    function handleChoice(choice) {
+        // choice: 'Y' or 'N'
+        currentPath += choice;
+        
+        if (step === 1) {
+            step = 2;
+            updateUI("第二個問題：是否在意對方經濟狀況？");
+        } else if (step === 2) {
+            step = 3;
+            // 根據前兩題路徑決定第三題
+            if (currentPath === "YY") updateUI("第三個問題：是否有權勢？");
+            else if (currentPath === "YN") updateUI("第三個問題：是否為華人？");
+            else if (currentPath === "NY") updateUI("第三個問題：是否希望對方有藝術氣息？");
+            else if (currentPath === "NN") updateUI("第三個問題：是否在意對方年齡？");
+        } else if (step === 3) {
+            step = 4;
+            // 根據前三題路徑決定第四題
+            if (currentPath === "YYY") updateUI("第四個問題：是否喜歡美國人？");
+            else if (currentPath === "YYN") updateUI("第四個問題：是否喜歡對方有明顯肌肉線條？");
+            else if (currentPath === "YNY") updateUI("第四個問題：是否為台灣人？");
+            else if (currentPath === "YNN") updateUI("第四個問題：是否有領導能力？");
+            else if (currentPath === "NYN") updateUI("第四個問題：是否有戴眼鏡？");
+            else if (currentPath === "NYY") updateUI("第四個問題：是否為大老闆？");
+            else if (currentPath === "NNY") updateUI("第四個問題：是否在意顏值？");
+            else if (currentPath === "NNN") updateUI("第四個問題：是否喜歡低音？");
+        } else if (step === 4) {
+            showResult();
+        }
+    }
+
+    function updateUI(question) {
+        document.getElementById('question').innerText = question;
+        document.getElementById('btn-group').innerHTML = `
+            <button class="btn-yes" onclick="handleChoice('Y')">是</button>
+            <button class="btn-no" onclick="handleChoice('N')">否</button>
+        `;
+    }
+
+    function showResult() {
+        let finalCode = "";
+        // 映射路徑到結果 A-P
+        const map = {
+            "YYYY": "A", "YYYN": "B", "YYNY": "C", "YYNN": "D",
+            "YNYY": "E", "YNYN": "F", "YNNY": "I", "YNNN": "J",
+            "NYNY": "G", "NYNN": "H", "NYYY": "K", "NYYN": "L",
+            "NNYY": "M", "NNYN": "N", "NNNY": "O", "NNNN": "P"
+        };
+        
+        finalCode = map[currentPath];
+        const person = results[finalCode];
+
+        document.getElementById('quiz-section').classList.add('hidden');
+        document.getElementById('result-section').classList.remove('hidden');
+        document.getElementById('result-name').innerText = person.name;
+        
+        // 處理部分網頁連結非直接圖片的情況，提示點擊查看
+        const isDirectImg = person.img.match(/\.(jpeg|jpg|gif|png)$/) != null;
+        if(isDirectImg || finalCode === 'C') { // C 做了手動修正
+             const imgUrl = (finalCode === 'C') ? 'https://upload.wikimedia.org/wikipedia/commons/b/b3/Min_Gyu_210925.png' : person.img;
+             document.getElementById('image-container').innerHTML = `<img src="${imgUrl}" class="result-img" alt="${person.name}">`;
+        } else {
+             document.getElementById('image-container').innerHTML = `
+                <p>由於版權或網頁限制，請點擊下方連結查看照片：</p>
+                <a href="${person.img}" target="_blank">${person.img}</a>
+             `;
+        }
+    }
+</script>
+
+</body>
+</html>

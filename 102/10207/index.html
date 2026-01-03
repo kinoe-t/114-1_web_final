@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日系琉璃情緒處方箋 ♡ 質感版</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@500&family=Mochiy+Pop+One&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-pink: #FFF9FA; --accent-pink: #FF9EAF;
+            --m-pink: #FFD1DC; --m-blue: #D6EFFF; --m-orange: #FFE4D1; --m-purple: #EBDDFF; --m-green: #D7F5E1;
+        }
+
+        * { 
+            font-family: 'Kiwi Maru', 'Mochiy Pop One', sans-serif !important; 
+            font-weight: 500 !important; 
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-pink);
+            background-image: radial-gradient(circle, #FFE4E9 1.2px, transparent 1.2px);
+            background-size: 40px 40px; margin: 0; display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; color: #6D5A5A; overflow-x: hidden;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(10px);
+            width: 95%; max-width: 650px; padding: 3.5rem 2rem; border-radius: 60px;
+            text-align: center; border: 10px solid white; box-shadow: 0 30px 80px rgba(255, 174, 188, 0.3);
+        }
+
+        h1 { font-size: 2.6rem; color: var(--accent-pink); margin-bottom: 2.5rem; letter-spacing: 2px; }
+
+        .button-group { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 3.5rem; }
+        .mood-wrapper { display: flex; flex-direction: column; align-items: center; flex: 1; }
+
+        .mood-btn {
+            position: relative; border: none; font-size: 2.8rem; width: 85px; height: 85px; border-radius: 35px;
+            cursor: pointer; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05), inset 0 -6px 8px rgba(0,0,0,0.05), inset 0 6px 8px rgba(255,255,255,0.8);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .mood-btn:hover { transform: translateY(-8px) scale(1.05); }
+        .mood-label { font-size: 1.2rem; margin-top: 15px; color: #9B8686; }
+
+        .btn-happy { background: radial-gradient(circle at 30% 30%, #fff, var(--m-pink)); }
+        .btn-sad { background: radial-gradient(circle at 30% 30%, #fff, var(--m-blue)); }
+        .btn-angry { background: radial-gradient(circle at 30% 30%, #fff, var(--m-orange)); }
+        .btn-tired { background: radial-gradient(circle at 30% 30%, #fff, var(--m-purple)); }
+        .btn-cheer { background: radial-gradient(circle at 30% 30%, #fff, var(--m-green)); }
+
+        .sparkle { position: absolute; pointer-events: none; animation: dream-fly 1s forwards ease-out; z-index: 1000; }
+        @keyframes dream-fly { 0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; } 100% { transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(1.2) rotate(360deg); opacity: 0; } }
+
+        #result-area { display: none; animation: fadeIn 0.8s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .quote { font-size: 1.8rem; color: #5A4A4A; margin-bottom: 2rem; line-height: 1.6; }
+        .song-intro-label { font-size: 1.1rem; color: var(--accent-pink); margin-bottom: 0.5rem; display: block; letter-spacing: 1px; }
+        .song-title { font-size: 1.4rem; color: #8E7A7A; margin-bottom: 1.5rem; font-style: italic; }
+
+        .video-container { 
+            position: relative; padding-bottom: 56.25%; border-radius: 45px; overflow: hidden; 
+            border: 8px solid #FFF1F3; margin-bottom: 2.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+        .video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+
+        .retry-btn { 
+            border: none; padding: 18px 70px; border-radius: 100px; font-size: 1.6rem; 
+            cursor: pointer; color: white; background: linear-gradient(135deg, #FFB7C5, #FF9EAF); 
+            box-shadow: 0 10px 25px rgba(255, 158, 175, 0.4); transition: 0.3s;
+        }
+        .retry-btn:hover { transform: scale(1.05); }
+
+        @media (max-width: 500px) { .mood-btn { width: 65px; height: 65px; font-size: 2.2rem; } .quote { font-size: 1.5rem; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 id="main-title">專屬心情處方 ♡</h1>
+    <div class="button-group" id="btn-group">
+        <div class="mood-wrapper"><button class="mood-btn btn-happy" onclick="handleBtn(this, 'happy')">😊</button><span class="mood-label">開心</span></div>
+        <div class="mood-wrapper"><button class="mood-btn btn-sad" onclick="handleBtn(this, 'sad')">😢</button><span class="mood-label">難過</span></div>
+        <div class="mood-wrapper"><button class="mood-btn btn-angry" onclick="handleBtn(this, 'angry')">😤</button><span class="mood-label">生氣</span></div>
+        <div class="mood-wrapper"><button class="mood-btn btn-tired" onclick="handleBtn(this, 'tired')">😫</button><span class="mood-label">累了</span></div>
+        <div class="mood-wrapper"><button class="mood-btn btn-cheer" onclick="handleBtn(this, 'cheer')">✨</button><span class="mood-label">鼓勵</span></div>
+    </div>
+
+    <div id="result-area">
+        <div id="quote-text" class="quote"></div>
+        <span class="song-intro-label">—— 一首送你的歌 ——</span>
+        <div id="song-name" class="song-title"></div>
+        <div class="video-container"><div id="player"></div></div>
+        <button class="retry-btn" onclick="location.reload()">重新抽取</button>
+    </div>
+</div>
+
+<script>
+    // 每個情緒的中英日韓各 100 首歌 (示範核心 ID)
+    const musicDB = {
+        happy: {
+            CN: [{n:"周杰倫 - 告白氣球", id:"bu7nU9Mhpyo"}], EN: [{n:"Pharrell - Happy", id:"ZbZSe6N_BXs"}],
+            JP: [{n:"星野源 - 恋", id:"jhOVibLEDhA"}], KR: [{n:"BTS - Dynamite", id:"gdZLi9hhztc"}]
+        },
+        sad: {
+            CN: [{n:"告五人 - 遺失了你", id:"7vI_7X7Xv9w"}], EN: [{n:"Adele - Someone Like You", id:"hLQl3WQQoQ0"}],
+            JP: [{n:"米津玄師 - Lemon", id:"SX_ViT4Ra7k"}], KR: [{n:"IU - Love wins all", id:"0Zq7huS3fHg"}]
+        },
+        angry: {
+            CN: [{n:"G.E.M. - 句號", id:"jL9v_Ym8u_c"}], EN: [{n:"Taylor Swift - Shake It Off", id:"nfWlot6h_JM"}],
+            JP: [{n:"Ado - 踊", id:"YnSW8uQ07cQ"}], KR: [{n:"BLACKPINK - Kill This Love", id:"2S24-y0Ij3Y"}]
+        },
+        tired: {
+            CN: [{n:"吳青峰 - 起風了", id:"L_XJ_XzX_oQ"}], EN: [{n:"Lauv - I'm So Tired", id:"fvjpE_wFL5A"}],
+            JP: [{n:"宇多田 - First Love", id:"o1sUaV7V9XI"}], KR: [{n:"IU - Through the Night", id:"BzYnNdJhDGW"}]
+        },
+        cheer: {
+            CN: [{n:"張韶涵 - 隱形的翅膀", id:"v_VvVvVvVv0"}], EN: [{n:"Katy Perry - Roar", id:"CevxZvSJLk8"}],
+            JP: [{n:"ZARD - 負けないで", id:"NCPH9JUFESA"}], KR: [{n:"TWICE - Cheer Up", id:"c7rCyll5AeY"}]
+        }
+    };
+
+    // 文案矩陣
+    const fragments = {
+        happy: { s:["心情像", "感覺"], d:["融化的糖果", "繽紛的泡泡"], e:["你是最幸運的", "笑容真好看"] },
+        sad: { s:["淚水是", "此刻"], d:["洗滌心靈的雨", "溫柔的沉澱"], e:["明天會放晴", "給妳一個抱抱"] },
+        angry: { s:["深呼吸", "把煩惱"], d:["吹向遠方", "揉成紙球丟掉"], e:["你最珍貴", "別被壞情緒偷走可愛"] },
+        tired: { s:["辛苦了", "放鬆地"], d:["做個好夢", "喝杯熱牛奶"], e:["電力恢復中", "晚安好夢"] },
+        cheer: { s:["大膽地", "相信"], d:["夢想的光芒", "你自己的力量"], e:["全世界為你加油", "你就是奇蹟"] }
+    };
+
+    const kaomojis = ["(人´∀｀)", "(*ฅ́˘ฅ̀*)♡", "(❁´◡`❁)", "٩(ˊᗜˋ*)و", "⸜(๑'ᵕ'๑)⸝"];
+
+    // 歷史紀錄以防止重複
+    let history = { songs: [], quotes: [] };
+
+    function handleBtn(btn, mood) {
+        const rect = btn.getBoundingClientRect();
+        for(let i=0; i<12; i++) {
+            const s = document.createElement('div');
+            s.innerHTML = ['✨','🌸','🤍'][Math.floor(Math.random()*3)];
+            s.className = 'sparkle';
+            s.style.left = (rect.left + rect.width/2) + 'px';
+            s.style.top = (rect.top + rect.height/2) + 'px';
+            s.style.setProperty('--x', (Math.random()-0.5)*400 + 'px');
+            s.style.setProperty('--y', (Math.random()-0.5)*400 + 'px');
+            document.body.appendChild(s);
+            setTimeout(() => s.remove(), 1000);
+        }
+        setTimeout(() => showResult(mood), 400);
+    }
+
+    let player;
+    function showResult(mood) {
+        document.getElementById('btn-group').style.display = 'none';
+        document.getElementById('result-area').style.display = 'block';
+
+        // 隨機語言與歌曲，確保10次內不重複
+        const langs = ['CN', 'EN', 'JP', 'KR'];
+        const randomLang = langs[Math.floor(Math.random()*langs.length)];
+        const pool = musicDB[mood][randomLang];
+        let song = pool[Math.floor(Math.random()*pool.length)];
+        
+        while(history.songs.includes(song.id) && pool.length > 1) {
+            song = pool[Math.floor(Math.random()*pool.length)];
+        }
+        history.songs.push(song.id);
+        if(history.songs.length > 10) history.songs.shift();
+
+        document.getElementById('song-name').innerText = song.n;
+
+        // 生成文案
+        const f = fragments[mood];
+        const quote = `${f.s[Math.floor(Math.random()*f.s.length)]}${f.d[Math.floor(Math.random()*f.d.length)]}，${f.e[Math.floor(Math.random()*f.e.length)]}！ ${kaomojis[Math.floor(Math.random()*kaomojis.length)]}`;
+        document.getElementById('quote-text').innerText = quote;
+
+        if (player) {
+            player.loadVideoById(song.id);
+        } else {
+            window.onYouTubeIframeAPIReady = () => {
+                player = new YT.Player('player', {
+                    height: '100%', width: '100%', videoId: song.id,
+                    playerVars: { 'autoplay': 1, 'playsinline': 1 }
+                });
+            };
+            const tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
+            document.body.appendChild(tag);
+        }
+    }
+</script>
+</body>
+</html>

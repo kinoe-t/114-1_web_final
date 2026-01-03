@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>測你的給給程度 - 豪華全彩雙圖版</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        /* 降低鮮豔度的粉彩色系定義 */
+        :root {
+            --rb-red: #ffb3ba;
+            --rb-orange: #ffdfba;
+            --rb-yellow: #ffffba;
+            --rb-green: #baffc9;
+            --rb-blue: #bae1ff;
+            --rb-purple: #e0bbff;
+        }
+
+        * {
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><text y="24" font-size="24">🌈</text></svg>'), auto !important;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: "PingFang TC", "Microsoft JhengHei", sans-serif;
+        }
+
+        /* 滿版動態背景 */
+        #main-capture-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            width: 100%;
+            background: linear-gradient(-45deg, var(--rb-red), var(--rb-orange), var(--rb-yellow), var(--rb-green), var(--rb-blue), var(--rb-purple));
+            background-size: 400% 400%;
+            animation: rainbowFlow 15s ease infinite;
+            padding: 20px;
+        }
+
+        @keyframes rainbowFlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* 測驗卡片設計 */
+        #quiz-card {
+            background: rgba(255, 255, 255, 0.98);
+            padding: 40px;
+            border-radius: 45px;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            border: 8px solid transparent;
+            border-image: linear-gradient(45deg, var(--rb-red), var(--rb-purple)) 1;
+            position: relative;
+        }
+
+        /* 標題區：🌈固定，文字流動 */
+        .title-group {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .emoji-static {
+            font-size: 2.2rem;
+            flex-shrink: 0;
+            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.1));
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin: 0;
+            background: linear-gradient(to right, #ff8b8b, #a094ff, #ff8b8b);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: textMove 4s linear infinite;
+            font-weight: 900;
+        }
+
+        @keyframes textMove { to { background-position: 200% center; } }
+
+        /* 測驗元件 */
+        .progress-box {
+            width: 100%; height: 12px; background: #f0f0f0;
+            border-radius: 20px; margin-bottom: 20px; overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%; width: 0%;
+            background: linear-gradient(90deg, var(--rb-red), var(--rb-purple));
+            transition: width 0.4s ease;
+        }
+
+        .q-text {
+            font-size: 1.3rem; font-weight: 800; color: #444;
+            margin-bottom: 30px; min-height: 4rem; display: flex; align-items: center; justify-content: center;
+        }
+
+        .opt-btn {
+            width: 100%; background: #fff; border: 2px solid #f8f8f8;
+            padding: 16px; border-radius: 18px; font-size: 1.1rem;
+            font-weight: 600; margin-bottom: 15px; transition: 0.2s;
+            color: #555; cursor: pointer;
+            box-shadow: 0 4px 0 #f0f0f0;
+        }
+
+        .opt-btn:hover { border-color: var(--rb-purple); transform: translateY(-2px); box-shadow: 0 6px 0 #e8e8e8; }
+        .opt-btn:active { transform: translateY(2px); box-shadow: none; }
+
+        /* 結果區 */
+        #result-section { display: none; }
+        .score-display { font-size: 6.5rem; font-weight: 900; margin: 5px 0; color: #555; letter-spacing: -3px; }
+        .desc-text { 
+            background: #fff; padding: 25px; border-radius: 25px;
+            text-align: left; border: 2px dashed #eee; margin-bottom: 30px;
+            font-size: 1.1rem; line-height: 1.7; color: #666;
+        }
+
+        .btn-stack { display: flex; flex-direction: column; gap: 15px; }
+
+        .btn-main {
+            background: linear-gradient(45deg, #a8e6cf, #dcedc1); color: #444; padding: 20px;
+            border-radius: 20px; font-size: 1.15rem; font-weight: bold; border: none;
+            cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+        }
+
+        .btn-sub {
+            background: linear-gradient(45deg, #f7d9d9, #e0bbff); color: #555; padding: 18px;
+            border-radius: 20px; font-size: 1.1rem; font-weight: bold; border: none; cursor: pointer;
+        }
+
+        .btn-retry { background: #eee; color: #999; border: none; padding: 12px; border-radius: 15px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div id="main-capture-area">
+    <div id="quiz-card">
+        <div class="title-group">
+            <span class="emoji-static">🌈</span>
+            <h1 id="title">測你的給給程度</h1>
+            <span class="emoji-static">🌈</span>
+        </div>
+        
+        <div id="quiz-section">
+            <div class="progress-box"><div class="progress-fill" id="pb"></div></div>
+            <p id="counter" style="font-weight:bold; color:#ccc;">Question 1 / 20</p>
+            <div class="q-text" id="q-text">載入中...</div>
+            <div id="opt-list"></div>
+        </div>
+
+        <div id="result-section">
+            <p style="font-weight:900; color:#bbb; letter-spacing: 2px;">鑑定結果報告</p>
+            <div class="score-display" id="score-val">0%</div>
+            <div class="desc-text" id="score-desc"></div>
+            <div class="btn-stack">
+                <button class="btn-main" onclick="saveFullImage()">📸 下載全彩背景分享圖</button>
+                <button class="btn-sub" onclick="saveCardOnly()">🖼️ 下載純卡片結果圖</button>
+                <button class="btn-retry" onclick="location.reload()">重新鑑定 🔄</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        { q: "1. 如果你最好的朋友對你出櫃，你會：", a: ["為他感到高興", "分享你也曾被同性吸引過", "保持距離", "表面大方，內心尷尬"], s: [8, 10, 0, 4] },
+        { q: "2. 你多數的朋友是同性還是異性？", a: ["清一色同性朋友", "異性朋友比例出奇高", "男女各半", "我獨來獨往"], s: [10, 8, 5, 2] },
+        { q: "3. 看到兩位帥哥在街上親吻，你的第一反應？", a: ["內心尖叫：好香！", "感覺世界充滿愛", "沒感覺，很平常", "覺得觀感不佳"], s: [10, 8, 6, 0] },
+        { q: "4. 對於「白襪配涼鞋」或「緊身單車褲」的看法？", a: ["圈內人的時尚訊號吧", "身材好就完全可以", "這穿搭是災難", "現在流行什麼就穿什麼"], s: [10, 8, 1, 5] },
+        { q: "5. 你對自己的皮膚保養要求到什麼程度？", a: ["保養品成堆，步驟繁瑣", "注重防曬或特定保養", "簡單乾淨就好", "完全不修邊幅"], s: [10, 7, 4, 0] },
+        { q: "6. 當你看到一位長相出眾的同性時：", a: ["想擁有他，或者成為他", "研究他的配件跟品味", "單純欣賞一下", "根本沒注意"], s: [10, 9, 5, 1] },
+        { q: "7. 你是否曾被問過「你是 Gay 嗎」？", a: ["經常被問，我都懶得解釋", "偶爾會被懷疑", "從來沒有過", "大家都覺得我是鋼鐵"], s: [10, 7, 2, 0] },
+        { q: "8. 對於「除毛、噴香水、修眉毛」：", a: ["基本禮貌，我有打理", "會做其中一兩項", "知道有人會做但自己懶", "男人不需要這些"], s: [10, 7, 3, 0] },
+        { q: "9. 看到肌肉發達的同性，你第一眼看？", a: ["胸腹肌或臀部", "看他的穿搭質感", "看臉", "不會盯著看"], s: [10, 8, 5, 1] },
+        { q: "10. 發限動時，你會在意排版或濾鏡嗎？", a: ["強烈排版強迫症", "會稍微調色一下", "隨便拍隨便發", "我不用社群媒體"], s: [10, 7, 3, 0] },
+        { q: "11. 聊天常使用的語助詞（惹、💅、蛤、哈）？", a: ["常用，這叫風格", "偶爾跟風用一下", "完全不用，很尷尬", "我只傳貼圖"], s: [10, 6, 1, 3] },
+        { q: "12. 你對「自拍」角度是否有自己的堅持？", a: ["知道自己哪個角度最美", "拍很多張才選一張", "隨便拍一張就好", "我討厭拍照"], s: [10, 8, 4, 0] },
+        { q: "13. 曾幻想過與同性談戀愛或有肢體互動嗎？", a: ["經常幻想，甚至已經發生", "偶爾會好奇那種感覺", "完全無法接受", "想過但不敢做"], s: [10, 7, 0, 4] },
+        { q: "14. 如果被同性開玩笑地告白：", a: ["很開心，甚至想進一步聊", "禮貌回應，但心裡竊喜", "覺得好玩，不會當真", "感到尷尬且想逃跑"], s: [10, 8, 5, 0] },
+        { q: "15. 對於「男同志電影或 BL 影集」的接受度？", a: ["超愛看，劇情超香", "好看的話會看，不分題材", "聽過但沒看過", "非常反感"], s: [10, 8, 4, 0] },
+        { q: "16. 看到好友穿得很醜，你會：", a: ["毒舌建議或幫他重新搭配", "直接開玩笑說很醜", "不說話，那是他的自由", "我覺得他穿什麼都好"], s: [10, 7, 2, 5] },
+        { q: "17. 手機裡是否有任何交友軟體？", a: ["有，而且是圈內常用的", "有 Tinder 等一般軟體", "以前有過", "完全沒有"], s: [10, 8, 5, 0] },
+        { q: "18. 對於「精緻早午餐」或「質感咖啡廳」：", a: ["必去拍照打卡，沒抵抗力", "可以去，但主要是為了吃", "那是浪費錢", "喜歡路邊攤"], s: [10, 6, 1, 0] },
+        { q: "19. 發現有人在偷看你的時候，你的直覺是：", a: ["我今天一定很吸引人", "我是不是穿得很怪？", "他在看別的地方吧", "瞪回去"], s: [10, 7, 4, 1] },
+        { q: "20. 你覺得自己這輩子「愛上同性」的可能性？", a: ["100%，我已經是了", "50%，不排除任何可能", "10%，機會渺茫", "0%，鋼鐵之魂"], s: [10, 8, 3, 0] }
+    ];
+
+    let currentIdx = 0, totalScore = 0;
+
+    function renderQuestion() {
+        const q = quizData[currentIdx];
+        document.getElementById('q-text').innerText = q.q;
+        document.getElementById('counter').innerText = `第 ${currentIdx + 1} / 20 題`;
+        const list = document.getElementById('opt-list');
+        list.innerHTML = '';
+        q.a.forEach((opt, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'opt-btn';
+            btn.innerText = opt;
+            btn.onclick = () => { totalScore += q.s[i]; currentIdx++; currentIdx < 20 ? renderQuestion() : showResult(); };
+            list.appendChild(btn);
+        });
+        document.getElementById('pb').style.width = (currentIdx / 20 * 100) + "%";
+    }
+
+    function showResult() {
+        document.getElementById('quiz-section').style.display = 'none';
+        document.getElementById('result-section').style.display = 'block';
+        const finalP = Math.round(totalScore / 2);
+        document.getElementById('score-val').innerText = finalP + "%";
+        
+        let d = finalP >= 90 ? "<b>【天選之給】</b>🌈 你是彩虹本虹！你的美感與氣場簡直是圈內的頂級雷達掃描對象！" : finalP >= 70 ? "<b>【彩虹優等生】</b>✨ 懂生活且心思細膩，對多元文化有天然的共鳴。" : finalP >= 40 ? "<b>【潛力股】</b>🌥️ 擁有包容且感性的靈魂，是個溫暖的人。" : "<b>【鋼鐵守護者】</b>🛡️ 直度超標！生活中幾乎沒任何給給特質。";
+        document.getElementById('score-desc').innerHTML = d;
+
+        // --- 豪華大範圍噴紙屑 ---
+        const end = Date.now() + 2500;
+        const rainbowColors = ['#ffb3ba', '#ffdfba', '#ffffba', '#baffc9', '#bae1ff', '#e0bbff'];
+
+        (function frame() {
+            // 左側噴射
+            confetti({ particleCount: 10, angle: 60, spread: 70, origin: { x: 0, y: 1 }, colors: rainbowColors });
+            // 右側噴射
+            confetti({ particleCount: 10, angle: 120, spread: 70, origin: { x: 1, y: 1 }, colors: rainbowColors });
+            // 中央灑落
+            confetti({ particleCount: 5, spread: 50, origin: { y: 0.7 }, colors: rainbowColors });
+
+            if (Date.now() < end) requestAnimationFrame(frame);
+        }());
+    }
+
+    // 截圖下載 - 全彩背景
+    function saveFullImage() {
+        const target = document.getElementById('main-capture-area');
+        html2canvas(target, { scale: 2, useCORS: true }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'Rainbow_Full_Share.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+    }
+
+    // 截圖下載 - 純卡片 (透明背景)
+    function saveCardOnly() {
+        const target = document.getElementById('quiz-card');
+        html2canvas(target, { scale: 2, useCORS: true, backgroundColor: null }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'Rainbow_Card_Only.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+    }
+
+    renderQuestion();
+</script>
+</body>
+</html>

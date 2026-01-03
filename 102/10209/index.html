@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>不要離開</title>
+<style>
+    body {
+        margin: 0;
+        height: 100vh;
+        background: #0a0a0a;
+        color: #bbb;
+        font-family: 'Courier New', monospace;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        transition: background 0.5s;
+    }
+    body.red-flash {
+        background: #1a0000;
+    }
+    body.white-flash {
+        background: #ffffff;
+    }
+    body.blood-red {
+        background: #0d0b0c;
+    }
+    #hint {
+        position: fixed;
+        top: 100px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 24px;
+        opacity: 0.9;
+        text-align: center;
+        transition: all 0.3s;
+        letter-spacing: 3px;
+        z-index: 1000;
+        pointer-events: none;
+        max-width: 90%;
+    }
+    #clickCounter {
+        position: fixed;
+        top: 150px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 14px;
+        opacity: 0;
+        color: #ff4444;
+        letter-spacing: 2px;
+        z-index: 1000;
+        transition: opacity 0.3s;
+    }
+    #btn {
+        position: absolute;
+        padding: 16px 36px;
+        font-size: 18px;
+        background: transparent;
+        color: #eee;
+        border: 2px solid #eee;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        letter-spacing: 3px;
+        z-index: 100;
+    }
+    .shake {
+        animation: shake 0.15s linear infinite;
+    }
+    @keyframes shake {
+        0% { transform: translate(0, 0) rotate(0deg); }
+        25% { transform: translate(-3px, 2px) rotate(-1deg); }
+        50% { transform: translate(3px, -2px) rotate(1deg); }
+        75% { transform: translate(-2px, -3px) rotate(-0.5deg); }
+        100% { transform: translate(0, 0) rotate(0deg); }
+    }
+    .glitch {
+        animation: glitch 0.3s infinite;
+    }
+    @keyframes glitch {
+        0% { 
+            box-shadow: 2px 0 #ff0000, -2px 0 #00ffff;
+            transform: translate(0) scaleX(1);
+        }
+        33% { 
+            box-shadow: -2px 0 #ff0000, 2px 2px #00ffff;
+            transform: translate(2px, -1px) scaleX(1.1);
+        }
+        66% { 
+            box-shadow: 2px -2px #ff0000, -2px 0 #00ffff;
+            transform: translate(-2px, 1px) scaleY(1.1);
+        }
+        100% { 
+            box-shadow: 2px 0 #ff0000, -2px 0 #00ffff;
+            transform: translate(0) scaleX(1);
+        }
+    }
+    .pulse-scale {
+        animation: pulseScale 0.6s ease-in-out infinite;
+    }
+    @keyframes pulseScale {
+        0%, 100% { 
+            transform: scale(1);
+        }
+        50% { 
+            transform: scale(1.3);
+        }
+    }
+    .hidden {
+        opacity: 0;
+        pointer-events: none;
+    }
+    .multiply {
+        animation: multiply 0.5s ease-out forwards;
+    }
+    @keyframes multiply {
+        0% { opacity: 1; transform: scale(1); }
+        100% { opacity: 0; transform: scale(0.3); }
+    }
+    .clone-btn {
+        position: absolute;
+        padding: 12px 24px;
+        font-size: 14px;
+        background: transparent;
+        color: #999;
+        border: 1px solid #666;
+        cursor: pointer;
+        opacity: 0;
+        animation: fadeInBtn 0.5s forwards;
+        pointer-events: none;
+        letter-spacing: 2px;
+    }
+    @keyframes fadeInBtn {
+        to { opacity: 0.6; }
+    }
+    #eyes {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 2s;
+        z-index: 1;
+    }
+    .eye {
+        position: absolute;
+        width: 80px;
+        height: 60px;
+        opacity: 0.9;
+        animation: eyeBlink 3s infinite;
+    }
+    @keyframes eyeBlink {
+        0%, 90%, 100% { opacity: 0.9; }
+        93%, 97% { opacity: 0.2; }
+    }
+    .blood-drip {
+        position: absolute;
+        width: 3px;
+        background: linear-gradient(to bottom, #ff0000, #8b0000);
+        opacity: 0;
+        animation: drip 2s ease-in infinite;
+        border-radius: 0 0 50% 50%;
+    }
+    @keyframes drip {
+        0% {
+            opacity: 0;
+            height: 0;
+            top: 50%;
+        }
+        10% {
+            opacity: 1;
+        }
+        100% {
+            opacity: 0;
+            height: 120px;
+            top: 100%;
+        }
+    }
+    #staticNoise {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 2px,
+            rgba(255,255,255,0.03) 2px,
+            rgba(255,255,255,0.03) 4px
+        );
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s;
+        z-index: 50;
+    }
+    .final-btn {
+        position: absolute;
+        padding: 20px 40px;
+        font-size: 16px;
+        background: transparent;
+        color: #ff0000;
+        border: 2px solid #ff0000;
+        cursor: pointer;
+        letter-spacing: 3px;
+        opacity: 0;
+        animation: finalBtnAppear 0.3s forwards, violentShake 0.15s infinite, flashBorder 0.5s infinite;
+        pointer-events: auto;
+    }
+    @keyframes finalBtnAppear {
+        to { opacity: 1; }
+    }
+    @keyframes violentShake {
+        0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+        20% { transform: translate(-5px, 3px) rotate(-2deg) scale(1.05); }
+        40% { transform: translate(5px, -3px) rotate(2deg) scale(0.95); }
+        60% { transform: translate(-3px, -5px) rotate(-1deg) scale(1.1); }
+        80% { transform: translate(3px, 5px) rotate(1deg) scale(0.9); }
+        100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+    }
+    @keyframes flashBorder {
+        0%, 100% { border-color: #ff0000; box-shadow: 0 0 5px #ff0000; }
+        50% { border-color: #ffffff; box-shadow: 0 0 20px #ffffff; }
+    }
+    .blood-splatter {
+        position: fixed;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 999;
+    }
+    .blood-drop {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        background: radial-gradient(circle, #ff0000, #8b0000);
+        border-radius: 50%;
+        opacity: 0;
+        animation: bloodFall 1s ease-in forwards;
+    }
+    @keyframes bloodFall {
+        0% {
+            opacity: 1;
+            transform: translateY(-50px) scale(0);
+        }
+        50% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+        100% {
+            opacity: 0;
+            transform: translateY(100vh) scale(0.5);
+        }
+    }
+    #jumpscare {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        background: #0d0b0c;
+    }
+    #jumpscare.show {
+        display: flex;
+        animation: jumpscareShake 0.1s infinite;
+    }
+    @keyframes jumpscareShake {
+        0% { transform: translate(0, 0); }
+        25% { transform: translate(-10px, 10px); }
+        50% { transform: translate(10px, -10px); }
+        75% { transform: translate(-10px, -10px); }
+        100% { transform: translate(10px, 10px); }
+    }
+    .ghost-face {
+        width: 400px;
+        height: 400px;
+        opacity: 0;
+        animation: ghostAppear 0.1s forwards;
+    }
+    @keyframes ghostAppear {
+        to { opacity: 1; transform: scale(1.5); }
+    }
+</style>
+</head>
+<body>
+<div id="staticNoise"></div>
+<div id="eyes"></div>
+<div id="hint">你確定要離開嗎？</div>
+<div id="clickCounter"></div>
+<button id="btn">離開</button>
+<div id="jumpscare"></div>
+<script>
+    const btn = document.getElementById("btn");
+    const hint = document.getElementById("hint");
+    const clickCounter = document.getElementById("clickCounter");
+    const body = document.body;
+    const eyes = document.getElementById("eyes");
+    const staticNoise = document.getElementById("staticNoise");
+    const jumpscare = document.getElementById("jumpscare");
+    
+    let clickCount = 0;
+    let scale = 1;
+    let vanished = false;
+    let clones = [];
+    let reappeared = false;
+    let hoverEnabled = false;
+    let stuckPhase = false;
+    let stuckClickCount = 0;
+    let stuckRequired = 15;
+    
+    centerButton();
+    
+    const messages = [
+        "你確定要離開嗎？",
+        "再想想...",
+        "真的要走？",
+        "你會後悔的",
+        "不要點了",
+        "我警告過你",
+        "...",
+        "繼續點擊...",
+        "還不晚",
+        "最後機會",
+        "你做了什麼..."
+    ];
+    
+    btn.addEventListener("mouseenter", () => {
+        if (hoverEnabled && !vanished && reappeared) {
+            moveButton();
+        }
+    });
+    
+    btn.addEventListener("click", handleClick);
+    
+    function handleClick() {
+        if (vanished) return;
+        
+        // 卡住階段
+        if (stuckPhase) {
+            stuckClickCount++;
+            
+            if (stuckClickCount >= stuckRequired) {
+                stuckPhase = false;
+                disappear();
+            }
+            return;
+        }
+        
+        clickCount++;
+        
+        if (clickCount <= 3) {
+            hint.innerText = messages[clickCount];
+            if (clickCount === 3) {
+                btn.style.borderColor = "#ff8888";
+            }
+            return;
+        }
+        
+        if (clickCount === 4) {
+            scale *= 0.85;
+            btn.style.transform = `scale(${scale})`;
+            btn.style.borderColor = "#ff4444";
+            btn.style.color = "#ff4444";
+            hint.innerText = messages[clickCount];
+            return;
+        }
+        
+        if (clickCount === 5) {
+            btn.classList.add("shake");
+            hint.innerText = messages[clickCount];
+            body.classList.add("red-flash");
+            setTimeout(() => body.classList.remove("red-flash"), 200);
+            return;
+        }
+        
+        if (clickCount === 6) {
+            btn.classList.remove("shake");
+            btn.classList.add("glitch");
+            hint.innerText = messages[clickCount];
+            staticNoise.style.opacity = "0.5";
+            return;
+        }
+        
+        if (clickCount === 7) {
+            // 進入卡住階段
+            btn.classList.remove("glitch");
+            btn.classList.add("pulse-scale");
+            hint.style.opacity = "0";
+            stuckPhase = true;
+            stuckClickCount = 0;
+            createFakeButtons();
+            return;
+        }
+    }
+    
+    function createFakeButtons() {
+        for (let i = 0; i < 3; i++) {
+            const fake = document.createElement("button");
+            fake.className = "clone-btn";
+            fake.innerText = "離開";
+            fake.style.left = Math.random() * (window.innerWidth - 100) + "px";
+            fake.style.top = Math.random() * (window.innerHeight - 100) + 100 + "px";
+            document.body.appendChild(fake);
+            clones.push(fake);
+        }
+    }
+    
+    function disappear() {
+        vanished = true;
+        btn.classList.remove("shake", "glitch", "pulse-scale");
+        staticNoise.style.opacity = "1";
+        
+        btn.classList.add("multiply");
+        clones.forEach(clone => {
+            clone.style.animation = "multiply 0.5s ease-out forwards";
+        });
+        
+        hint.innerText = messages[10];
+        
+        setTimeout(() => {
+            btn.classList.add("hidden");
+            clones.forEach(clone => clone.remove());
+            clones = [];
+            staticNoise.style.opacity = "0";
+        }, 500);
+        
+        setTimeout(() => {
+            reappear();
+        }, 3000);
+    }
+    
+    function reappear() {
+        reappeared = true;
+        vanished = false;
+        hoverEnabled = true;
+        
+        createEyes();
+        eyes.style.opacity = "1";
+        
+        btn.classList.remove("hidden", "multiply");
+        btn.innerText = "離開";
+        btn.style.borderColor = "#ff0000";
+        btn.style.color = "#ff0000";
+        scale = 0.7;
+        btn.style.transform = `scale(${scale})`;
+        
+        hint.innerText = "想逃嗎...";
+        hint.style.color = "#ff4444";
+        
+        setInterval(moveButton, 1500);
+        
+        setInterval(() => {
+            const effects = ['shake', 'glitch', 'pulse-scale'];
+            const randomEffect = effects[Math.floor(Math.random() * effects.length)];
+            btn.className = '';
+            btn.classList.add(randomEffect);
+            
+            setTimeout(() => {
+                btn.className = '';
+            }, 1000);
+        }, 2000);
+        
+        setTimeout(() => {
+            finalStage();
+        }, 8000);
+    }
+    
+    function createEyes() {
+        const eyeCount = 10;
+        
+        for (let i = 0; i < eyeCount; i++) {
+            const eye = document.createElement("div");
+            eye.className = "eye";
+            eye.style.backgroundImage = `url('eyes.webp')`;
+            eye.style.backgroundSize = "contain";
+            eye.style.backgroundRepeat = "no-repeat";
+            eye.style.left = Math.random() * 90 + 5 + "%";
+            eye.style.top = Math.random() * 90 + 5 + "%";
+            eye.style.animationDelay = Math.random() * 3 + "s";
+            
+            for (let j = 0; j < 3; j++) {
+                const drip = document.createElement("div");
+                drip.className = "blood-drip";
+                drip.style.left = 30 + Math.random() * 40 + "%";
+                drip.style.animationDelay = Math.random() * 2 + "s";
+                eye.appendChild(drip);
+            }
+            
+            eyes.appendChild(eye);
+        }
+    }
+    
+    function finalStage() {
+        btn.style.display = "none";
+        
+        const btnCount = 30;
+        for (let i = 0; i < btnCount; i++) {
+            setTimeout(() => {
+                const finalBtn = document.createElement("button");
+                finalBtn.className = "final-btn";
+                finalBtn.innerText = "留下";
+                finalBtn.style.left = Math.random() * (window.innerWidth - 120) + "px";
+                finalBtn.style.top = Math.random() * (window.innerHeight - 80) + 80 + "px";
+                finalBtn.style.animationDelay = `${Math.random() * 0.5}s`;
+                
+                finalBtn.addEventListener("click", () => showJumpscare());
+                
+                document.body.appendChild(finalBtn);
+            }, i * 100);
+        }
+        
+        setInterval(() => {
+            body.classList.add("white-flash");
+            setTimeout(() => {
+                body.classList.remove("white-flash");
+            }, 100);
+        }, 2000);
+        
+        setInterval(() => {
+            createBloodSplatter();
+        }, 500);
+    }
+    
+    function createBloodSplatter() {
+        const splatter = document.createElement("div");
+        splatter.className = "blood-splatter";
+        
+        for (let i = 0; i < 5; i++) {
+            const drop = document.createElement("div");
+            drop.className = "blood-drop";
+            drop.style.left = Math.random() * 100 + "%";
+            drop.style.animationDelay = Math.random() * 0.5 + "s";
+            splatter.appendChild(drop);
+        }
+        
+        document.body.appendChild(splatter);
+        
+        setTimeout(() => {
+            splatter.remove();
+        }, 1000);
+    }
+    
+    function showJumpscare() {
+        // 顯示 jumpscare
+        body.classList.add("blood-red");
+        jumpscare.classList.add("show");
+        
+        const ghostFace = document.createElement("div");
+        ghostFace.className = "ghost-face";
+        ghostFace.style.backgroundImage = `url('ghost.png')`;
+        ghostFace.style.backgroundSize = "contain";
+        ghostFace.style.backgroundRepeat = "no-repeat";
+        ghostFace.style.backgroundPosition = "center";
+        jumpscare.appendChild(ghostFace);
+        
+        // 隱藏所有其他元素
+        hint.style.opacity = "0";
+        eyes.style.opacity = "0";
+        document.querySelectorAll(".final-btn").forEach(btn => {
+            btn.style.display = "none";
+        });
+        
+        setTimeout(() => {
+            jumpscare.classList.remove("show");
+            jumpscare.innerHTML = "";
+            endGame();
+        }, 2000);
+    }
+    
+    function endGame() {
+        body.style.background = "#000";
+        hint.style.opacity = "1";
+        hint.innerText = "你現在屬於這裡了。";
+        hint.style.fontSize = "32px";
+        hint.style.color = "#fff";
+        
+        setTimeout(() => {
+            hint.style.opacity = "0";
+            setTimeout(() => {
+                location.reload();
+            }, 3000);
+        }, 3000);
+    }
+    
+    function centerButton() {
+        btn.style.left = "50%";
+        btn.style.top = "50%";
+        btn.style.transform = "translate(-50%, -50%)";
+    }
+    
+    function moveButton() {
+        if (!reappeared || vanished) return;
+        const maxX = window.innerWidth - btn.offsetWidth - 20;
+        const maxY = window.innerHeight - btn.offsetHeight - 100;
+        btn.style.left = Math.random() * maxX + 10 + "px";
+        btn.style.top = Math.random() * maxY + 100 + "px";
+    }
+</script>
+</body>
+</html>

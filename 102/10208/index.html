@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>答案之書</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+:root{
+  --bg0:#050506;
+  --bg1:#0b0b12;
+  --gold:#d4af37;
+  --gold2:#f3e0b0;
+
+  --paper1:#f3ead2;
+  --paper2:#e2d0a6;
+  --ink:#1a1408;
+
+  --line:rgba(212,175,55,.38);
+  --panel:rgba(0,0,0,.35);
+  --shadow:0 25px 70px rgba(0,0,0,.70);
+}
+
+*{ box-sizing:border-box; }
+
+body{
+  margin:0;
+  min-height:100vh;
+  background:
+    radial-gradient(900px 500px at 65% 12%, rgba(212,175,55,.18), transparent 60%),
+    radial-gradient(900px 500px at 15% 85%, rgba(140,90,220,.10), transparent 62%),
+    linear-gradient(180deg,var(--bg0),var(--bg1));
+  color:#f2e6c9;
+  font-family:"Times New Roman","Noto Serif TC",serif;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+.container{
+  width:1060px;
+  max-width:95%;
+  display:grid;
+  grid-template-columns: 390px 1fr;
+  gap:24px;
+  align-items:start;
+}
+
+/* ===== 左側問題區 ===== */
+.panel{
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:20px;
+  background:var(--panel);
+  box-shadow:var(--shadow);
+  position:relative;
+  overflow:hidden;
+}
+.panel:before{
+  content:"";
+  position:absolute; inset:-2px;
+  background:
+    radial-gradient(600px 260px at 18% 0%, rgba(212,175,55,.16), transparent 60%),
+    radial-gradient(700px 300px at 95% 115%, rgba(140,90,220,.10), transparent 60%);
+  pointer-events:none;
+}
+
+.brand{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  margin-bottom:14px;
+}
+.sigil{
+  width:44px;height:44px;
+  border-radius:14px;
+  display:grid;place-items:center;
+  border:1px solid var(--line);
+  color:var(--gold2);
+  background:linear-gradient(180deg, rgba(212,175,55,.18), rgba(212,175,55,.06));
+  box-shadow: 0 14px 35px rgba(0,0,0,.45);
+  font-weight:900;
+}
+h1{
+  margin:0;
+  color:var(--gold2);
+  letter-spacing:2px;
+  font-size:28px;
+}
+.sub{
+  margin:6px 0 0;
+  font-size:13px;
+  color:rgba(242,230,201,.72);
+}
+
+label{
+  font-size:13px;
+  color:rgba(242,230,201,.75);
+}
+textarea{
+  width:100%;
+  margin-top:8px;
+  padding:12px;
+  border-radius:12px;
+  border:1px solid rgba(212,175,55,.45);
+  background:#0c0c14;
+  color:#f2e6c9;
+  resize:none;
+  outline:none;
+}
+textarea::placeholder{ color:rgba(242,230,201,.45); }
+
+.row{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:14px;
+}
+button{
+  padding:10px 16px;
+  border-radius:14px;
+  border:1px solid rgba(212,175,55,.6);
+  background:rgba(255,255,255,.05);
+  color:#f2e6c9;
+  font-weight:800;
+  cursor:pointer;
+  transition: transform .06s ease, filter .2s ease;
+}
+button:hover{ filter:brightness(1.08); }
+button:active{ transform:translateY(1px); }
+
+button.gold{
+  background:linear-gradient(135deg, #d4af37, #a8862c);
+  color:#1a1405;
+}
+.hint{
+  margin-top:12px;
+  font-size:12.5px;
+  line-height:1.6;
+  color:rgba(242,230,201,.66);
+}
+
+/* ===== 右側書本 ===== */
+.book{
+  position:relative;
+  border-radius:22px;
+  border:1px solid rgba(212,175,55,.35);
+  background:
+    radial-gradient(900px 380px at 60% 0%, rgba(212,175,55,.14), transparent 60%),
+    linear-gradient(180deg,#14141c,#07070b);
+  box-shadow:var(--shadow);
+  padding-left:62px;
+  overflow:hidden;
+}
+
+/* 書背 */
+.book::before{
+  content:"";
+  position:absolute;
+  left:0;top:0;bottom:0;
+  width:62px;
+  background:
+    linear-gradient(90deg, rgba(212,175,55,.14), transparent 70%),
+    linear-gradient(180deg,#0a0a12,#000);
+  border-right:1px solid rgba(212,175,55,.35);
+  box-shadow: inset -10px 0 30px rgba(0,0,0,.45);
+}
+
+/* 金色花紋（封面裝飾） */
+.book::after{
+  content:"";
+  position:absolute;
+  inset:14px 14px 14px 74px; /* 留書背 */
+  border-radius:18px;
+  border:1px solid rgba(212,175,55,.22);
+  background:
+    radial-gradient(600px 240px at 50% 22%, rgba(212,175,55,.10), transparent 66%),
+    radial-gradient(520px 220px at 50% 86%, rgba(140,90,220,.08), transparent 72%),
+    /* 角落花紋感（用線性漸層假裝雕花） */
+    linear-gradient(45deg, transparent 0 72%, rgba(212,175,55,.18) 72% 74%, transparent 74% 100%),
+    linear-gradient(-45deg, transparent 0 72%, rgba(212,175,55,.18) 72% 74%, transparent 74% 100%);
+  pointer-events:none;
+  opacity:.9;
+}
+
+/* ===== 頁面容器 ===== */
+.page{
+  position:relative;
+  margin:24px;
+  min-height:320px;
+  perspective: 1400px;
+  z-index: 1; /* 要蓋過 book::after */
+}
+
+/* 兩張紙：current + next（為了翻頁） */
+.paper{
+  position:absolute;
+  inset:0;
+  border-radius:16px;
+  padding:24px;
+  background:linear-gradient(180deg,var(--paper1),var(--paper2));
+  color:var(--ink);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.35),
+    0 15px 40px rgba(0,0,0,.42);
+  overflow:hidden;
+}
+
+/* 紙張花紋 + 金邊 */
+.paper:before{
+  content:"";
+  position:absolute; inset:0;
+  background:
+    radial-gradient(1px 1px at 20% 30%, rgba(0,0,0,.10), transparent 60%),
+    radial-gradient(1px 1px at 70% 60%, rgba(0,0,0,.10), transparent 60%),
+    radial-gradient(1px 1px at 50% 20%, rgba(0,0,0,.08), transparent 60%),
+    linear-gradient(180deg, rgba(0,0,0,.03), transparent 35%, rgba(0,0,0,.04));
+  opacity:.55;
+  pointer-events:none;
+}
+.paper:after{
+  content:"";
+  position:absolute;
+  inset:10px;
+  border-radius:12px;
+  border:1px solid rgba(154,127,67,.45);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.20);
+  pointer-events:none;
+}
+
+/* 右上角折角（翻頁提示） */
+.corner{
+  position:absolute;
+  right:0; top:0;
+  width:82px; height:82px;
+  background:
+    linear-gradient(135deg, rgba(0,0,0,0) 0 49%, rgba(0,0,0,.10) 50% 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+  opacity:.65;
+}
+
+/* 翻頁 layer：蓋在 current 上 */
+.turner{
+  position:absolute;
+  inset:0;
+  border-radius:16px;
+  transform-origin: 0% 50%;
+  transform: rotateY(0deg);
+  backface-visibility:hidden;
+  pointer-events:none;
+  opacity:0;
+}
+
+/* 翻頁中 */
+.page.turning .turner{
+  opacity:1;
+  animation: turn 720ms ease-in-out forwards;
+}
+@keyframes turn{
+  0%   { transform: rotateY(0deg); filter:brightness(1); }
+  45%  { transform: rotateY(-70deg); filter:brightness(.96); }
+  100% { transform: rotateY(-140deg); filter:brightness(.92); }
+}
+
+/* 內容 */
+.status{
+  font-size:14px;           /* ✅ 放大 */
+  font-weight:900;
+  letter-spacing:1px;
+  color: rgba(26,20,8,.78); /* ✅ 不透明一些 */
+}
+.answer{
+  font-size:24px;
+  font-weight:900;
+  line-height:1.6;
+  margin-top:18px;
+  letter-spacing:.2px;
+}
+.meta{
+  margin-top:40px;
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  font-size:14px;           /* ✅ 放大 */
+  font-weight:800;
+  color: rgba(26,20,8,.78); /* ✅ 不透明一些 */
+}
+.tag{
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid rgba(154,127,67,.45);
+  background:rgba(255,255,255,.25);
+}
+
+@media(max-width:980px){
+  .container{ grid-template-columns:1fr; }
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+  <!-- 左：問題 -->
+  <div class="panel">
+    <div class="brand">
+      <div class="sigil">✦</div>
+      <div>
+        <h1>答案之書</h1>
+        <div class="sub">黑金古書 · 翻開只屬於你的答案</div>
+      </div>
+    </div>
+
+    <label>你的問題</label>
+    <textarea id="q" rows="6" placeholder="例如：我今天要不要主動？"></textarea>
+
+    <div class="row">
+      <button class="gold" id="btnAsk">翻開答案</button>
+      <button id="btnRandom">範例問題</button>
+    </div>
+
+    <div class="hint">
+      小提示：深呼吸 3 秒再按更有儀式感。<br>
+      快捷鍵：<b>Ctrl + Enter</b> 直接翻。
+    </div>
+  </div>
+
+  <!-- 右：書 -->
+  <div class="book">
+    <div class="page" id="page">
+      <!-- next（底下那張） -->
+      <div class="paper" id="paperNext">
+        <div class="corner"></div>
+        <div class="status" id="statusNext">尚未翻開</div>
+        <div class="answer" id="answerNext">把問題交給我。</div>
+        <div class="meta">
+          <span class="tag" id="tagNext">—</span>
+          <span id="timeNext"></span>
+        </div>
+      </div>
+
+      <!-- current（上面那張） -->
+      <div class="paper" id="paperCur">
+        <div class="corner"></div>
+        <div class="status" id="statusCur">尚未翻開</div>
+        <div class="answer" id="answerCur">把問題交給我。</div>
+        <div class="meta">
+          <span class="tag" id="tagCur">—</span>
+          <span id="timeCur"></span>
+        </div>
+
+        <!-- 翻頁層：複製 current 造型，翻走 -->
+        <div class="paper turner" id="turner"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ====== 你要更多答案：就在這裡加！======
+
+答案是不是只有 9 個？不是。
+你想要更多：把下面 ANSWERS 陣列一直加就行。
+格式：["答案文字","分類標籤"]
+
+*/
+const ANSWERS = [
+  ["是的。別再懷疑。","肯定"],
+  ["不。現在不該。","否定"],
+  ["等一等，時機會靠近。","等待"],
+  ["衝就對了。","直覺"],
+  ["會很辛苦，但值得。","值得"],
+  ["救兵會出現。","求助"],
+  ["我看起來像知道嗎?","蛤!"],
+  ["沉默是今晚的康橋。","徐志摩"],
+  ["沒出息。","王世堅"],
+
+  /* ✅ 你可以從這裡開始一直加（我先幫你多放一些） */
+  ["你需要的不是答案，是梁靜茹。","勇氣"],
+  ["及早開始。","早起的鳥兒"],
+  ["答應自己：不要再拖。","行動"],
+  ["睜眼說瞎話。","王世堅"],
+  ["你會被理解，只要你願意開口。","理解"],
+  ["Let it go.","Elsa"],
+  ["今天不要逼自己做決定。","緩一緩"],
+  ["你想要的正在靠近，但要保持界線。","界線"],
+  ["是的，但別用傷害自己的方式。","溫柔"],
+  ["不必完美，完成就好。","完成"],
+  ["四個字，胡說八道。","王世堅"],
+  ["答案會在你行動後出現。","行動"],
+  ["把期待放低一點，你會更快樂。","心態"],
+  ["你其實已經做得夠多了。","肯定"],
+  ["別急，先把今天過好。","當下"],
+  ["可以，但要有耐心。","耐心"],
+  ["不要回頭看。","前進"],
+  ["去問你爸。","行動"],
+  ["喔這個問到我的死穴!","王世堅"],
+  ["再試一次。","重來"]
+];
+
+const SAMPLE_QUESTIONS = [
+  "我今天要不要主動？",
+  "我現在的選擇是對的嗎？",
+  "我該不該放下這件事？",
+  "我該不該說清楚？",
+  "我有機會成功嗎？",
+  "要不要換一個做法？"
+];
+
+const $ = (id)=>document.getElementById(id);
+
+const page = $("page");
+const turner = $("turner");
+
+const statusCur = $("statusCur");
+const answerCur = $("answerCur");
+const tagCur = $("tagCur");
+const timeCur = $("timeCur");
+
+const statusNext = $("statusNext");
+const answerNext = $("answerNext");
+const tagNext = $("tagNext");
+const timeNext = $("timeNext");
+
+const q = $("q");
+$("btnAsk").addEventListener("click", ask);
+$("btnRandom").addEventListener("click", ()=>{
+  q.value = SAMPLE_QUESTIONS[Math.floor(Math.random()*SAMPLE_QUESTIONS.length)];
+  q.focus();
+});
+
+q.addEventListener("keydown",(e)=>{
+  if(e.ctrlKey && e.key==="Enter") ask();
+});
+
+function nowString(){
+  const d = new Date();
+  const pad = n => String(n).padStart(2,"0");
+  return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function pick(){
+  return ANSWERS[Math.floor(Math.random()*ANSWERS.length)];
+}
+
+function ask(){
+  const text = q.value.trim();
+  if(!text){
+    // 沒問題就不翻
+    statusCur.textContent = "請先寫下問題";
+    answerCur.textContent = "先寫下問題，答案之書才會回應。";
+    tagCur.textContent = "提示";
+    timeCur.textContent = "";
+    return;
+  }
+
+  const [ans, tag] = pick();
+  const t = nowString();
+
+  // 先把 next 設成「即將出現的答案」（底下那張）
+  statusNext.textContent = "已翻開";
+  answerNext.textContent = ans;
+  tagNext.textContent = tag;
+  timeNext.textContent = t;
+
+  // turner 變成 current 的外觀（翻走的那張）
+  turner.style.opacity = "1";
+  turner.innerHTML = `
+    <div class="corner"></div>
+    <div class="status">${statusCur.textContent}</div>
+    <div class="answer">${escapeHtml(answerCur.textContent)}</div>
+    <div class="meta">
+      <span class="tag">${escapeHtml(tagCur.textContent)}</span>
+      <span>${escapeHtml(timeCur.textContent)}</span>
+    </div>
+  `;
+
+  // 觸發翻頁動畫
+  page.classList.remove("turning");
+  void page.offsetWidth;
+  page.classList.add("turning");
+
+  // 動畫結束後：把 next 內容搬到 current（變成新頁）
+  setTimeout(()=>{
+    statusCur.textContent = "已翻開";
+    answerCur.textContent = ans;
+    tagCur.textContent = tag;
+    timeCur.textContent = t;
+
+    // 將 next 同步成 current（保持一致，下一次翻頁會替換）
+    statusNext.textContent = statusCur.textContent;
+    answerNext.textContent = answerCur.textContent;
+    tagNext.textContent = tagCur.textContent;
+    timeNext.textContent = timeCur.textContent;
+
+    // 收掉動畫狀態
+    page.classList.remove("turning");
+    turner.style.opacity = "0";
+  }, 740);
+}
+
+function escapeHtml(str){
+  return String(str)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+</script>
+
+</body>
+</html>

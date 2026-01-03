@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>午餐抽抽樂 Slot 版</title>
+<style>
+  body {
+    font-family: "Microsoft JhengHei", sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    height: 100vh;
+    margin: 0;
+    background-color: #fffbe6;
+    text-align: center;
+  }
+
+  h1 {
+    font-size: 1.6em;
+    margin-bottom: 15px;
+  }
+
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(10, 80px);
+    grid-template-rows: repeat(10, 80px);
+    gap: 3px;
+  }
+
+  .cell {
+    border: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 3px;
+    border-radius: 5px;
+    text-align: center;
+    transition: transform 0.2s, background-color 0.2s;
+  }
+
+  .cell.flash {
+    animation: flash 0.3s infinite alternate;
+  }
+
+  .cell.final {
+    animation: pop 0.6s ease forwards;
+    background-color: #ffe680 !important;
+  }
+
+  @keyframes flash {
+    0% { background-color: #ffe680; }
+    50% { background-color: #ffcc00; }
+    100% { background-color: #ff9900; }
+  }
+
+  @keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.8); }
+    70% { transform: scale(1.5); }
+    100% { transform: scale(1.6); }
+  }
+
+  button {
+    margin-top: 15px;
+    font-size: 1em;
+    padding: 8px 15px;
+    cursor: pointer;
+    border-radius: 8px;
+    border: none;
+    background-color: #ff9900;
+    color: white;
+  }
+</style>
+</head>
+<body>
+<h1>午餐抽抽樂 🍱</h1>
+<div id="grid"></div>
+<button onclick="startLottery()">開始抽選</button>
+
+<script>
+const foods = [
+  "滷肉飯 🍚","雞肉飯 🍗","排骨便當 🍖","控肉飯 🥩","爌肉飯 🐷","燒肉飯 🥓","炸雞腿便當 🍗",
+  "滷雞腿便當 🍖","三杯雞飯 🍲","宮保雞丁飯 🌶️","蔥爆牛肉飯 🥩","香腸便當 🌭","白切雞飯 🍗",
+  "叉燒飯 🐷","燒臘三寶飯 🥓","自助餐三菜一飯 🥗","筒仔米糕 🍚","油飯 🍚","肉燥飯 🥩","豬腳飯 🐷",
+  "腿庫飯 🐖","牛肉燴飯 🥩","蝦仁炒飯 🍤","揚州炒飯 🍚","炒米粉 🍜","炒板條 🍜","擔仔麵 🍜",
+  "牛肉麵 🥩","麻醬麵 🥢","炸醬麵 🍜","肉羹麵 🥣","魷魚羹麵 🦑","米粉湯 🍲","餛飩麵 🥟",
+  "蚵仔煎 🦪","肉圓 🥟","碗粿 🍮","蚵仔麵線 🦪","大腸麵線 🍜","皮蛋瘦肉粥 🥣","豬排丼 🐖",
+  "牛丼 🥩","親子丼 🍗","唐揚雞定食 🍗","炸豬排定食 🐖","照燒雞腿飯 🍗","日式咖哩雞飯 🍛",
+  "日式咖哩豬排飯 🐖","壽司 🍣","握壽司 🍣","生魚片丼 🐟","鰻魚飯 🐟","拉麵 🍜","烏龍麵 🍜",
+  "蕎麥麵 🍜","炸蝦天丼 🍤","日式炒烏龍 🍜","玉子燒定食 🍳","味噌湯套餐 🍲","日式便當 🍱",
+  "石鍋拌飯 🍲","韓式拌飯 🍲","部隊鍋 🍲","泡菜鍋 🥬","豆腐鍋 🥣","韓式炸雞飯 🍗","辣炒年糕 🌶️",
+  "韓式烤肉飯 🥩","牛肉雪濃湯 🥩","泡菜炒飯 🥬","海鮮煎餅 🥞","韓式冷麵 🍜","韓式辣雞飯 🌶️",
+  "紫菜飯捲 🍙","韓式定食 🍱","泰式打拋豬飯 🌶️","泰式打拋雞飯 🌶️","泰式綠咖哩雞飯 🍛","泰式紅咖哩雞飯 🍛",
+  "泰式黃咖哩飯 🍛","泰式椒麻雞飯 🌶️","泰式酸辣湯 🍲","泰式炒河粉 🍜","泰式炒飯 🍚","泰式海南雞飯 🍗",
+  "泰式燒肉飯 🥓","泰式檸檬魚飯 🍋","泰式冬蔭功湯麵 🍜","泰式炒泡麵 🍜","泰式便當 🍱","漢堡 🍔",
+  "起司漢堡 🧀","炸雞漢堡 🍗","牛排 🥩","牛排飯 🥩","炸雞套餐 🍗","薯條配漢堡 🍟","熱狗 🌭",
+  "美式培根蛋吐司 🥓","美式早午餐拼盤 🥪"
+];
+
+const grid = document.getElementById("grid");
+
+// 生成 10x10 方格
+foods.forEach(food => {
+  const div = document.createElement("div");
+  div.className = "cell";
+  div.textContent = food;
+  grid.appendChild(div);
+});
+
+function startLottery() {
+  const cells = document.querySelectorAll(".cell");
+  let totalFlashes = 40; // 總閃動次數
+  let intervalTime = 100; // 初始速度
+  let currentFlash = 0;
+
+  function flashStep() {
+    // 移除所有閃爍
+    cells.forEach(cell => cell.classList.remove("flash", "final"));
+
+    // 隨機選多個格子閃爍
+    for (let i = 0; i < 5; i++) { 
+      const randomIndex = Math.floor(Math.random() * cells.length);
+      cells[randomIndex].classList.add("flash");
+    }
+
+    currentFlash++;
+    if (currentFlash < totalFlashes) {
+      // 模擬減速效果，後期慢慢延長間隔
+      const nextInterval = intervalTime + currentFlash * 10;
+      setTimeout(flashStep, nextInterval);
+    } else {
+      // 最終選中格子
+      const finalIndex = Math.floor(Math.random() * cells.length);
+      cells[finalIndex].classList.remove("flash");
+      cells[finalIndex].classList.add("final");
+    }
+  }
+
+  flashStep();
+}
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+

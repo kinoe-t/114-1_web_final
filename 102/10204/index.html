@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>測驗你有多甜～💕</title>
+<style>
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",Arial;
+  background:linear-gradient(180deg,#ffe3ef,#ffc1d9);
+  text-align:center;
+  color:#ff2f92;
+  overflow-x:hidden;
+}
+h1{padding:20px}
+.card{
+  background:rgba(255,255,255,0.95);
+  width:88%;
+  margin:10px auto;
+  padding:18px;
+  border-radius:22px;
+  box-shadow:0 10px 25px rgba(255,47,146,.15);
+}
+button{
+  width:90%;
+  padding:14px;
+  margin:6px auto;
+  display:block;
+  border:none;
+  border-radius:30px;
+  background:#ff8fb8;
+  color:#fff;
+  font-size:16px;
+}
+button:hover{background:#ff5fa2}
+.progress-box{
+  width:85%;
+  height:22px;
+  background:#ffd6e8;
+  border-radius:20px;
+  margin:15px auto;
+  position:relative;
+}
+.progress{
+  height:100%;
+  width:0%;
+  background:#ff5fa2;
+  border-radius:20px;
+  transition:width .3s;
+}
+.candy{
+  position:absolute;
+  top:-20px;
+  font-size:22px;
+  left:0%;
+  transition:.3s;
+}
+#message{
+  width:85%;
+  min-height:100px;
+  margin:12px auto;
+  padding:12px;
+  background:#fff;
+  border-radius:18px;
+  white-space:pre-wrap;
+  font-weight:bold;
+  line-height:1.5;
+}
+#result{font-size:22px;margin:10px}
+.actions button{background:#ff5fa2;display:inline-block;width:45%;margin:6px 2%}
+#cardCanvas{display:none;margin-top:20px;border-radius:22px;}
+.floatingCandy{
+  position:absolute;
+  font-size:20px;
+  animation:floatAnim linear infinite;
+}
+@keyframes floatAnim{
+  0%{transform:translateY(0) rotate(0deg);}
+  100%{transform:translateY(-600px) rotate(360deg);}
+}
+</style>
+</head>
+<body>
+<h1>🍬 測驗你有多甜～ 💕</h1>
+<div id="quiz"></div>
+<div id="message"></div>
+<div class="progress-box">
+  <div class="progress" id="bar"></div>
+  <div class="candy" id="candy">🍬</div>
+</div>
+<div id="result"></div>
+<div class="actions" id="actions"></div>
+<canvas id="cardCanvas" width="500" height="500"></canvas>
+
+<script>
+let score=0, idx=0;
+
+/* ===== 題目資料 ===== */
+const qs=[
+{q:"你飲料喜歡喝多甜🫦",a:[
+{t:"全糖",s:10,m:"哇你好甜啊💕"},
+{t:"少糖",s:7},{t:"半糖",s:5},{t:"微糖",s:3},{t:"無糖",s:0,m:"哇你好健康啊💅"}]},
+{q:"你是否喜歡玩知識王👨🏿‍🌾",a:[
+{t:"喜歡",s:10,m:"真有知識❤️‍🔥"},
+{t:"還好",s:5},{t:"不喜歡👎🏻",s:0,m:"加油，下次再試～"}]},
+{q:"你是否是黃豆🧚‍♀️",a:[
+{t:"是 我最愛瑋瑋",s:10},{t:"是 我最喜歡哲哲",s:5},{t:"否 我是黑豆",s:0,m:"你真沒品味😭"}]},
+{q:"承上題 你認為摔獎盃是誰的錯😡",a:[
+{t:"我挺獎杯",s:0,m:"這波我挺被哲哲摔的獎牌 雖然瑋瑋都會趁哲哲不在的時候改造房間 但是瑋瑋不應該開會睡覺 雖然范育青沒有參與他們的活動 但是我認為范育青應該下地獄"},
+{t:"我挺哲哲",s:5,m:"媽的勒 哲哲摔獎牌整個黃氏兄弟頻道工作人員誰都可以說這句話就唯獨你瑋瑋不行 瑋瑋要是真的很看重這個頻道這份工作就不會開會的時候度估 這不只是不尊重哲哲和其他工作人員 同時也是不把頻道當回事 這就好比說兩個人住一起 一個衛生習慣很差衣服襪子永遠不洗總是亂丟 垃圾也隨手扔 懶得去廁所所以尿尿在寶特瓶裡全部積在床底下 然後有一天另一個人突然爆發了拿錘子把房間敲爛 對雖然這很不理智 但如果不是那個衛生習慣很差的人搞事哪會發生這種事情 砸爛房間也好哲哲摔獎牌也好我覺得這些的責任歸屬是一開始就做不對的人 如果他沒有起個頭哪會有後面一連串的事情發生 再說了哲哲也不是什麼精神有狀況的人 一定是像影片裡瑋瑋那樣一直屢勸不聽哲哲才會爆發的 其實比起心疼瑋瑋這個開會睡覺的巨嬰 我更心疼扮黑臉的哲哲 因為他擔任兄長的重則 甚至在事後承擔安慰瑋瑋的角色 就像瑋瑋當下說的 這頻道不是只有一個人在做的 瑋瑋對工作對頻道是如此散漫他看到獎牌被摔的當下情緒都已經激動成這樣了 更何況是對頻道更上心的哲哲 如果不是為了警惕瑋瑋再加上知道獎牌是假的了 他又何嘗願意做出這… 更多"},
+{t:"我挺瑋瑋",s:10,m:"這波我挺瑋瑋，雖然瑋瑋開會睡覺也有不對的地方,可是哲哲摔獎牌真的讓人很傷心,但隨著頻道的成長, 不完美的地方也一步一步改善,相信大家都 很喜歡黃氏兄弟,這件事已經過滿久了,大 家要心平氣和的討論,不能只用一件事去判 斷他是怎樣的人喔! 那些說很娘的人,他們比其他人還要努力, 而且他們 影片,不比其他百萬YouTuber來的 差,他們的每個 企劃,做的都很棒.....…而且為 什麼會哭?這代表說,他珍惜他們兄弟倆一 起得到的獎勵,再說了,那塊百萬獎牌是他 們事前先去訂做的,你們可以去看完整版影片!"}]},
+{q:"你是幸福崴孟寶嗎💗",a:[
+{t:"是 我最愛崴孟",s:10,m:"太棒了好幸福啊"},
+{t:"否 我討厭給",s:0,m:"不懂得欣賞😭"}]},
+{q:"你唸完崴孟繞口令要幾秒❓",a:[
+{t:"5.27秒",s:10,m:"太棒了你跟孟孟一樣強😭"},
+{t:"10秒內",s:5},{t:"不會",s:0,m:"不懂得欣賞藝術"}]},
+{q:"你會唱崴孟的歌嗎",a:[
+{t:"會 我全都會",s:10,m:"我是幸福崴孟寶！"},
+{t:"會 但我只會300天",s:5,m:"太弱了趕快去聽"},
+{t:"不會 我都不會😭",s:0,m:"沒有歌品😭"}]},
+{q:"你是否同意王Aden 不在台上大跳😡？",a:[
+{t:"這波我挺王Aden",s:10,m:"這波我挺王Aden 10分 並跳出「😁😁😁😁 因為下雨的關係🌧️ 我已經前面沒有大😯跳了🕺🏻🕺🏻 原本在最後一首😅😅「雙重的時候」的時候👫👫 打算「大跳」😱😱😨😨🕺🏻🕺🏻🕺🏻 把氣氛拉到最高😍😍🥰🥰🎉🎉⬆️⬆️ 但同學🧍🏻‍♀️衝上去🏃🏻‍♀️🏃🏻‍♀️🏃🏻‍♀️ 💃🏻💃🏻 然後我被影響到了😡😡🙄🙄🧎 所以呢😯我覺得我不應該這樣子🥺🥺❌❌(在台上情緒悶掉💔💔) 我應該要🤓☝🏻 (把該給同學的最後一段舞給同學.) 🕺🏻🕺🏻🕺🏻🕺🏻🕺🏻🕺🏻🕺🏻🕺🏻🕺🏻」"},
+{t:"這波我挺學生",s:5},{t:"這波我挺曾國城不應該在古蹟抽煙",s:0}]},
+{q:"你會做以下哪些事？（多選）",multi:true,a:[
+{t:"在意瀏海是否中分",s:2},{t:"是給",s:4},{t:"喜歡說別人是給",s:4}]},
+{q:"以下你最喜歡做哪件事",a:[
+{t:"跳犯錯",s:10},{t:"跳刀馬刀馬",s:10},{t:"大跳",s:10}]}
+];
+
+/* ===== 顯示題目 ===== */
+function render(){
+  quiz.innerHTML="";
+  if(idx>=qs.length) return showResult();
+  const c=document.createElement("div");
+  c.className="card";
+  c.innerHTML=`<h3>${qs[idx].q}</h3>`;
+  qs[idx].a.forEach(x=>{
+    const b=document.createElement("button");
+    b.innerText=x.t;
+    b.onclick=()=>choose(x, qs[idx].multi);
+    c.appendChild(b);
+  });
+  if(qs[idx].multi){
+    const n=document.createElement("button");
+    n.innerText="下一題";
+    n.onclick=()=>{idx++;render();}
+    c.appendChild(n);
+  }
+  quiz.appendChild(c);
+}
+
+/* ===== 選擇答案 ===== */
+function choose(x, multi){
+  score += x.s;
+  if(x.m) message.innerText = x.m;
+  const p = Math.min(score, 100);
+  bar.style.width = p + "%";
+  candy.style.left = `calc(${p}% - 10px)`;
+  if(!multi){
+    idx++;
+    setTimeout(render, 200); // 訊息稍微停留
+  }
+}
+
+/* ===== 顯示結果 ===== */
+function showResult(){
+  let l=score>=100?"全糖🍬":score>=75?"少糖🍭":score>=50?"半糖🍩":score>=25?"微糖🍪":"無糖☕";
+  quiz.innerHTML="";
+  result.innerHTML=`你的甜度：<b>${score}</b> 分<br>${l}`;
+  actions.innerHTML=`
+    <button onclick="shareInstagram()">📤 分享 IG/Threads</button>
+    <button onclick="copyLink()">📋 複製連結</button>
+    <button onclick="downloadCard()">🖼️ 儲存限動結果卡</button>
+    <button onclick="restart()">🔁 再測一次</button>
+  `;
+  createFloatingCandies();
+}
+
+/* ===== 重置 ===== */
+function restart(){
+  score=0; idx=0;
+  bar.style.width="0%"; candy.style.left="0%";
+  message.innerText=""; result.innerHTML=""; actions.innerHTML="";
+  clearFloatingCandies();
+  render();
+}
+
+/* ===== 分享 IG / Threads ===== */
+function shareInstagram(){
+  const url=encodeURIComponent(window.location.href);
+  window.open(`https://www.instagram.com/?url=${url}`,"_blank");
+}
+function copyLink(){
+  navigator.clipboard.writeText(window.location.href).then(()=>alert("已複製連結到剪貼簿！"));
+}
+
+/* ===== 限動結果卡 ===== */
+function downloadCard(){
+  const canvas=document.getElementById("cardCanvas");
+  const ctx=canvas.getContext("2d");
+  ctx.clearRect(0,0,500,500);
+  const grad=ctx.createLinearGradient(0,0,0,500);
+  grad.addColorStop(0,'#ffe3ef');grad.addColorStop(1,'#ffc1d9');
+  ctx.fillStyle=grad;
+  ctx.fillRect(0,0,500,500);
+  for(let i=0;i<30;i++){
+    ctx.font="30px 'Noto Sans TC', Arial";
+    ctx.fillText("🍬",Math.random()*450,Math.random()*450);
+  }
+  ctx.fillStyle="#ff2f92";
+  ctx.font="bold 36px 'Noto Sans TC', Arial";
+  ctx.fillText(`甜度：${score}`,120,220);
+  ctx.fillText(score>=100?"全糖🍬":score>=75?"少糖🍭":score>=50?"半糖🍩":score>=25?"微糖🍪":"無糖☕",120,270);
+  const link=document.createElement("a");
+  link.download="甜度結果卡.png";
+  link.href=canvas.toDataURL();
+  link.click();
+}
+
+/* ===== 飄浮糖果動畫 ===== */
+function createFloatingCandies(){
+  clearFloatingCandies();
+  for(let i=0;i<20;i++){
+    let c=document.createElement("div");
+    c.className="floatingCandy";
+    c.style.left=Math.random()*90+"%";
+    c.style.top="100%";
+    c.style.animationDuration=(5+Math.random()*5)+"s";
+    c.innerText="🍬";
+    document.body.appendChild(c);
+  }
+}
+function clearFloatingCandies(){
+  document.querySelectorAll(".floatingCandy").forEach(e=>e.remove());
+}
+
+render();
+</script>
+</body>
+</html>
