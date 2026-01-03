@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>5x5 座標走格子遊戲</title>
+    <style>
+        body {
+            font-family: "Microsoft JhengHei", Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f2f5;
+            margin-top: 50px;
+        }
+        #game-container {
+            text-align: center;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        canvas {
+            border: 2px solid #333;
+            margin-bottom: 20px;
+        }
+        .info {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(3, 60px);
+            gap: 10px;
+            justify-content: center;
+        }
+        button {
+            padding: 15px;
+            font-size: 1rem;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:disabled {
+            background-color: #ccc;
+        }
+        button:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+        #message {
+            font-weight: bold;
+            font-size: 1.5rem;
+            margin-top: 15px;
+            height: 40px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <h2>5x5 探索冒險</h2>
+    <div class="info">剩餘步數：<span id="steps">10</span></div>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    
+    <div class="controls">
+        <div></div>
+        <button onclick="move('up')">上</button>
+        <div></div>
+        <button onclick="move('left')">左</button>
+        <button onclick="move('down')">下</button>
+        <button onclick="move('right')">右</button>
+    </div>
+
+    <div id="message"></div>
+    <button id="resetBtn" style="margin-top: 20px; display: none;" onclick="resetGame()">重新開始</button>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const stepDisplay = document.getElementById('steps');
+    const messageDisplay = document.getElementById('message');
+    const resetBtn = document.getElementById('resetBtn');
+
+    const gridSize = 5;
+    const cellSize = canvas.width / (gridSize + 1); // 留一點邊緣給座標
+    const offset = cellSize / 2;
+
+    let player = { x: 0, y: 0 };
+    let goal = { x: 5, y: 5 };
+    let stepsLeft = 10;
+    let gameOver = false;
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 畫網格與座標
+        for (let i = 0; i <= gridSize; i++) {
+            for (let j = 0; j <= gridSize; j++) {
+                let x = i * cellSize + offset;
+                let y = (gridSize - j) * cellSize + offset;
+
+                // 畫點
+                ctx.beginPath();
+                ctx.arc(x, y, 3, 0, Math.PI * 2);
+                ctx.fillStyle = "#ccc";
+                ctx.fill();
+
+                // 標記起點和終點文字
+                if (i === 0 && j === 0) {
+                    ctx.fillStyle = "blue";
+                    ctx.fillText("起點(0,0)", x - 20, y + 20);
+                }
+                if (i === 5 && j === 5) {
+                    ctx.fillStyle = "red";
+                    ctx.fillText("終點(5,5) 🚩", x - 25, y - 15);
+                }
+            }
+        }
+
+        // 畫玩家 (轉換數學座標到畫布座標)
+        const playerX = player.x * cellSize + offset;
+        const playerY = (gridSize - player.y) * cellSize + offset;
+        
+        ctx.font = "30px Arial";
+        ctx.fillText("👤", playerX - 15, playerY + 10);
+    }
+
+    function move(direction) {
+        if (gameOver) return;
+
+        let nextX = player.x;
+        let nextY = player.y;
+
+        if (direction === 'up') nextY++;
+        if (direction === 'down') nextY--;
+        if (direction === 'left') nextX--;
+        if (direction === 'right') nextX++;
+
+        // 邊界檢查
+        if (nextX >= 0 && nextX <= 5 && nextY >= 0 && nextY <= 5) {
+            player.x = nextX;
+            player.y = nextY;
+            stepsLeft--;
+            updateGame();
+        }
+    }
+
+    function updateGame() {
+        stepDisplay.innerText = stepsLeft;
+        draw();
+
+        if (player.x === goal.x && player.y === goal.y) {
+            messageDisplay.innerText = "🎉 你贏了！";
+            messageDisplay.style.color = "green";
+            endGame();
+        } else if (stepsLeft === 0) {
+            messageDisplay.innerText = "❌ 遊戲失敗，步數用完了！";
+            messageDisplay.style.color = "red";
+            endGame();
+        }
+    }
+
+    function endGame() {
+        gameOver = true;
+        resetBtn.style.display = "inline-block";
+        const btns = document.querySelectorAll('.controls button');
+        btns.forEach(b => b.disabled = true);
+    }
+
+    function resetGame() {
+        player = { x: 0, y: 0 };
+        stepsLeft = 10;
+        gameOver = false;
+        messageDisplay.innerText = "";
+        resetBtn.style.display = "none";
+        const btns = document.querySelectorAll('.controls button');
+        btns.forEach(b => b.disabled = false);
+        stepDisplay.innerText = stepsLeft;
+        draw();
+    }
+
+    // 鍵盤支援
+    window.addEventListener('keydown', (e) => {
+        if (e.key === "ArrowUp") move('up');
+        if (e.key === "ArrowDown") move('down');
+        if (e.key === "ArrowLeft") move('left');
+        if (e.key === "ArrowRight") move('right');
+    });
+
+    draw();
+</script>
+
+</body>
+</html>

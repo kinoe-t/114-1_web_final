@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>冬日木屋甜點店</title>
+    <style>
+        :root {
+            --glass-white: rgba(255, 255, 255, 0.15);
+            --glass-dark: rgba(0, 0, 0, 0.3);
+            --accent: #d4a373; /* 焦糖麵包色 */
+            --gold: #ffcc00;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            /* 背景使用你提供的圖片 */
+            background: url('bg.jpg') no-repeat center center fixed;
+            background-size: cover;
+            overflow: hidden;
+            color: #fff;
+        }
+
+        /* 全螢幕背景微調 */
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.1); /* 輕微壓暗背景讓文字更清楚 */
+            z-index: -1;
+        }
+
+        .game-layout {
+            width: 95vw;
+            height: 90vh;
+            display: grid;
+            grid-template-columns: 300px 1fr 300px;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        /* 磨砂玻璃面板樣式 */
+        .glass-panel {
+            background: var(--glass-white);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        h2, h3 {
+            margin: 0;
+            color: var(--gold);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 8px;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+        }
+
+        .stat-card {
+            background: var(--glass-dark);
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            border-left: 4px solid var(--accent);
+        }
+
+        .btn {
+            background: var(--accent);
+            color: #2d1b0d;
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 4px 0 #8b5e3c;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: #faedcd;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 #8b5e3c;
+        }
+
+        .btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 0 0;
+        }
+
+        .btn:disabled {
+            background: #666;
+            box-shadow: none;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        /* 製作區 */
+        .center-stage {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            padding-bottom: 50px;
+        }
+
+        .craft-table {
+            width: 80%;
+            text-align: center;
+        }
+
+        .step-group {
+            display: flex;
+            justify-content: space-around;
+            background: rgba(0,0,0,0.4);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 15px;
+        }
+
+        .step-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1em;
+        }
+
+        /* 訊息紀錄 */
+        .log-box {
+            flex-grow: 1;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 10px;
+            font-size: 0.85em;
+            overflow-y: auto;
+            max-height: 220px;
+            line-height: 1.6;
+            color: #eee;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* 下雪動畫 */
+        .snow {
+            position: fixed;
+            top: -10px;
+            color: white;
+            pointer-events: none;
+            z-index: 1000;
+            animation: fall linear forwards;
+        }
+
+        @keyframes fall {
+            to { transform: translateY(105vh); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-layout">
+    <div class="glass-panel">
+        <h2>🏪 小木屋櫃檯</h2>
+        <div class="stat-card">💰 金錢：$<span id="money">100</span></div>
+        <div class="stat-card">👥 員工：<span id="staff">0</span> 名</div>
+        <button class="btn" onclick="game.hire()">雇用外場員工 ($80)</button>
+        <p style="font-size: 0.8em; color: #ccc;">* 員工會自動幫你賣出庫存貨物。</p>
+        
+        <h3>📝 營業日誌</h3>
+        <div id="log" class="log-box">外面正在下雪，準備迎接客人吧。</div>
+    </div>
+
+    <div class="center-stage">
+        <div class="glass-panel craft-table">
+            <h2>👨‍🍳 甜點師工作區</h2>
+            <p>請依序完成步驟來組裝甜點：</p>
+            <div class="step-group">
+                <label class="step-item"><input type="checkbox" id="s1" onchange="game.checkSteps()"> 調配原料</label>
+                <label class="step-item"><input type="checkbox" id="s2" onchange="checkSteps()"> 烘烤塑形</label>
+                <label class="step-item"><input type="checkbox" id="s3" onchange="checkSteps()"> 精緻裝飾</label>
+            </div>
+            <button id="makeBtn" class="btn" style="width: 100%;" disabled onclick="game.complete()">組裝完成並上架 (+$25)</button>
+        </div>
+    </div>
+
+    <div class="glass-panel">
+        <h2>📦 倉庫與進貨</h2>
+        <div class="stat-card">🥤 飲料庫存：<span id="drinks">0</span></div>
+        <button class="btn" onclick="game.buyDrinks()">採購飲料進貨 ($10 / 5份)</button>
+        <button class="btn" style="background:#8b5e3c; color:white;" onclick="game.sellDrink()">手動賣出飲料 (+$15)</button>
+
+        <h3>🏗️ 備貨狀態</h3>
+        <div class="stat-card">🥧 甜點成品：<span id="desserts">0</span></div>
+        <p style="font-size: 0.8em; color: #ccc;">(店員優先賣出甜點，再賣飲料)</p>
+    </div>
+</div>
+
+<script>
+    const game = {
+        money: 100,
+        staff: 0,
+        drinks: 0,
+        desserts: 0,
+
+        updateUI() {
+            document.getElementById('money').innerText = this.money;
+            document.getElementById('staff').innerText = this.staff;
+            document.getElementById('drinks').innerText = this.drinks;
+            document.getElementById('desserts').innerText = this.desserts;
+        },
+
+        addLog(msg) {
+            const logBox = document.getElementById('log');
+            logBox.innerHTML = `<div>> ${msg}</div>` + logBox.innerHTML;
+        },
+
+        checkSteps() {
+            const s1 = document.getElementById('s1').checked;
+            const s2 = document.getElementById('s2').checked;
+            const s3 = document.getElementById('s3').checked;
+            document.getElementById('makeBtn').disabled = !(s1 && s2 && s3);
+        },
+
+        complete() {
+            this.desserts++;
+            this.addLog("🧁 完成了一份精緻甜點並放入展示櫃！");
+            
+            // 重置勾選
+            document.getElementById('s1').checked = false;
+            document.getElementById('s2').checked = false;
+            document.getElementById('s3').checked = false;
+            this.checkSteps();
+            this.updateUI();
+        },
+
+        buyDrinks() {
+            if (this.money >= 10) {
+                this.money -= 10;
+                this.drinks += 5;
+                this.addLog("🚚 飲料進貨車抵達，增加了 5 份庫存。");
+                this.updateUI();
+            } else {
+                this.addLog("❌ 錢不夠了，無法進貨...");
+            }
+        },
+
+        sellDrink() {
+            if (this.drinks > 0) {
+                this.drinks--;
+                this.money += 15;
+                this.addLog("💰 手動賣出一份飲料！獲得 $15");
+                this.updateUI();
+            } else {
+                alert("飲料賣完了！請進貨。");
+            }
+        },
+
+        hire() {
+            if (this.money >= 80) {
+                this.money -= 80;
+                this.staff++;
+                this.addLog("👥 聘請了一位新員工，他會自動幫你招呼客人。");
+                this.updateUI();
+            } else {
+                this.addLog("❌ 聘請金不足...");
+            }
+        }
+    };
+
+    // 自動營運邏輯 (員工每 4 秒工作一次)
+    setInterval(() => {
+        if (game.staff > 0) {
+            if (game.desserts > 0) {
+                game.desserts--;
+                game.money += 25;
+                game.addLog("🤖 員工賣出了一份甜點 (+$25)");
+            } else if (game.drinks > 0) {
+                game.drinks--;
+                game.money += 15;
+                game.addLog("🤖 員工賣出了一份飲料 (+$15)");
+            }
+            game.updateUI();
+        }
+    }, 4000);
+
+    // 下雪特效
+    function createSnow() {
+        const snow = document.createElement('div');
+        snow.className = 'snow';
+        snow.innerHTML = '❄';
+        snow.style.left = Math.random() * 100 + 'vw';
+        snow.style.opacity = Math.random();
+        snow.style.fontSize = (Math.random() * 10 + 10) + 'px';
+        snow.style.animationDuration = (Math.random() * 3 + 5) + 's';
+        document.body.appendChild(snow);
+        setTimeout(() => snow.remove(), 8000);
+    }
+    setInterval(createSnow, 300);
+
+    // 初始化更新
+    window.onload = () => game.updateUI();
+</script>
+
+</body>
+</html>

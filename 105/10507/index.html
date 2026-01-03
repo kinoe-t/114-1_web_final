@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>高難度迷宮遊戲</title>
+
+<style>
+/* ===== 主題色（低飽和、護眼） ===== */
+:root {
+    --bg-page: #f2f2f2;
+    --bg-maze: #222;
+    --wall: #111;
+    --path: #e0e0e0;
+}
+
+/* ===== 基本樣式 ===== */
+body {
+    font-family: Arial, sans-serif;
+    background: var(--bg-page);
+    text-align: center;
+    margin: 0;
+}
+
+h1 { margin: 16px 0; }
+
+#controls button {
+    padding: 8px 16px;
+    font-size: 16px;
+    margin: 5px;
+    cursor: pointer;
+}
+
+#info {
+    font-size: 18px;
+    margin: 10px;
+}
+
+/* ===== 迷宮 ===== */
+#maze {
+    position: relative;
+    margin: 20px auto;
+    background: var(--bg-maze);
+}
+
+.cell {
+    position: absolute;
+    box-sizing: border-box;
+}
+
+.wall { background: var(--wall); }
+.path { background: var(--path); }
+.goal { background: #2ecc71; }
+
+.player {
+    position: absolute;
+    background: #3498db;
+    z-index: 10;
+    transition: left 0.08s linear, top 0.08s linear;
+}
+
+/* ===== 主題選擇器 ===== */
+#themePicker {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 8px;
+    z-index: 999;
+}
+
+#themePicker button {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1px solid #aaa;
+    cursor: pointer;
+    padding: 0;
+}
+
+#themePicker button:nth-child(1) { background: #e8e4dc; }
+#themePicker button:nth-child(2) { background: #dde7e1; }
+#themePicker button:nth-child(3) { background: #dde5ec; }
+#themePicker button:nth-child(4) { background: #e2e2e2; }
+</style>
+</head>
+
+<body>
+
+<div id="themePicker">
+    <button onclick="setTheme('warm')"></button>
+    <button onclick="setTheme('green')"></button>
+    <button onclick="setTheme('blue')"></button>
+    <button onclick="setTheme('gray')"></button>
+</div>
+
+<h1>迷宮遊戲</h1>
+
+<div id="controls">
+    <button onclick="startGame(false)">🎮 一般模式</button>
+    <button onclick="startGame(true)">⏱ 計時模式</button>
+</div>
+
+<div id="info"></div>
+<div id="maze"></div>
+
+<script>
+/* ===== 主題設定 ===== */
+function setTheme(type) {
+    const root = document.documentElement;
+    const themes = {
+        warm:  { page:"#f6f3ee", maze:"#3a3a3a", wall:"#2b2b2b", path:"#e8e4dc" },
+        green: { page:"#eef4f1", maze:"#33403a", wall:"#25302b", path:"#dde7e1" },
+        blue:  { page:"#eef2f6", maze:"#2f3b45", wall:"#1f2a32", path:"#dde5ec" },
+        gray:  { page:"#f1f1f1", maze:"#3a3a3a", wall:"#2a2a2a", path:"#e2e2e2" }
+    };
+    const t = themes[type];
+    root.style.setProperty("--bg-page", t.page);
+    root.style.setProperty("--bg-maze", t.maze);
+    root.style.setProperty("--wall", t.wall);
+    root.style.setProperty("--path", t.path);
+}
+
+/* ===== 遊戲狀態 ===== */
+let level, size, cellSize;
+let mazeData = [];
+let playerPos = { x: 1, y: 1 };
+
+let timedMode = false;
+let startTime = 0;
+let timerInterval = null;
+
+const maze = document.getElementById("maze");
+const info = document.getElementById("info");
+
+/* ===== 移動控制 ===== */
+const keys = {};
+let lastMoveTime = 0;
+const MOVE_INTERVAL = 60;
+
+document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
+document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+
+/* ===== 遊戲流程 ===== */
+function startGame(timed) {
+    timedMode = timed;
+    level = 1;
+    size = 15;
+    cellSize = 30;
+
+    if (timerInterval) clearInterval(timerInterval);
+    startTime = timedMode ? Date.now() : 0;
+    if (timedMode) timerInterval = setInterval(updateInfo, 1000);
+
+    loadLevel();
+    requestAnimationFrame(gameLoop);
+}
+
+function loadLevel() {
+    generateMaze();
+    playerPos = { x: 1, y: 1 };
+
+    maze.style.width = size * cellSize + "px";
+    maze.style.height = size * cellSize + "px";
+
+    drawMaze();
+    updateInfo();
+}
+
+function updateInfo() {
+    let text = `第 ${level} 關`;
+    if (timedMode) {
+        const sec = Math.floor((Date.now() - startTime) / 1000);
+        text += ` ｜時間：${sec} 秒`;
+    }
+    info.innerText = text;
+}
+
+/* ===== 迷宮生成（高難度） ===== */
+function generateMaze() {
+    mazeData = Array.from({ length: size }, () => Array(size).fill(1));
+
+    function carve(x, y) {
+        const dirs = [[0,-2],[2,0],[0,2],[-2,0]].sort(() => Math.random() - 0.5);
+        mazeData[y][x] = 0;
+
+        for (const [dx, dy] of dirs) {
+            const nx = x + dx, ny = y + dy;
+            if (nx > 0 && ny > 0 && nx < size - 1 && ny < size - 1 && mazeData[ny][nx] === 1) {
+                mazeData[y + dy/2][x + dx/2] = 0;
+                carve(nx, ny);
+            }
+        }
+    }
+    carve(1, 1);
+
+    /* 加入環狀路徑 */
+    const loops = Math.floor(size * size * 0.06);
+    for (let i = 0; i < loops; i++) {
+        const x = Math.floor(Math.random() * (size - 2)) + 1;
+        const y = Math.floor(Math.random() * (size - 2)) + 1;
+        if (mazeData[y][x] === 1) {
+            const open =
+                (mazeData[y-1][x] === 0) +
+                (mazeData[y+1][x] === 0) +
+                (mazeData[y][x-1] === 0) +
+                (mazeData[y][x+1] === 0);
+            if (open >= 2) mazeData[y][x] = 0;
+        }
+    }
+
+    /* 找最遠終點 */
+    let goal = { x: size - 2, y: size - 2 }, max = 0;
+    for (let y = 1; y < size; y++) {
+        for (let x = 1; x < size; x++) {
+            if (mazeData[y][x] === 0) {
+                const d = Math.abs(x - 1) + Math.abs(y - 1);
+                if (d > max) { max = d; goal = { x, y }; }
+            }
+        }
+    }
+
+    /* 終點區域混亂化 */
+    for (let dy = -2; dy <= 2; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+            const gx = goal.x + dx, gy = goal.y + dy;
+            if (gx > 0 && gy > 0 && gx < size - 1 && gy < size - 1 && Math.random() < 0.6) {
+                mazeData[gy][gx] = 0;
+            }
+        }
+    }
+
+    mazeData[goal.y][goal.x] = 2;
+}
+
+/* ===== 繪製 ===== */
+function drawMaze() {
+    maze.innerHTML = "";
+
+    for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            cell.style.width = cellSize + "px";
+            cell.style.height = cellSize + "px";
+            cell.style.left = x * cellSize + "px";
+            cell.style.top = y * cellSize + "px";
+
+            cell.classList.add(mazeData[y][x] === 1 ? "wall" : "path");
+            if (mazeData[y][x] === 2) cell.classList.add("goal");
+
+            maze.appendChild(cell);
+        }
+    }
+
+    const player = document.createElement("div");
+    player.id = "player";
+    player.className = "player";
+    player.style.width = cellSize + "px";
+    player.style.height = cellSize + "px";
+    maze.appendChild(player);
+
+    updatePlayer();
+}
+
+function updatePlayer() {
+    const p = document.getElementById("player");
+    p.style.left = playerPos.x * cellSize + "px";
+    p.style.top = playerPos.y * cellSize + "px";
+}
+
+/* ===== 移動與關卡 ===== */
+function tryMove(dx, dy) {
+    const nx = playerPos.x + dx, ny = playerPos.y + dy;
+    if (mazeData[ny][nx] !== 1) {
+        playerPos = { x: nx, y: ny };
+        updatePlayer();
+        if (mazeData[ny][nx] === 2) {
+            setTimeout(() => {
+                level++;
+                size += 4;
+                cellSize = Math.max(18, cellSize - 1);
+                loadLevel();
+            }, 300);
+        }
+    }
+}
+
+function gameLoop(time) {
+    if (time - lastMoveTime > MOVE_INTERVAL) {
+        if (keys["arrowup"] || keys["w"]) tryMove(0, -1);
+        else if (keys["arrowdown"] || keys["s"]) tryMove(0, 1);
+        else if (keys["arrowleft"] || keys["a"]) tryMove(-1, 0);
+        else if (keys["arrowright"] || keys["d"]) tryMove(1, 0);
+        lastMoveTime = time;
+    }
+    requestAnimationFrame(gameLoop);
+}
+</script>
+
+</body>
+</html>

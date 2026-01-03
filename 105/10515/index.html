@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>踩地雷</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f2f2f2;
+    text-align: center;
+  }
+
+  h1 {
+    margin: 10px 0;
+  }
+
+  #top {
+    margin-bottom: 10px;
+    font-size: 18px;
+  }
+
+  #board {
+    display: grid;
+    grid-template-columns: repeat(10, 40px);
+    grid-template-rows: repeat(10, 40px);
+    gap: 2px;
+    justify-content: center;
+    margin: auto;
+  }
+
+  .cell {
+    width: 40px;
+    height: 40px;
+    background: #bdbdbd;
+    border: 1px solid #888;
+    line-height: 40px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .revealed {
+    background: #e0e0e0;
+    cursor: default;
+  }
+
+  .mine {
+    background: #e53935;
+    color: white;
+  }
+
+  .flag {
+    background: #ffcdd2;
+    color: red;
+  }
+
+  .n1 { color: blue; }
+  .n2 { color: green; }
+  .n3 { color: red; }
+
+  #status {
+    margin-top: 10px;
+    font-size: 20px;
+    font-weight: bold;
+    color: red;
+  }
+</style>
+</head>
+<body>
+
+<h1>踩地雷</h1>
+<div id="top">⏱ 時間：<span id="time">0</span> 秒</div>
+<div id="board"></div>
+<div id="status"></div>
+
+<script>
+  const SIZE = 10;
+  const MINES = 10;
+
+  const board = document.getElementById("board");
+  const statusText = document.getElementById("status");
+  const timeText = document.getElementById("time");
+
+  let cells = [];
+  let gameOver = false;
+  let firstClick = true;
+  let timer = null;
+  let seconds = 0;
+
+  init();
+
+  function init() {
+    board.innerHTML = "";
+    statusText.textContent = "";
+    timeText.textContent = "0";
+    cells = [];
+    gameOver = false;
+    firstClick = true;
+    seconds = 0;
+    clearInterval(timer);
+
+    for (let i = 0; i < SIZE * SIZE; i++) {
+      cells.push({
+        mine: false,
+        count: 0,
+        revealed: false,
+        flagged: false
+      });
+    }
+
+    placeMines();
+    calculateNumbers();
+    renderBoard();
+  }
+
+  function startTimer() {
+    timer = setInterval(() => {
+      seconds++;
+      timeText.textContent = seconds;
+    }, 1000);
+  }
+
+  function placeMines() {
+    let placed = 0;
+    while (placed < MINES) {
+      let i = Math.floor(Math.random() * cells.length);
+      if (!cells[i].mine) {
+        cells[i].mine = true;
+        placed++;
+      }
+    }
+  }
+
+  function calculateNumbers() {
+    for (let i = 0; i < cells.length; i++) {
+      if (cells[i].mine) continue;
+
+      let x = i % SIZE;
+      let y = Math.floor(i / SIZE);
+      let count = 0;
+
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          let nx = x + dx;
+          let ny = y + dy;
+          if (nx >= 0 && nx < SIZE && ny >= 0 && ny < SIZE) {
+            if (cells[ny * SIZE + nx].mine) count++;
+          }
+        }
+      }
+      cells[i].count = count;
+    }
+  }
+
+  function renderBoard() {
+    for (let i = 0; i < cells.length; i++) {
+      const div = document.createElement("div");
+      div.className = "cell";
+
+      div.addEventListener("click", () => leftClick(i));
+      div.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        rightClick(i);
+      });
+
+      board.appendChild(div);
+    }
+  }
+
+  function leftClick(index) {
+    if (gameOver) return;
+    if (cells[index].flagged || cells[index].revealed) return;
+
+    if (firstClick) {
+      firstClick = false;
+      startTimer();
+      revealRandomArea(index);
+      return;
+    }
+
+    if (cells[index].mine) {
+      showAllMines();
+      statusText.textContent = "💥 Game Over";
+      gameOver = true;
+      clearInterval(timer);
+      return;
+    }
+
+    revealCell(index);
+  }
+
+  function rightClick(index) {
+    if (gameOver || cells[index].revealed) return;
+
+    const cell = cells[index];
+    const div = board.children[index];
+
+    cell.flagged = !cell.flagged;
+    div.textContent = cell.flagged ? "🚩" : "";
+    div.classList.toggle("flag", cell.flagged);
+  }
+
+  function revealRandomArea(index) {
+    let x = index % SIZE;
+    let y = Math.floor(index / SIZE);
+    let list = [];
+
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        let nx = x + dx;
+        let ny = y + dy;
+        if (nx >= 0 && nx < SIZE && ny >= 0 && ny < SIZE) {
+          list.push(ny * SIZE + nx);
+        }
+      }
+    }
+
+    shuffle(list);
+    let revealCount = Math.floor(Math.random() * list.length) + 1;
+
+    for (let i = 0; i < revealCount; i++) {
+      revealCell(list[i]);
+    }
+  }
+
+  function revealCell(index) {
+    const cell = cells[index];
+    const div = board.children[index];
+
+    if (cell.revealed || cell.flagged) return;
+
+    cell.revealed = true;
+    div.classList.add("revealed");
+
+    if (cell.count > 0) {
+      div.textContent = cell.count;
+      if (cell.count <= 3) {
+        div.classList.add("n" + cell.count);
+      }
+    }
+  }
+
+  function showAllMines() {
+    for (let i = 0; i < cells.length; i++) {
+      if (cells[i].mine) {
+        const div = board.children[i];
+        div.textContent = "💣";
+        div.classList.add("mine");
+      }
+    }
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  }
+</script>
+
+</body>
+</html>

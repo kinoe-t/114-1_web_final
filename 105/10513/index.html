@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模擬亞洲人遊戲</title>
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: "Microsoft JhengHei", sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+        #game-container {
+            border: 3px solid #444;
+            padding: 50px;
+            border-radius: 20px;
+            background-color: #111;
+            max-width: 650px;
+            width: 90%;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.2);
+        }
+        .disclaimer {
+            font-size: 28px; /* 放大文字 */
+            font-weight: bold;
+            color: #ffcc00;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 15px;
+        }
+        .question {
+            font-size: 22px;
+            margin-bottom: 25px;
+        }
+        .btn-box {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            cursor: pointer;
+            background-color: #222;
+            color: white;
+            border: 2px solid #555;
+            border-radius: 10px;
+            transition: 0.2s;
+        }
+        button:hover {
+            background-color: #444;
+            border-color: #fff;
+        }
+        .death-title {
+            color: #ff0000;
+            font-size: 80px;
+            font-weight: bold;
+            margin: 10px 0;
+            text-shadow: 0 0 20px rgba(255, 0, 0, 0.7);
+        }
+        .death-msg {
+            font-size: 24px;
+            color: #ff4444;
+            margin-bottom: 20px;
+        }
+        .success-msg {
+            font-size: 40px;
+            color: #00ff00;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+        #player-wrapper {
+            display: none; /* 隱藏 YouTube 播放器 */
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div class="disclaimer">本遊戲不代表製作人立場</div>
+    <div id="stage-content">
+        </div>
+</div>
+
+<div id="player-wrapper">
+    <div id="yt-player"></div>
+</div>
+
+<script>
+    // 載入 YouTube IFrame API
+    var tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    var firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+    var player;
+    function onYouTubeIframeAPIReady() {
+        player = new YT.Player('yt-player', {
+            height: '0',
+            width: '0',
+            videoId: '16HDUQrENY4',
+            playerVars: { 'autoplay': 0, 'controls': 0 }
+        });
+    }
+
+    function playAudio() {
+        if (player && player.playVideo) {
+            player.seekTo(0);
+            player.playVideo();
+        }
+    }
+
+    const stage = document.getElementById('stage-content');
+
+    // 死亡結束畫面
+    function triggerDeath(msg) {
+        playAudio();
+        stage.innerHTML = `
+            <div class="death-msg">${msg}</div>
+            <div class="death-title">死亡</div>
+            <br>
+            <button onclick="location.reload()">重新投胎</button>
+        `;
+    }
+
+    // 成功結束畫面
+    function triggerWin() {
+        stage.innerHTML = `
+            <div class="success-msg">你是合格亞洲人!!!</div>
+            <br>
+            <button onclick="location.reload()">再次挑戰</button>
+        `;
+    }
+
+    // 關卡：性別
+    function step1() {
+        stage.innerHTML = `
+            <div class="question">請選擇你的性別</div>
+            <div class="btn-box">
+                <button onclick="step2()">男性</button>
+                <button onclick="triggerDeath('成為女性')">女性</button>
+            </div>
+        `;
+    }
+
+    // 關卡：血型
+    function step2() {
+        stage.innerHTML = `
+            <div class="question">選擇你的血型</div>
+            <div class="btn-box">
+                <button onclick="step3()">A++血型</button>
+                <button onclick="triggerDeath('不是A++型')">A型</button>
+                <button onclick="triggerDeath('不是A++型')">B型</button>
+                <button onclick="triggerDeath('不是A++型')">AB型</button>
+                <button onclick="triggerDeath('不是A++型')">O型</button>
+            </div>
+        `;
+    }
+
+    // 關卡：國小
+    function step3() {
+        stage.innerHTML = `
+            <div class="question">國小選擇讀普通班還是資優班？</div>
+            <div class="btn-box">
+                <button onclick="triggerDeath('被家人放棄栽培變成流浪漢')">普通班</button>
+                <button onclick="step4()">資優班</button>
+            </div>
+        `;
+    }
+
+    // 關卡：國高中
+    function step4() {
+        stage.innerHTML = `
+            <div class="question">選擇你的國中與高中</div>
+            <div class="btn-box">
+                <button onclick="triggerDeath('上太多藝術課變成流浪漢')">快樂公立學校</button>
+                <button onclick="triggerDeath('文組，變成流浪漢')">私立學校雙語班</button>
+                <button onclick="step5()">私立學校數理班</button>
+            </div>
+        `;
+    }
+
+    // 關卡：職業
+    function step5() {
+        stage.innerHTML = `
+            <div class="question">選擇你的職業</div>
+            <div class="btn-box">
+                <button onclick="triggerDeath('變成流浪漢')">畫家</button>
+                <button onclick="triggerDeath('變成流浪漢')">哲學家</button>
+                <button onclick="triggerDeath('變成流浪漢')">社工</button>
+                <button onclick="triggerWin()">醫生</button>
+                <button onclick="triggerWin()">工程師</button>
+            </div>
+        `;
+    }
+
+    // 頁面加載後啟動
+    window.onload = step1;
+</script>
+
+</body>
+</html>

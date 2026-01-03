@@ -1,0 +1,197 @@
+
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>電影猜謎遊戲</title>
+  <style>
+    body {
+      font-family: "Noto Sans TC", sans-serif;
+      background: #f4f6fb;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .screen {
+      background: white;
+      padding: 28px;
+      width: 380px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      text-align: center;
+      display: none;
+    }
+    .screen.active { display: block; }
+    h1 { font-size: 24px; margin-bottom: 10px; }
+    .score { font-size: 16px; margin-bottom: 10px; color: #444; }
+    img {
+      width: 100%;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      filter: blur(8px) brightness(0.9);
+      transition: filter 0.3s ease;
+    }
+    .hint {
+      background: #eef2ff;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      margin-bottom: 10px;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      background: #6366f1;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      margin-bottom: 6px;
+    }
+    button:hover { background: #4f46e5; }
+    .result { margin-top: 8px; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <div class="screen active" id="startScreen">
+    <h1>🎬 電影猜謎遊戲</h1>
+    <p>根據圖片與提示猜電影</p>
+    <button onclick="startGame()">開始遊戲</button>
+  </div>
+
+  <div class="screen" id="gameScreen"></div>
+
+  <script>
+    const fallbackImage = "https://i.ytimg.com/vi/5PSNL1qE6VY/hqdefault.jpg";
+
+    const movies = [
+      { title: "玩具總動員", hint: "如果玩具會說話。", quote: "飛向宇宙，浩瀚無垠！", image: "https://i.ytimg.com/vi/v-PjgYDrg70/hqdefault.jpg" },
+      { title: "侏羅紀公園", hint: "恐龍復活。", quote: "生命會找到出路。", image: "https://i.ytimg.com/vi/lc0UehYemQA/hqdefault.jpg" },
+      { title: "哈利波特", hint: "魔法學校。", quote: "你是個巫師。", image: "https://i.ytimg.com/vi/VyHV0BRtdxo/hqdefault.jpg" },
+      { title: "復仇者聯盟", hint: "英雄集結。", quote: "復仇者，集結！", image: "https://i.ytimg.com/vi/eOrNdBpGMv8/hqdefault.jpg" },
+      { title: "阿凡達", hint: "藍色星球。", quote: "我看見你了。", image: "https://i.ytimg.com/vi/5PSNL1qE6VY/hqdefault.jpg" },
+      { title: "蜘蛛人", hint: "責任。", quote: "能力越大責任越大。", image: "https://i.ytimg.com/vi/t06RUxPbp_c/hqdefault.jpg" },
+      { title: "星際大戰", hint: "原力。", quote: "願原力與你同在。", image: "https://i.ytimg.com/vi/vZ734NWnAHA/hqdefault.jpg" },
+      { title: "全面啟動", hint: "夢中夢。", quote: "夢中之夢。", image: "https://i.ytimg.com/vi/YoHD9XEInc0/hqdefault.jpg" },
+      { title: "魔戒", hint: "戒指。", quote: "至尊魔戒。", image: "https://i.ytimg.com/vi/V75dMMIW2B4/hqdefault.jpg" },
+      { title: "功夫熊貓", hint: "熊貓武學。", quote: "沒有祕密配方。", image: "https://i.ytimg.com/vi/PXi3Mv6KMzY/hqdefault.jpg" }
+    ];
+
+    let score = 0;
+    let questionIndex = 0;
+    let wrongCount = 0;
+    const maxChances = 3;
+    let questionPool = [];
+    let current = null;
+
+    function renderGameUI() {
+      document.getElementById("gameScreen").innerHTML = `
+        <h1>🎥 猜電影</h1>
+        <div class="score">分數：<span id="score">0</span> ｜ 題目：<span id="qIndex">1</span>/10 ｜ 剩餘：<span id="chances">3</span></div>
+        <img id="movieImage" src="" />
+        <div class="hint" id="hint"></div>
+        <div class="hint" id="quoteHint" style="display:none"></div>
+        <input id="answer" placeholder="輸入電影名稱" />
+        <button onclick="checkAnswer()">送出</button>
+        <div class="result" id="result"></div>
+      `;
+    }
+
+    function startGame() {
+      document.getElementById("startScreen").classList.remove("active");
+      document.getElementById("gameScreen").classList.add("active");
+      score = 0;
+      questionIndex = 0;
+      questionPool = [...movies].sort(() => Math.random() - 0.5);
+      renderGameUI();
+      loadQuestion();
+    }
+
+    function loadQuestion() {
+      if (questionPool.length === 0) return showResult();
+      current = questionPool.shift();
+      wrongCount = 0;
+      questionIndex++;
+
+      document.getElementById("score").innerText = score;
+      document.getElementById("qIndex").innerText = questionIndex;
+      document.getElementById("chances").innerText = maxChances;
+
+      const img = document.getElementById("movieImage");
+      img.src = current.image || fallbackImage;
+      img.style.filter = "blur(8px)";
+
+      document.getElementById("hint").innerText = current.hint;
+      const quote = document.getElementById("quoteHint");
+      quote.innerText = current.quote;
+      quote.style.display = "none";
+      document.getElementById("answer").value = "";
+      document.getElementById("result").innerText = "";
+    }
+
+    function checkAnswer() {
+      const result = document.getElementById("result");
+      const img = document.getElementById("movieImage");
+      const ans = document.getElementById("answer").value.trim();
+      if (!ans) {
+        result.innerText = "請輸入答案";
+        return;
+      }
+
+      if (ans === current.title) {
+        score += 10;
+        result.innerText = "答對！";
+        img.style.filter = "blur(0)";
+        setTimeout(loadQuestion, 1200);
+      } else {
+        wrongCount++;
+        document.getElementById("chances").innerText = maxChances - wrongCount;
+        img.style.filter = `blur(${Math.max(0, 8 - wrongCount * 2)}px)`;
+        document.getElementById("quoteHint").style.display = "block";
+        if (wrongCount >= maxChances) {
+          result.innerText = `正確答案：${current.title}`;
+          img.style.filter = "blur(0)";
+          setTimeout(loadQuestion, 1500);
+        } else {
+          result.innerText = "答錯了";
+        }
+      }
+    }
+
+    function showResult() {
+      let comment = "";
+      if (score >= 90) comment = "🎉 電影達人！幾乎沒有難倒你的題目";
+      else if (score >= 70) comment = "👍 表現很棒！對電影相當熟悉";
+      else if (score >= 50) comment = "🙂 還不錯，可以再多看點電影";
+      else comment = "📺 多看電影再來挑戰吧！";
+
+      document.getElementById("gameScreen").innerHTML = `
+        <h1>🏁 遊戲結束</h1>
+        <p>最終分數：<strong>${score}</strong></p>
+        <p>${comment}</p>
+        <button onclick="startGame()">再玩一次</button>
+        <button onclick="backToStart()">回到開始畫面</button>
+      `;
+    }
+
+    function backToStart() {
+      document.getElementById("gameScreen").classList.remove("active");
+      document.getElementById("startScreen").classList.add("active");
+      document.getElementById("gameScreen").innerHTML = "";
+      score = 0;
+      questionIndex = 0;
+      wrongCount = 0;
+      questionPool = [];
+      current = null;
+    }
+  </script>
+</body>
+</html>

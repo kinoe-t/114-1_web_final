@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>瘋狂渦蟲基地</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f2f2f2;
+}
+
+#container {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+#game {
+    width: 700px;
+    height: 450px;
+    border: 2px solid #000;
+    background: #e0f5e0;
+    position: relative;
+    overflow: hidden;
+}
+
+.worm {
+    position: absolute;
+    cursor: pointer;
+    user-select: none;
+}
+
+.worm.mutant {
+    filter: hue-rotate(160deg) brightness(1.2);
+}
+
+#side {
+    width: 300px;
+    background: #ffffff;
+    border: 2px solid #000;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+#info {
+    margin-top: 10px;
+    font-size: 16px;
+}
+
+#rules {
+    margin-top: 10px;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+#gameover {
+    display: none;
+    font-size: 22px;
+    color: red;
+    margin-top: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<h1 style="text-align:center;">瘋狂渦蟲基地</h1>
+
+<div id="container">
+
+    <div id="game"></div>
+
+    <div id="side">
+        <div id="info">
+            <strong>遊戲狀態</strong><br>
+            瘋狂值：<span id="madness">0</span><br>
+            存活時間：<span id="time">0</span> 秒<br>
+            渦蟲數量：<span id="count">0</span>
+        </div>
+
+        <div id="rules">
+            <hr>
+            <strong>簡易遊戲規則</strong>
+            <ul>
+                <li>遊戲開始時只有 1 隻渦蟲</li>
+                <li>渦蟲每秒會自動成長</li>
+                <li>長度 ≥ 120 時會變成<strong>突變渦蟲</strong></li>
+                <li>突變後成長速度加倍，瘋狂值 +5</li>
+                <li>渦蟲 ≥ 20 隻時，每秒瘋狂值 +1</li>
+                <li><strong>點擊渦蟲</strong>可切割成 2 隻（瘋狂值 +2）</li>
+                <li>突變渦蟲每 5 秒會自動切割（瘋狂值 +3）</li>
+                <li>以下任一情況遊戲結束：
+                    <ul>
+                        <li>渦蟲 ≥ 100 隻</li>
+                        <li>突變渦蟲 ≥ 5 隻</li>
+                        <li>瘋狂值 ≥ 100</li>
+                    </ul>
+                </li>
+                <li>存活時間即為最終分數</li>
+            </ul>
+        </div>
+
+        <div id="gameover">
+            <hr>
+            遊戲結束！<br>
+            最終成績：<span id="score"></span> 秒
+        </div>
+    </div>
+
+</div>
+
+<script>
+class Worm {
+    constructor(length, speed, state) {
+        this.length = length;
+        this.speed = speed;
+        this.state = state;
+        this.element = null;
+        this.autoCutTimer = 0;
+    }
+}
+
+let worms = [];
+let madness = 0;
+let surviveTime = 0;
+let gameTimer = null;
+
+function spawnWorm(worm) {
+    const img = document.createElement("img");
+    img.src = "IMG_6797.PNG";
+    img.className = "worm";
+    img.width = worm.length;
+    img.height = worm.length;
+
+    const board = document.getElementById("game");
+    img.style.left = Math.random() * (board.clientWidth - worm.length) + "px";
+    img.style.top = Math.random() * (board.clientHeight - worm.length) + "px";
+
+    img.onclick = () => cutWorm(worm, false);
+
+    worm.element = img;
+    board.appendChild(img);
+}
+
+function cutWorm(worm, auto) {
+    if (!worms.includes(worm)) return;
+
+    madness += auto ? 3 : 2;
+
+    worm.element.remove();
+    worms = worms.filter(w => w !== worm);
+
+    const newLen = worm.length / 2;
+    const newSpeed = worm.speed * 1.1;
+
+    const w1 = new Worm(newLen, newSpeed, "normal");
+    const w2 = new Worm(newLen, newSpeed, "normal");
+
+    worms.push(w1, w2);
+    spawnWorm(w1);
+    spawnWorm(w2);
+}
+
+function updateGame() {
+    surviveTime++;
+    let mutantCount = 0;
+
+    worms.forEach(worm => {
+        worm.length += worm.speed;
+        worm.element.width = worm.length;
+        worm.element.height = worm.length;
+
+        if (worm.length >= 120 && worm.state === "normal") {
+            worm.state = "mutant";
+            worm.speed *= 2;
+            madness += 5;
+            worm.element.classList.add("mutant");
+        }
+
+        if (worm.state === "mutant") {
+            mutantCount++;
+            worm.autoCutTimer++;
+            if (worm.autoCutTimer >= 5) {
+                worm.autoCutTimer = 0;
+                cutWorm(worm, true);
+            }
+        }
+    });
+
+    if (worms.length >= 20) madness++;
+
+    document.getElementById("madness").textContent = madness;
+    document.getElementById("time").textContent = surviveTime;
+    document.getElementById("count").textContent = worms.length;
+
+    if (worms.length >= 100 || mutantCount >= 5 || madness >= 100) {
+        clearInterval(gameTimer);
+        document.getElementById("gameover").style.display = "block";
+        document.getElementById("score").textContent = surviveTime;
+    }
+}
+
+function startGame() {
+    const first = new Worm(50, 1, "normal");
+    worms.push(first);
+    spawnWorm(first);
+    gameTimer = setInterval(updateGame, 1000);
+}
+
+startGame();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>歌詞作者猜謎</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      background: #f5f7fb;
+      margin: 0;
+      padding: 24px;
+      color: #222;
+    }
+    .card {
+      max-width: 760px;
+      margin: auto;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.08);
+      padding: 24px;
+    }
+    h1 { margin-top: 0; }
+    .lyrics {
+      background: #f1f5f9;
+      padding: 16px;
+      border-radius: 12px;
+      font-style: italic;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+    .option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 6px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .option:hover { background: #eef2ff; }
+    .actions {
+      margin-top: 16px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 16px;
+      background: #3b82f6;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button.secondary { background: #64748b; }
+    .result {
+      margin-top: 12px;
+      font-weight: 700;
+    }
+    .ok { color: #16a34a; }
+    .bad { color: #dc2626; }
+    footer {
+      margin-top: 18px;
+      font-size: .85rem;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>歌詞作者猜謎</h1>
+    <p>請閱讀歌詞片段，選出你認為正確的<strong>作者</strong>。</p>
+
+    <div id="quiz"></div>
+
+    <div class="actions">
+      <button id="submit">送出答案</button>
+      <button id="next" class="secondary">下一題</button>
+    </div>
+
+    <div id="result" class="result"></div>
+
+    <footer>
+      ※ 本網站使用的是<strong>原創示意歌詞</strong>，避免任何版權問題。
+    </footer>
+  </div>
+
+  <script>
+    // ===== 題庫（可自行修改或增加） =====
+    const questions = [
+      {
+        lyrics: "心撲通撲通跳，左眼皮也狂跳",
+        options: ["TF四代", "TNT", "TXT", "TFboys"],
+        answer: 0
+      },
+      {
+        lyrics: "I don't wanna play this ping pong ，I would rather film a TikTok",
+        options: ["babymonster", "TWICE", "I-DLE", "ILLIT"],
+        answer: 2
+      },
+      {
+        lyrics: "跟著我左手右手一個慢動作，右手左手慢動作重播",
+        options: ["TF四代", "TNT", "TXT", "TFboys"],
+        answer: 3
+      },
+      {
+        lyrics: "Say it (say it), say it (say it) ，Say it, say it louder (say it louder)",
+        options: ["TF四代", "TNT", "TXT", "TFboys"],
+        answer: 2
+      }
+    ];
+
+    let current = 0;
+
+    const quizEl = document.getElementById('quiz');
+    const resultEl = document.getElementById('result');
+
+    function renderQuestion() {
+      const q = questions[current];
+      resultEl.textContent = '';
+
+      quizEl.innerHTML = `
+        <div class="lyrics">「${q.lyrics}」</div>
+        ${q.options.map((opt, i) => `
+          <label class="option">
+            <input type="radio" name="answer" value="${i}" /> ${opt}
+          </label>
+        `).join('')}
+      `;
+    }
+
+    document.getElementById('submit').addEventListener('click', () => {
+      const checked = document.querySelector('input[name="answer"]:checked');
+      if (!checked) {
+        resultEl.textContent = '請先選擇一個答案。';
+        resultEl.className = 'result bad';
+        return;
+      }
+      const q = questions[current];
+      if (Number(checked.value) === q.answer) {
+        resultEl.textContent = '答對了！🎉';
+        resultEl.className = 'result ok';
+      } else {
+        resultEl.textContent = `答錯了，正確答案是：${q.options[q.answer]}`;
+        resultEl.className = 'result bad';
+      }
+    });
+
+    document.getElementById('next').addEventListener('click', () => {
+      current = (current + 1) % questions.length;
+      renderQuestion();
+    });
+
+    renderQuestion();
+  </script>
+</body>
+</html>
