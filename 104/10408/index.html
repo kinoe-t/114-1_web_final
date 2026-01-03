@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>電子木魚 - 功德無量</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Microsoft JhengHei", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #764ba2;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        #muyu {
+            width: 200px;
+            height: 200px;
+            background-image: url('lll.webp');
+            background-size: cover;
+            background-position: center;
+            border-radius: 50%;
+            margin: 30px auto;
+            cursor: pointer;
+            transition: transform 0.1s;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            user-select: none;
+        }
+
+        #muyu.active {
+            background-image: url('mu.jpg');
+        }
+
+        #muyu:hover {
+            transform: scale(1.05);
+        }
+
+        #muyu:active {
+            transform: scale(0.95);
+        }
+
+        .counter {
+            margin: 20px 0;
+            font-size: 1.5em;
+            color: #333;
+        }
+
+        #count {
+            font-size: 2em;
+            font-weight: bold;
+            color: #764ba2;
+            display: block;
+            margin-top: 10px;
+        }
+
+        .floating-text {
+            position: fixed;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #ff6b6b;
+            pointer-events: none;
+            animation: float-up 1.5s ease-out forwards;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes float-up {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-100px) scale(1.5);
+            }
+        }
+
+        .instructions {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+            text-align: left;
+        }
+
+        .instructions h3 {
+            color: #764ba2;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .instructions ul {
+            list-style-position: inside;
+            color: #555;
+            line-height: 1.8;
+        }
+
+        .instructions li {
+            margin-bottom: 8px;
+        }
+
+        .fullscreen-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-image: url('fo.jpeg');
+            background-size: cover;
+            background-position: center;
+            z-index: 9999;
+            display: none;
+        }
+
+        .fullscreen-overlay.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🪷 電子木魚 🪷</h1>
+        <p class="subtitle">誠心敲擊，功德無量</p>
+
+        <div id="muyu"></div>
+
+        <div class="counter">
+            累積功德
+            <span id="count">0</span>
+        </div>
+
+        <div class="instructions">
+            <h3>📖 使用說明</h3>
+            <ul>
+                <li>使用滑鼠點擊或按空白鍵敲擊木魚</li>
+                <li>每次敲擊功德 +1</li>
+                <li>功德數會自動累積</li>
+                <li>心誠則靈，多敲多福 🙏</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 全屏覆蓋層 -->
+    <div id="fullscreenOverlay" class="fullscreen-overlay"></div>
+
+    <script>
+        let count = 0;
+        let isPaused = false; // 新增暫停狀態
+        const muyu = document.getElementById('muyu');
+        const countDisplay = document.getElementById('count');
+        const fullscreenOverlay = document.getElementById('fullscreenOverlay');
+
+        // 敲擊木魚的共用函數
+        function knockMuyu(clientX, clientY) {
+            // 如果暫停中，不執行任何操作
+            if (isPaused) {
+                return;
+            }
+
+            // 增加計數
+            count++;
+            countDisplay.textContent = count;
+
+            // 切換到敲擊圖片
+            muyu.classList.add('active');
+            
+            // 200毫秒後切回原圖
+            setTimeout(() => {
+                muyu.classList.remove('active');
+            }, 200);
+
+            // 創建浮動文字
+            const floatingText = document.createElement('div');
+            floatingText.className = 'floating-text';
+            floatingText.textContent = '功德+1';
+            
+            // 設置浮動文字位置
+            floatingText.style.left = clientX + 'px';
+            floatingText.style.top = clientY + 'px';
+            
+            document.body.appendChild(floatingText);
+
+            // 1.5秒後移除浮動文字
+            setTimeout(() => {
+                floatingText.remove();
+            }, 1500);
+
+            // 檢查是否達到 100 下
+            if (count === 100) {
+                showSpecialEffect();
+            }
+        }
+
+        // 顯示特殊效果（100 下時）
+        function showSpecialEffect() {
+            // 暫停所有操作
+            isPaused = true;
+            
+            // 顯示全屏覆蓋層
+            fullscreenOverlay.classList.add('show');
+            
+            // 3 秒後隱藏覆蓋層並歸零
+            setTimeout(() => {
+                fullscreenOverlay.classList.remove('show');
+                count = 0;
+                countDisplay.textContent = count;
+                isPaused = false; // 恢復操作
+            }, 3000);
+        }
+
+        // 滑鼠點擊事件
+        muyu.addEventListener('click', function(e) {
+            knockMuyu(e.clientX, e.clientY);
+        });
+
+        // 空白鍵事件
+        document.addEventListener('keydown', function(e) {
+            // 檢查是否按下空白鍵
+            if (e.code === 'Space' || e.keyCode === 32 || e.key === ' ') {
+                e.preventDefault(); // 防止頁面滾動
+                
+                // 取得木魚中心位置作為浮動文字出現位置
+                const rect = muyu.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                knockMuyu(centerX, centerY);
+            }
+        });
+
+        // 防止長按選取文字
+        muyu.addEventListener('selectstart', function(e) {
+            e.preventDefault();
+        });
+    </script>
+</body>
+</html>

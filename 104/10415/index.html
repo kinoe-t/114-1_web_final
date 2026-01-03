@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>今晚吃什麼？晚餐拉霸機</title>
+    <style>
+        /* --- CSS 樣式設計 --- */
+        :root {
+            --primary-color: #ff4757; /* 充滿活力的紅色 */
+            --secondary-color: #2f3542; /* 深灰色背景 */
+            --slot-bg: #f1f2f6; /* 拉霸機窗口背景 */
+            --gold: #ffa502; /* 金色邊框 */
+        }
+
+        body {
+            font-family: '微軟正黑體', 'Microsoft JhengHei', Arial, sans-serif;
+            background-color: var(--secondary-color);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            font-size: 2.5rem;
+        }
+
+        /* 拉霸機主體容器 */
+        .slot-machine-container {
+            background: linear-gradient(45deg, #ff6b81, #ff4757);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            border: 5px solid var(--gold);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        /* 顯示食物結果的窗口 */
+        .slot-window {
+            background-color: var(--slot-bg);
+            color: var(--secondary-color);
+            height: 120px;
+            border-radius: 10px;
+            border: 4px solid #ced6e0;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 30px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 顯示食物文字的區域 */
+        #result-text {
+            font-size: 2.5rem;
+            font-weight: bold;
+            white-space: nowrap; /* 防止文字換行 */
+            transition: transform 0.1s;
+        }
+
+        /* 拉霸轉動時的特效 class */
+        .spinning #result-text {
+            /* 利用 filter blur 製造快速移動的模糊感 */
+            filter: blur(3px);
+            color: #747d8c;
+            /* 輕微的垂直震動模擬機械感 */
+            animation: shake 0.1s infinite; 
+        }
+
+        @keyframes shake {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-2px); }
+            100% { transform: translateY(0px); }
+        }
+
+        /* 結果出爐時的特效 */
+        .winner {
+            animation: pop 0.5s ease-out;
+            color: var(--primary-color) !important;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        /* 按鈕樣式 */
+        #spin-btn {
+            background-color: var(--gold);
+            color: var(--secondary-color);
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #e69500;
+            transition: all 0.1s;
+            width: 80%;
+        }
+
+        #spin-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #e69500;
+        }
+
+        #spin-btn:disabled {
+            background-color: #95a5a6;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: translateY(3px);
+        }
+
+        .footer-note {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #a4b0be;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>🎰 今晚吃什麼？ 🎰</h1>
+
+    <div class="slot-machine-container">
+        <div class="slot-window" id="slot-window">
+            <div id="result-text">準備好了嗎？</div>
+        </div>
+
+        <button id="spin-btn">開始拉霸！</button>
+    </div>
+
+    <p class="footer-note">不知道吃什麼的時候，就交給命運吧！</p>
+
+    <script>
+        /* --- JavaScript 邏輯 --- */
+
+        // ==========================================
+        // [重要] 在這裡修改你的晚餐清單！
+        // 可以隨意新增、刪除或修改引號內的食物名稱。
+        // ==========================================
+        const dinnerOptions = [
+            "日式拉麵",
+            "咖哩飯",
+            "義大利麵",
+            "火鍋",
+            "韓式炸雞",
+            "壽司",
+            "牛肉麵",
+            "水餃 / 鍋貼",
+            "麥當勞 / 肯德基",
+            "健康沙拉",
+            "泰式料理",
+            "便當",
+            "炒飯 / 炒麵",
+            "牛排",
+            "鹹酥雞 + 啤酒"
+        ];
+        // ==========================================
+
+        // 獲取 DOM 元素
+        const spinBtn = document.getElementById('spin-btn');
+        const resultText = document.getElementById('result-text');
+        const slotWindow = document.getElementById('slot-window');
+
+        let isSpinning = false;
+        let spinInterval;
+
+        // 按鈕點擊事件監聽
+        spinBtn.addEventListener('click', startSpin);
+
+        function startSpin() {
+            if (isSpinning) return; // 如果正在轉，忽略點擊
+
+            isSpinning = true;
+            spinBtn.disabled = true; // 禁用按鈕
+            spinBtn.innerText = "轉動中...";
+            
+            // 移除上次可能留下的 winner 特效
+            resultText.classList.remove('winner');
+            // 添加轉動特效 class
+            slotWindow.classList.add('spinning');
+
+            let counter = 0;
+            
+            // 設定快速循環顯示的計時器 (每 50 毫秒換一次文字)
+            spinInterval = setInterval(() => {
+                // 隨機取一個暫時顯示的文字，製造視覺暫留
+                const randomIndex = Math.floor(Math.random() * dinnerOptions.length);
+                resultText.innerText = dinnerOptions[randomIndex];
+                counter++;
+            }, 50);
+
+            // 設定轉動多久後停止 (這裡設定為 2 秒 = 2000 毫秒)
+            // 為了增加隨機感，可以加上一點隨機時間： 2000 + Math.random() * 1000
+            setTimeout(stopSpin, 2000);
+        }
+
+        function stopSpin() {
+            // 清除快速循環的計時器
+            clearInterval(spinInterval);
+            
+            // 移除轉動特效
+            slotWindow.classList.remove('spinning');
+
+            // ----- 決定最終結果 -----
+            const finalIndex = Math.floor(Math.random() * dinnerOptions.length);
+            const winnerFood = dinnerOptions[finalIndex];
+            
+            // 顯示最終結果
+            resultText.innerText = winnerFood;
+            // 添加中獎特效
+            resultText.classList.add('winner');
+
+            // 重置按鈕狀態
+            spinBtn.disabled = false;
+            spinBtn.innerText = "再抽一次！";
+            isSpinning = false;
+        }
+
+    </script>
+</body>
+</html>

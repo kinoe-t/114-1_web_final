@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>Emoji 猜韓團</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f6fa;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .card {
+      background: white;
+      padding: 24px 32px;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+    }
+    .emoji {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    input {
+      padding: 10px;
+      width: 80%;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    button {
+      margin-top: 12px;
+      padding: 10px 16px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background-color: #4a6cf7;
+      color: white;
+    }
+    button.secondary {
+      background-color: #888;
+      margin-left: 8px;
+    }
+    .result {
+      margin-top: 16px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Emoji 猜韓團</h1>
+    <div class="emoji" id="emoji"></div>
+    <p>請輸入你猜的韓團名稱：</p>
+    <input type="text" id="answer" placeholder="例如：BTS" />
+    <br />
+    <button onclick="checkAnswer()">確認</button>
+    <button class="secondary" onclick="nextQuestion()">再玩一次</button>
+    <div class="result" id="result"></div>
+  </div>
+
+  <script>
+    // 題庫：emoji + 正確答案
+    const questions = [
+      { emoji: "🩷🖤", answer: "BLACKPINK" },
+      { emoji: "🍵❌🍵", answer: "TXT" },
+      { emoji: "2️⃣", answer: "TWICE" },
+      { emoji: "💎", answer: "SEVENTEEN" },
+      { emoji: "👑🦁🐶🍫👶", answer: "I-DLE" },
+      { emoji: "🎸🥁🎤📢🦀", answer: "QWER" },
+      { emoji: "👑🌸⭐💃", answer: "IVE" },
+      { emoji: "🤖🌌✨", answer: "aespa" },
+      { emoji: "👨‍🦱➡️🚪", answer: "BOYNEXTDOOR" },
+      { emoji: "4️⃣2️⃣👦", answer: "TWS" },
+      { emoji: "🐳🎤", answer: "NMIXX" },
+      { emoji: "👶😈", answer: "BABYMONSTER" },
+      { emoji: "❤️🖤", answer: "STRAY KIDS" },
+      { emoji: "🩵🌹", answer: "ZEROBASEONE" }
+    ];
+
+    let currentQuestion = null;
+
+    function loadRandomQuestion() {
+      const index = Math.floor(Math.random() * questions.length);
+      currentQuestion = questions[index];
+      document.getElementById("emoji").textContent = currentQuestion.emoji;
+      document.getElementById("answer").value = "";
+      document.getElementById("result").textContent = "";
+    }
+
+    function checkAnswer() {
+      const userAnswer = document.getElementById("answer").value.trim();
+      const resultEl = document.getElementById("result");
+
+      if (!userAnswer) {
+        resultEl.textContent = "請先輸入答案";
+        resultEl.style.color = "#333";
+        return;
+      }
+
+      if (userAnswer.toLowerCase() === currentQuestion.answer.toLowerCase()) {
+        resultEl.textContent = "你猜對了 🎉";
+        resultEl.style.color = "green";
+      } else {
+        resultEl.textContent = `你猜錯了 ❌ 正確答案是：${currentQuestion.answer}`;
+        resultEl.style.color = "red";
+      }
+    }
+
+    function nextQuestion() {
+      loadRandomQuestion();
+    }
+
+    // 頁面載入時先出一題
+    loadRandomQuestion();
+  </script>
+</body>
+</html>

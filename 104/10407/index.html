@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>奇異果口紅旋轉遊戲</title>
+<style>
+  html, body { margin:0; padding:0; height:100%; background:#f4f6f8; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  canvas { display:block; }
+  #controls { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:10; }
+  button {
+    font-size:16px; padding:12px 24px; border:none; border-radius:14px;
+    background:#c2185b; color:#fff; cursor:pointer;
+    box-shadow:0 8px 22px rgba(0,0,0,.25);
+  }
+  button:active { transform:scale(0.96); }
+  #gameOver {
+    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.55); z-index:20;
+  }
+  #gameOver div {
+    background:#fff; padding:30px 34px; border-radius:20px; text-align:center;
+    box-shadow:0 18px 44px rgba(0,0,0,.35);
+  }
+</style>
+</head>
+<body>
+
+<div id="controls"><button id="fireBtn">插口紅 💄</button></div>
+<div id="gameOver"><div><h1>Game Over</h1><p>口紅相撞，奇異果爆掉</p></div></div>
+<canvas id="c"></canvas>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const btn = document.getElementById('fireBtn');
+const gameOverEl = document.getElementById('gameOver');
+
+let W, H, cx, cy;
+function resize(){ W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; cx = W/2; cy = H/2; }
+window.addEventListener('resize', resize); resize();
+
+let rotation = 0;
+let rotationSpeed = 0.02; // 初始轉速（加快）
+let gameOver = false;
+let exploded = false;
+let explosionStart = 0;
+
+const kiwiRadius = () => Math.min(W, H) * 0.17;
+
+// lipstick: { localAngle, progress, falling }
+let lipsticks = [];
+
+function drawKiwi(){
+  const r = kiwiRadius();
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rotation);
+  ctx.fillStyle = '#6b8e23';
+  ctx.beginPath(); ctx.ellipse(0,0,r*1.1,r,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#a7d948';
+  ctx.beginPath(); ctx.ellipse(0,0,r*0.95,r*0.85,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#222';
+  for(let i=0;i<20;i++){ const a=(Math.PI*2/20)*i; ctx.beginPath(); ctx.arc(Math.cos(a)*r*0.55, Math.sin(a)*r*0.45, 2, 0, Math.PI*2); ctx.fill(); }
+  ctx.restore();
+}
+
+function drawLipstickAt(angle, yOffset){
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+  ctx.translate(0, yOffset);
+  // 垂直口紅（相對奇異果座標）
+  ctx.fillStyle = '#222'; ctx.fillRect(-4, 0, 8, 22);
+  ctx.fillStyle = '#c2185b'; ctx.fillRect(-6, -14, 12, 16);
+  ctx.restore();
+}
+
+function drawExplosion(t){
+  const p = Math.min(1, t / 400);
+  ctx.save(); ctx.translate(cx, cy); ctx.globalAlpha = 1 - p; ctx.fillStyle = '#ff6f61';
+  for(let i=0;i<18;i++){ const a=(Math.PI*2/18)*i; ctx.beginPath(); ctx.arc(Math.cos(a)*p*140, Math.sin(a)*p*140, 6*(1-p), 0, Math.PI*2); ctx.fill(); }
+  ctx.restore();
+}
+
+btn.addEventListener('click', () => {
+  if (gameOver) return;
+  // 插入口紅的「當下角度」固定成局部角度
+  lipsticks.push({ localAngle: -rotation, progress: 0, falling: false });
+});
+
+function checkCollision(){
+  const r = kiwiRadius();
+  for(let i=0;i<lipsticks.length;i++){
+    for(let j=i+1;j<lipsticks.length;j++){
+      const a1 = lipsticks[i].localAngle + rotation;
+      const a2 = lipsticks[j].localAngle + rotation;
+      const x1 = cx + Math.cos(a1) * r;
+      const y1 = cy + Math.sin(a1) * r;
+      const x2 = cx + Math.cos(a2) * r;
+      const y2 = cy + Math.sin(a2) * r;
+      if (Math.hypot(x1-x2, y1-y2) < 16) return true;
+    }
+  }
+  return false;
+}
+
+function loop(t){
+  ctx.clearRect(0,0,W,H);
+  rotation += rotationSpeed;
+  rotationSpeed += 0.00002; // 每一幀逐漸加速（更快）
+
+  if (!exploded) drawKiwi(); else drawExplosion(t - explosionStart);
+
+  const r = kiwiRadius();
+
+  for(const l of lipsticks){
+    let yOffset;
+    if (!l.falling) {
+      if (l.progress < 1) {
+        l.progress += 0.06;
+        yOffset = r + (H - r) * (1 - l.progress);
+      } else {
+        yOffset = r;
+      }
+      drawLipstickAt(l.localAngle + rotation, yOffset);
+    } else {
+      // 掉落後不再跟著轉
+      const x = cx + Math.cos(l.localAngle + rotation) * r;
+      const y = cy + r + (t - explosionStart) * 0.02;
+      ctx.save(); ctx.translate(x, y);
+      ctx.fillStyle = '#222'; ctx.fillRect(-4, 0, 8, 22);
+      ctx.fillStyle = '#c2185b'; ctx.fillRect(-6, -14, 12, 16);
+      ctx.restore();
+    }
+  }
+
+  if (!exploded && lipsticks.length > 1 && checkCollision()){
+    exploded = true;
+    explosionStart = performance.now();
+    gameOver = true;
+    gameOverEl.style.display = 'flex';
+    lipsticks.forEach(l => l.falling = true);
+  }
+
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
+
+

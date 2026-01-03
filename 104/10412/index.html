@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<title>小精靈三局挑戰</title>
+<style>
+  body {
+    margin: 0;
+    background: #000;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  h1 { margin: 10px; }
+  canvas {
+    background: #111;
+    border: 2px solid #555;
+  }
+</style>
+</head>
+<body>
+<h1>小精靈三局挑戰</h1>
+<canvas id="game" width="400" height="400"></canvas>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+const gridSize = 20;
+const cols = canvas.width / gridSize;
+const rows = canvas.height / gridSize;
+
+let round = 1;            // 目前局數（最多 3 局）
+let pacmanLives = 1;      // 小精靈只有 1 隻
+let gameOver = false;
+
+let pacman = { x: 1, y: 1 };
+let ghosts = [];
+let foods = [];
+
+function initFoods() {
+  if (foods.length > 0) return; // 食物只在第一次產生
+  for (let i = 0; i < 40; i++) {
+    foods.push({
+      x: Math.floor(Math.random() * cols),
+      y: Math.floor(Math.random() * rows),
+      eaten: false
+    });
+  }
+}
+
+function initPacman() {
+  pacman.x = 1;
+  pacman.y = 1;
+}
+
+function initGhosts() {
+  ghosts = [];
+  while (ghosts.length < 7) {
+    const gx = Math.floor(Math.random() * cols);
+    const gy = Math.floor(Math.random() * rows);
+    // 避免幽靈一開始就生成在小精靈身上，導致立刻 Game Over
+    if (gx !== pacman.x || gy !== pacman.y) {
+      ghosts.push({ x: gx, y: gy });
+    }
+  }
+}
+
+function startRound() {
+  initPacman();
+  initGhosts();
+  initFoods();
+}
+
+function drawPacman() {
+  ctx.fillStyle = 'yellow';
+  ctx.beginPath();
+  ctx.arc(
+    pacman.x * gridSize + gridSize / 2,
+    pacman.y * gridSize + gridSize / 2,
+    gridSize / 2 - 2,
+    0,
+    Math.PI * 2
+  );
+  ctx.fill();
+}
+
+function drawGhosts() {
+  ctx.fillStyle = 'red';
+  ghosts.forEach(g => {
+    ctx.fillRect(
+      g.x * gridSize + 2,
+      g.y * gridSize + 2,
+      gridSize - 4,
+
+
+      gridSize - 4
+    );
+  });
+}
+
+function drawFoods() {
+  ctx.fillStyle = 'white';
+  foods.forEach(f => {
+    if (!f.eaten) {
+      ctx.beginPath();
+      ctx.arc(
+        f.x * gridSize + gridSize / 2,
+        f.y * gridSize + gridSize / 2,
+        3,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+    }
+  });
+}
+
+function moveGhosts() {
+  ghosts.forEach(g => {
+    const dir = Math.floor(Math.random() * 4); // 隨機方向
+    if (dir === 0) g.x++;
+    if (dir === 1) g.x--;
+    if (dir === 2) g.y++;
+    if (dir === 3) g.y--;
+    g.x = (g.x + cols) % cols; // 邊界循環
+    g.y = (g.y + rows) % rows;
+  });
+}
+
+function checkCollisions() {
+  // 吃到食物
+  foods.forEach(f => {
+    if (!f.eaten && f.x === pacman.x && f.y === pacman.y) {
+      f.eaten = true;
+    }
+  });
+
+  // 碰到幽靈
+  for (let g of ghosts) {
+    if (g.x === pacman.x && g.y === pacman.y) {
+      pacmanLives--;
+      round++;
+
+      if (pacmanLives <= 0 || round > 3) {
+        gameOver = true;
+      } else {
+        startRound();
+      }
+      return;
+    }
+  }
+
+  // 三局內提早吃完全部食物
+  if (foods.every(f => f.eaten)) {
+    gameOver = true;
+  }
+}
+
+function drawEndScreen() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#fff';
+  ctx.font = '30px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText(
+    foods.every(f => f.eaten) ? '🎆🎆 勝 利 🎆🎆' : '👎 失 敗 👎',
+    canvas.width / 2,
+    canvas.height / 2
+  );
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawFoods();
+  drawPacman();
+  drawGhosts();
+
+  ctx.fillStyle = '#0f0';
+  ctx.font = '14px Arial';
+  ctx.fillText(`第 ${round} 局 / 最多 3 局`, 10, 15);
+}
+
+function update() {
+  if (gameOver) {
+    drawEndScreen();
+    return;
+  }
+  moveGhosts();
+  checkCollisions();
+  draw();
+}
+
+window.addEventListener('keydown', e => {
+  if (gameOver) return;
+  if (e.key === 'ArrowUp') pacman.y--;
+  if (e.key === 'ArrowDown') pacman.y++;
+  if (e.key === 'ArrowLeft') pacman.x--;
+  if (e.key === 'ArrowRight') pacman.x++;
+
+  pacman.x = (pacman.x + cols) % cols;
+  pacman.y = (pacman.y + rows) % rows;
+});
+
+startRound();
+// 先畫一次畫面，避免初始黑畫面
+draw();
+setInterval(update, 300);
+</script>
+</body>
+</html>

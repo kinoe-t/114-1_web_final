@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>經典歌詞挑戰賽</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --success: #10b981;
+            --error: #ef4444;
+            --bg: #f3f4f6;
+            --dark: #1f2937;
+        }
+
+        body {
+            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            background-color: var(--bg);
+            color: var(--dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        #quiz-card {
+            background: white;
+            width: 90%;
+            max-width: 500px;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .lyric-text {
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin: 2rem 0;
+            line-height: 1.6;
+            color: #111827;
+        }
+
+        .options-container {
+            display: grid;
+            gap: 1rem;
+        }
+
+        button {
+            padding: 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.75rem;
+            background: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            border-color: var(--primary);
+            background-color: #f5f3ff;
+        }
+
+        .feedback-screen { display: none; }
+        .score-screen { display: none; }
+
+        .status-icon { font-size: 4rem; margin-bottom: 1rem; }
+        
+        .btn-next {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            width: 100%;
+            margin-top: 1.5rem;
+            font-weight: bold;
+        }
+
+        .btn-next:hover { background-color: #4338ca; }
+
+        .correct-ans { color: var(--success); font-weight: bold; }
+        .progress { font-size: 0.8rem; color: #6b7280; margin-bottom: 0.5rem; }
+    </style>
+</head>
+<body>
+
+<div id="quiz-card">
+    <div id="question-view">
+        <div class="progress">第 <span id="q-number">1</span> / 15 題</div>
+        <div class="lyric-text" id="lyric-content">載入中...</div>
+        <div class="options-container" id="options-box"></div>
+    </div>
+
+    <div id="feedback-view" class="feedback-screen">
+        <div id="feedback-icon" class="status-icon"></div>
+        <h2 id="feedback-title"></h2>
+        <p id="answer-detail"></p>
+        <button class="btn-next" onclick="nextQuestion()">下一題</button>
+    </div>
+
+    <div id="score-view" class="score-screen">
+        <div class="status-icon">🏆</div>
+        <h2>挑戰完成！</h2>
+        <div style="font-size: 3rem; font-weight: 800; color: var(--primary); margin: 1rem 0;">
+            <span id="final-score">0</span> / 100
+        </div>
+        <p id="score-comment"></p>
+        <button class="btn-next" onclick="location.reload()">重新挑戰</button>
+    </div>
+</div>
+
+<script>
+    const songData = [
+        { lyric: "快樂煉成淚水 是一種勇敢", title: "修煉愛情" },
+        { lyric: "離開你 我才發現自己 那愛笑的眼睛", title: "愛笑的眼睛" },
+        { lyric: "你說你有點難追 想讓我知難而退", title: "告白氣球" },
+        { lyric: "愛的巴士 總是走了又停", title: "日不落" },
+        { lyric: "只是回憶的音樂盒還旋轉著 要怎麼停呢", title: "說好的幸福呢" },
+        { lyric: "我原諒不了我,就請你當作我已不在", title: "擱淺" },
+        { lyric: "我用眼光去追,竟聽見你的淚", title: "一路向北" },
+        { lyric: "劍出鞘恩怨了誰笑,我只求今朝擁你入懷抱", title: "紅塵客棧" },
+        { lyric: "阻擋悲劇蔓延的悲劇會讓我沈醉", title: "以父之名" },
+        { lyric: "Nice to meet you it's my pleasure", title: "Pleasure" },
+        { lyric: "I love you so much , I do", title: "計算浪漫" },
+        { lyric: "為了你踮起 最孤獨的腳尖", title: "絕" },
+        { lyric: "電話沒接 手機沒電", title: "甘蔗掰掰" },
+        { lyric: "不懂怎麼表現溫柔的我們,還以為殉情只是古老的傳言", title: "江南" },
+        { lyric: "一眨眼 一瞬間 妳說好就是永遠", title: "如果可以" }
+    ];
+
+    // 其他誤導用的歌名池
+    const decoyTitles = ["泡沫", "小幸運", "背對背擁抱", "十年", "倒帶", "青花瓷", "聽媽媽的話", "關鍵詞", "學貓叫", "體面"];
+
+    let currentIdx = 0;
+    let score = 0;
+    let quizList = [];
+
+    function init() {
+        // 洗牌題目
+        quizList = [...songData].sort(() => Math.random() - 0.5);
+        showQuestion();
+    }
+
+    function showQuestion() {
+        const q = quizList[currentIdx];
+        document.getElementById('question-view').style.display = 'block';
+        document.getElementById('feedback-view').style.display = 'none';
+        
+        document.getElementById('q-number').innerText = currentIdx + 1;
+        document.getElementById('lyric-content').innerText = `「${q.lyric}」`;
+
+        // 生成選項：1個正確 + 3個隨機錯誤
+        let options = [q.title];
+        let availableDecoys = decoyTitles.filter(t => t !== q.title);
+        while(options.length < 4) {
+            let randomDecoy = availableDecoys[Math.floor(Math.random() * availableDecoys.length)];
+            if(!options.includes(randomDecoy)) options.push(randomDecoy);
+        }
+        options.sort(() => Math.random() - 0.5);
+
+        const box = document.getElementById('options-box');
+        box.innerHTML = '';
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(opt, q.title);
+            box.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selected, correct) {
+        const isCorrect = selected === correct;
+        if(isCorrect) score += (100 / 15);
+
+        document.getElementById('question-view').style.display = 'none';
+        document.getElementById('feedback-view').style.display = 'block';
+
+        const icon = document.getElementById('feedback-icon');
+        const title = document.getElementById('feedback-title');
+        const detail = document.getElementById('answer-detail');
+
+        icon.innerText = isCorrect ? '⭕' : '❌';
+        icon.style.color = isCorrect ? 'var(--success)' : 'var(--error)';
+        title.innerText = isCorrect ? '答對了！' : '答錯了...';
+        detail.innerHTML = `正確答案是：<span class="correct-ans">《${correct}》</span>`;
+    }
+
+    function nextQuestion() {
+        currentIdx++;
+        if (currentIdx < 15) {
+            showQuestion();
+        } else {
+            showFinalScore();
+        }
+    }
+
+    function showFinalScore() {
+        document.getElementById('feedback-view').style.display = 'none';
+        document.getElementById('score-view').style.display = 'block';
+        
+        const roundedScore = Math.round(score);
+        document.getElementById('final-score').innerText = roundedScore;
+        
+        let comment = "";
+        if(roundedScore >= 90) comment = "你是華語樂壇小百科！";
+        else if(roundedScore >= 60) comment = "很棒！你是資深樂迷。";
+        else comment = "再接再厲，多聽點歌吧！";
+        
+        document.getElementById('score-comment').innerText = comment;
+    }
+
+    init();
+</script>
+</body>
+</html>

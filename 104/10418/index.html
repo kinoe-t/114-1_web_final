@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>12格精確指向梗圖</title>
+    <style>
+        * { box-sizing: border-box; }
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background-color: #000;
+            overflow: hidden;
+            cursor: crosshair;
+        }
+        #meme-img {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            object-fit: contain; 
+            display: none;
+            z-index: 10;
+        }
+        .hint {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            color: #555;
+            font-family: sans-serif;
+            z-index: 5;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="hint">點擊畫面上任何位置</div>
+    <img id="meme-img" src="">
+
+    <script>
+        const img = document.getElementById('meme-img');
+        const hint = document.querySelector('.hint');
+
+        // --- 12格配置表 (3欄 x 4列) ---
+        // 請依照以下備註的方向，將你的檔名填入對應位置
+        const memeMap = [
+            // 第一列 (最上方)
+            "13.jpeg",    // [0] 螢幕左上角：放「指向左上」的圖
+            "中下左.jpg",  // [1] 螢幕中上方：放「指向上方」的圖
+            "右上.gif",    // [2] 螢幕右上角：放「指向右上」的圖
+
+            // 第二列 (中上部)
+            "左中上.jpg",  // [3] 螢幕左中上：放「指向左方偏上」的圖
+            "中間.gif",     // [4] 螢幕正中上：放「指著你/正上方」的圖
+            "幼中.jpg",   // [5] 螢幕右中上：放「指向右方偏上」的圖
+
+            // 第三列 (中下部)
+            "三左.webp",  // [6] 螢幕左中下：放「指向左方偏下」的圖
+            "1.jpeg",    // [7] 螢幕正中下：放「指著你/正下方」的圖
+            "中間 又.jpg", // [8] 螢幕右中下：放「指向右方偏下」的圖
+
+            // 第四列 (最下方)
+            "左下.png",      // [9] 螢幕左下角：放「指向左下」的圖
+            "中下.jpg",      // [10] 螢幕中下方：放「指向正下方」的圖
+            "右下.jpg"      // [11] 螢幕右下角：放「指向右下」的圖
+        ];
+
+        // 預載圖片
+        memeMap.forEach(src => { const p = new Image(); p.src = src; });
+
+        document.addEventListener('click', (e) => {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            
+            // 計算 3 欄
+            const col = Math.floor(e.clientX / (w / 3));
+            // 計算 4 列
+            const row = Math.floor(e.clientY / (h / 4));
+            
+            const index = (row * 3) + col;
+            const selectedImg = memeMap[Math.max(0, Math.min(index, memeMap.length - 1))];
+
+            img.src = selectedImg;
+            img.style.display = 'block';
+            hint.style.display = 'none';
+        });
+    </script>
+</body>
+</html>

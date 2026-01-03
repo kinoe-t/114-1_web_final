@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>抒情金曲 50 首 - 幻彩歌詞流動版</title>
+    <style>
+        :root {
+            --font-main: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            --note-color: #000000;
+        }
+
+        /* 背景流動動畫 */
+        body {
+            margin: 0; padding: 0;
+            display: flex; align-items: center; justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(-45deg, #ff9a9e, #fad0c4, #a1c4fd, #c2e9fb, #d4fc79);
+            background-size: 400% 400%;
+            animation: fluidGradient 15s ease infinite;
+            font-family: var(--font-main);
+            overflow: hidden;
+            position: relative;
+        }
+
+        @keyframes fluidGradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* 飄浮音符層 */
+        .note-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 1;
+        }
+
+        .floating-note {
+            position: absolute; color: var(--note-color); font-weight: bold;
+            user-select: none; opacity: 0;
+        }
+
+        @keyframes floatRandom {
+            0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.5; }
+            90% { opacity: 0.5; }
+            100% { transform: translate(var(--mx), var(--my)) rotate(var(--rt)); opacity: 0; }
+        }
+
+        /* 主容器 */
+        .container {
+            position: relative; z-index: 10; text-align: center;
+            background: rgba(255, 255, 255, 0.75);
+            padding: 2.5rem; border-radius: 45px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.1);
+            max-width: 680px; width: 92%;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .video-wrapper {
+            position: relative; width: 100%; padding-bottom: 56.25%;
+            margin: 15px 0; border-radius: 25px; overflow: hidden;
+            background: #000; box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        }
+        #player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+        /* 歌詞區塊 */
+        .lyrics-display {
+            min-height: 90px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #lyrics-text {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #000;
+            line-height: 1.6;
+            animation: lyricIn 0.8s ease forwards;
+        }
+
+        @keyframes lyricIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* 三個音符按鈕 */
+        .btn-group {
+            display: flex; justify-content: center; gap: 25px; margin-top: 10px;
+        }
+
+        .note-btn {
+            font-size: 45px; border: none; cursor: pointer;
+            width: 90px; height: 90px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            color: #000; background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .note-btn:hover { transform: translateY(-10px) rotate(15deg); background: #fff; }
+        .note-btn:disabled { opacity: 0.3; }
+
+        #title { font-size: 1.7rem; font-weight: bold; color: #000; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="note-container" id="note-canvas"></div>
+
+<div class="container">
+    <div id="title">點擊音符開啟旅程</div>
+    <div style="font-size: 0.85rem; color: #333; letter-spacing: 2px;">50 FAVORITE BALLADS</div>
+    
+    <div class="video-wrapper">
+        <div id="player"></div>
+    </div>
+
+    <div class="lyrics-display">
+        <div id="lyrics-text">準備好聽歌了嗎？</div>
+    </div>
+
+    <div class="btn-group">
+        <button id="b1" class="note-btn" onclick="playRandom()" disabled>♩</button>
+        <button id="b2" class="note-btn" onclick="playRandom()" disabled>♫</button>
+        <button id="b3" class="note-btn" onclick="playRandom()" disabled>♬</button>
+    </div>
+</div>
+
+<script>
+    // 完整的 50 首數據
+    const playlist = [
+        { title: "周杰倫 - 晴天", id: "DYptgVvkVLQ", start: 83, lyrics: "從前從前 有個人愛你很久<br>但偏偏 風漸漸 把距離吹得好遠" },
+        { title: "周興哲 - 以後別做朋友", id: "Ew4VvF0DPMc", start: 81, lyrics: "以後別做朋友 朋友不能牽手<br>想愛你的出口 只有在那點頭" },
+        { title: "田馥甄 - 小幸運", id: "GCgvpwLNvtY", start: 92, lyrics: "原來你是我 最想留住的幸運<br>原來我們和愛情 曾經靠得那麼近" },
+        { title: "韋禮安 - 如果可以", id: "8MG--WuNW1Y", start: 73, lyrics: "如果可以 我想和你回到那天相遇<br>讓時間停止 那一場雨" },
+        { title: "鄧紫棋 - 光年之外", id: "T4SimnaiktU", start: 61, lyrics: "我願守在八十一個光年之外<br>等著孤獨的我在黑暗中醒來" },
+        { title: "A-Lin - 有一種悲傷", id: "BRcudpJzy1I", start: 78, lyrics: "有一種悲傷 是你的名字停留在我的過往<br>陪伴我呼吸 決定我微笑模樣" },
+        { title: "林俊傑 - 修煉愛情", id: "LWV-f6dMN3Q", start: 106, lyrics: "修煉愛情的心酸 學會放好以前的渴望<br>我們那些信仰 要忘記多難" },
+        { title: "五月天 - 突然好想你", id: "GtDRcXtDg-4", start: 67, lyrics: "突然好想你 你會在哪裡<br>過得快樂或委屈" },
+        { title: "陳奕迅 - 十年", id: "JM9rx_hN1Ko", start: 78, lyrics: "十年之前 我不認識你 你不屬於我<br>我們還是一樣 陪在一個陌生人左右" },
+        { title: "周杰倫 - 擱淺", id: "YJfHuATJYsQ", start: 83, lyrics: "我只能 永遠朝著遠方望去<br>直到我看見 你的背影消失在盡頭" },
+        { title: "莫文蔚 - 慢慢喜歡你", id: "kqqraGvoqVs", start: 83, lyrics: "慢慢喜歡你 慢慢的親密<br>慢慢聊自己 慢慢和你走在一起" },
+        { title: "薛之謙 - 演員", id: "XaN3kUz4KSw", start: 103, lyrics: "該配合你演出的我演視而不見<br>在逼一個最愛你的人即興表演" },
+        { title: "林宥嘉 - 說謊", id: "ftfJRzW0MPo", start: 83, lyrics: "我沒有說謊 我何必說謊<br>你懂我的 我對你從來就不會假裝" },
+        { title: "白安 - 是什麼讓我遇見這樣的你", id: "aVmZpcrQBU4", start: 75, lyrics: "是什麼讓我遇見這樣的你<br>是什麼讓我不再懷疑自己" },
+        { title: "楊丞琳 - 年輪說", id: "anurOHpo0aY", start: 85, lyrics: "看過幾次泥濘 聽過幾聲嘆息<br>這一路上 總算遇見了你" },
+        { title: "張惠妹 - 聽海", id: "mLk61pfiHQ0", start: 95, lyrics: "聽 海哭的聲音 嘆惜著誰又被傷了心<br>卻還不清醒 一定不是我 至少我很冷靜" },
+        { title: "鄧紫棋 - 泡沫", id: "GHXr4bBxHCo", start: 75, lyrics: "全都是泡沫 只一剎的花火<br>你所有承諾 全部都太脆弱" },
+        { title: "王心凌 - 當你", id: "LbnyAQY4q1Q", start: 75, lyrics: "當你的眼睛 瞇著笑 當你喝可樂 當你吵<br>我想對你說 卻害怕都說錯" },
+        { title: "八三夭 - 想見你想見你想見你", id: "4iRupuNet3Q", start: 75, lyrics: "想見你 只想見你 未來過去 我只想見你<br>穿越了 千個萬個 時間線 裡人海裡相依" },
+        { title: "周杰倫 - 安靜", id: "8QbKekf1i5c", start: 90, lyrics: "我會學著放棄你 是因為我太愛你" },
+        { title: "任然 - 飛鳥和蟬", id: "V0XUd8f2pz8", start: 75, lyrics: "你說青澀最難忘 我有詩和遠方<br>排成晴朗的悠揚" },
+        { title: "李榮浩 - 年少有為", id: "Dnj5Tcpev0Q", start: 95, lyrics: "假如我年少有為不自卑 懂得什麼是珍貴<br>那些美夢 沒給你 我一生有愧" },
+        { title: "蔡健雅 - Letting Go", id: "2ByPpQbNzwk", start: 80, lyrics: "I'm letting go 我終於捨得放手<br>也不再牽強自由 哪怕是傷口" },
+        { title: "那英 - 默", id: "heUq2v88Z9Q", start: 85, lyrics: "我失眠整夜 望著星辰睡去<br>又在黎明 期待你的身影" },
+        { title: "林俊傑 - 她說", id: "BocMPQv9brE", start: 105, lyrics: "等不到 天昏地暗 的那天<br>才發現 我還有好多話 沒說" },
+        { title: "梁靜茹 - 情歌", id: "7FiQV1-z06Q", start: 85, lyrics: "時光是琥珀 淚一滴滴被反鎖<br>情歌 的詞句 溫熱 卻又 苦澀" },
+        { title: "劉若英 - 後來", id: "t0igPuDjYUE", start: 75, lyrics: "後來 我總算學會了 如何去愛<br>可惜你 早已遠去 消失在人海" },
+        { title: "周杰倫 - 楓", id: "qzwsQTY-99o", start: 95, lyrics: "緩緩掉落的楓葉像思念<br>我點燃燭火溫暖歲末的秋天" },
+        { title: "陳小春 - 獨家記憶", id: "K4i7UfFSr8k", start: 85, lyrics: "我希望你 是我獨家的記憶<br>擺在心底 不管別人說得多麼難聽" },
+        { title: "張杰 - 他不懂", id: "5M_gj4zrVPs", start: 85, lyrics: "他不懂你的心 假裝冷靜<br>他不懂愛情的委屈" },
+        { title: "Ed Sheeran - Perfect", id: "2Vv-BfVoq4g", start: 63, lyrics: "Baby, I'm dancing in the dark<br>with you between my arms" },
+        { title: "John Legend - All of Me", id: "ngq5Aw0Q6rQ", start: 65, lyrics: "Cause all of me Loves all of you<br>Love your curves and all your edges" },
+        { title: "Sam Smith - Stay With Me", id: "nuU2YHtxMik", start: 50, lyrics: "Oh, won't you stay with me?<br>'Cause you're all I need" },
+        { title: "Adele - Someone Like You", id: "hLQl3WQQoQ0", start: 73, lyrics: "Never mind, I'll find someone like you<br>I wish nothing but the best for you too" },
+        { title: "Coldplay - Fix You", id: "k4V3Mo61fJM", start: 145, lyrics: "Lights will guide you home<br>And ignite your bones" },
+        { title: "Maroon 5 - Memories", id: "SlPhMPnQ58k", start: 45, lyrics: "Toast to the ones here today<br>Toast to the ones that we lost on the way" },
+        { title: "Billie Eilish - lovely", id: "V1Pl8CzNzCw", start: 60, lyrics: "Isn't it lovely, all alone?<br>Heart made of glass, my mind of stone" },
+        { title: "Benson Boone - Beautiful Things", id: "qKOMEWKrvb4", start: 80, lyrics: "Please stay, I want you, I need you, oh God<br>Don't take these beautiful things that I've got" },
+        { title: "Lady Gaga - Always Remember Us This Way", id: "5vheNbQlsyU", start: 70, lyrics: "When the sun goes down And the band won't play<br>I'll always remember us this way" },
+        { title: "Sia - Chandelier", id: "2vjPBrBU-TM", start: 65, lyrics: "I'm gonna swing from the chandelier<br>I'm gonna live like tomorrow doesn't exist" },
+        { title: "張學友 - 吻別", id: "k6zmy0yvXB4", start: 85, lyrics: "我和你吻別 在無人的街<br>讓風痴笑我不能拒絕" },
+        { title: "張宇 - 給你們", id: "0OSXMi9_WBQ", start: 85, lyrics: "一定是特別的緣份 才可以一路走來<br>變成了一家人" },
+        { title: "郁可唯 - 路過人間", id: "FMl7GEaYwAE", start: 75, lyrics: "世上上萬個主角 幸好我路過人間<br>在某個瞬間 曾經與你相連" },
+        { title: "林俊傑 - 江南", id: "ySXuS_Y9u_Y", start: 85, lyrics: "圈圈圓圓圈圈 天天年年天天 的我<br>深深看你的臉" },
+        { title: "Taylor Swift - All Too Well", id: "9OQBDdNHmXo", start: 75, lyrics: "And I know it's long gone and that magic's not here no more<br>And I might be okay but I'm not fine at all" },
+        { title: "Shawn Mendes - In My Blood", id: "36tggrpRoTI", start: 65, lyrics: "Help me, it's like the walls are caving in<br>Sometimes I feel like giving up" },
+        { title: "邱鋒澤 - 斷訊", id: "i25xHWoEK94", start: 75, lyrics: "我們在 不同頻率 卻想要傳遞<br>同樣的訊息 給同樣的你" },
+        { title: "王力宏 - 依然愛你", id: "mS6vYv6D_0o", start: 85, lyrics: "我依然愛你 就是唯一的退路<br>我依然愛你 誓言還未落幕" },
+        { title: "林俊傑 - 不為誰而作的歌", id: "gd3800x_S_w", start: 80, lyrics: "這首歌 不為誰而作的歌<br>只為了 夢想而存在的歌" },
+        { title: "周杰倫 - 說好的幸福呢", id: "mLFhTFiX0uM", start: 85, lyrics: "怎麼了 你累了 說好的 幸福呢<br>我懂了 不說了 愛淡了 夢遠了" }
+    ];
+
+    let player;
+    let isReady = false;
+
+    // 載入 Youtube API
+    const tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(tag);
+
+    function onYouTubeIframeAPIReady() {
+        player = new YT.Player('player', {
+            videoId: playlist[0].id,
+            playerVars: { 'autoplay': 0, 'controls': 1, 'modestbranding': 1, 'rel': 0 },
+            events: {
+                'onReady': () => {
+                    isReady = true;
+                    document.querySelectorAll('.note-btn').forEach(b => b.disabled = false);
+                },
+                'onStateChange': (e) => {
+                    if (e.data === YT.PlayerState.ENDED) playRandom();
+                }
+            }
+        });
+    }
+
+    function playRandom() {
+        if (!isReady) return;
+        const song = playlist[Math.floor(Math.random() * playlist.length)];
+        
+        document.getElementById('title').innerText = song.title;
+        const lyricsEl = document.getElementById('lyrics-text');
+        
+        // 切換歌詞動畫
+        lyricsEl.style.animation = 'none';
+        lyricsEl.offsetHeight; 
+        lyricsEl.style.animation = 'lyricIn 0.8s ease forwards';
+        lyricsEl.innerHTML = song.lyrics;
+
+        player.loadVideoById({ videoId: song.id, startSeconds: song.start });
+        player.playVideo();
+    }
+
+    // 四面八方音符生成
+    function spawnNote() {
+        const canvas = document.getElementById('note-canvas');
+        const notes = ['♩','♪','♫','♬','♭','♯','𝄞','𝄢'];
+        const note = document.createElement('div');
+        
+        note.className = 'floating-note';
+        note.innerText = notes[Math.floor(Math.random() * notes.length)];
+        
+        const startX = Math.random() * window.innerWidth;
+        const startY = Math.random() * window.innerHeight;
+        const moveX = (Math.random() - 0.5) * 600 + 'px';
+        const moveY = (Math.random() - 0.5) * 600 + 'px';
+        const rotate = (Math.random() * 360) + 'deg';
+
+        note.style.left = startX + 'px';
+        note.style.top = startY + 'px';
+        note.style.fontSize = (Math.random() * 20 + 20) + 'px';
+        note.style.setProperty('--mx', moveX);
+        note.style.setProperty('--my', moveY);
+        note.style.setProperty('--rt', rotate);
+        
+        note.style.animation = `floatRandom ${Math.random() * 5 + 7}s linear forwards`;
+        canvas.appendChild(note);
+        setTimeout(() => note.remove(), 12000);
+    }
+
+    setInterval(spawnNote, 400);
+</script>
+</body>
+</html>

@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小精靈遊戲</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        body {
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0033 50%, #000a1a 100%);
+            font-family: 'Orbitron', sans-serif;
+            color: #00ffff;
+            position: relative;
+            overflow-y: auto;
+            padding-bottom: 50px;
+        }
+        
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 255, 255, 0.03) 2px, rgba(0, 255, 255, 0.03) 4px),
+                repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255, 0, 255, 0.03) 2px, rgba(255, 0, 255, 0.03) 4px);
+            pointer-events: none;
+            animation: gridMove 20s linear infinite;
+        }
+        
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+        
+        #gameInfo {
+            margin-bottom: 20px;
+            font-size: 28px;
+            text-align: center;
+            font-weight: 700;
+            text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ffff;
+            background: rgba(0, 20, 40, 0.8);
+            padding: 15px 30px;
+            border-radius: 10px;
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5), inset 0 0 20px rgba(0, 255, 255, 0.1);
+            position: relative;
+            z-index: 10;
+        }
+        
+        #gameInfo > div {
+            margin: 5px 0;
+        }
+        
+        #gameCanvas {
+            border: 3px solid #00ffff;
+            background: radial-gradient(circle at center, #0a0520 0%, #000000 100%);
+            display: block;
+            box-shadow: 
+                0 0 30px rgba(0, 255, 255, 0.6),
+                0 0 60px rgba(255, 0, 255, 0.4),
+                inset 0 0 50px rgba(0, 100, 150, 0.2);
+            position: relative;
+            z-index: 10;
+        }
+        
+        #endScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            font-size: 48px;
+            z-index: 1000;
+            text-shadow: 0 0 20px #00ffff, 0 0 40px #ff00ff;
+        }
+        
+        #endScreen.show {
+            display: flex;
+        }
+        
+        .firework {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            animation: explode 1s ease-out forwards;
+            box-shadow: 0 0 10px currentColor;
+        }
+        
+        @keyframes explode {
+            0% {
+                transform: translate(0, 0);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--tx), var(--ty));
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameInfo">
+        <div>回合: <span id="round">1</span>/3</div>
+        <div>剩餘食物: <span id="foodCount">0</span></div>
+    </div>
+    <canvas id="gameCanvas" width="600" height="600"></canvas>
+    <div id="endScreen"></div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const endScreen = document.getElementById('endScreen');
+        
+        const CELL_SIZE = 30;
+        const COLS = 20;
+        const ROWS = 20;
+        
+        // 迷宮設計 (0=通道, 1=牆壁)
+        const maze = [
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,1,0,1,1,0,1,1,0,1,1,0,1,1,1,0,1],
+            [1,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,1],
+            [1,0,1,0,1,1,0,1,1,1,1,1,1,0,1,1,0,1,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,1,0,1,0,1,1,1,1,0,1,0,1,1,1,0,1],
+            [1,0,0,0,1,0,1,0,0,0,0,0,0,1,0,1,0,0,0,1],
+            [1,1,1,0,1,0,1,1,1,0,0,1,1,1,0,1,0,1,1,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,1,1,0,1,0,1,1,1,1,1,1,1,1,0,1,0,1,1,1],
+            [1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1],
+            [1,0,1,1,1,0,1,0,1,1,1,1,0,1,0,1,1,1,0,1],
+            [1,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,1],
+            [1,0,1,0,1,1,1,1,1,0,0,1,1,1,1,1,0,1,0,1],
+            [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+            [1,0,1,1,1,0,1,1,0,1,1,0,1,1,0,1,1,1,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ];
+        
+        let pacman = { x: 10, y: 10, direction: 0, mouthOpen: 0 };
+        let ghosts = [];
+        let foods = [];
+        let round = 1;
+        let gameOver = false;
+        let won = false;
+        let animationFrame = 0;
+        
+        const inspirationalQuotes = [
+            "今天的你，或許還不完美，但每一步都在靠近更好的自己。",
+            "別怕路遠，只要方向對，每一步都是進步。",
+            "風雨不是阻礙，而是讓你學會飛得更穩的翅膀。",
+            "當你選擇不放棄，命運就會開始為你讓路。"
+        ];
+        
+        // 初始化食物（只放在通道上）
+        function initFoods() {
+            foods = [];
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    if (maze[y][x] === 0 && Math.random() < 0.3) {
+                        foods.push({ x, y });
+                    }
+                }
+            }
+        }
+        
+        // 初始化幽靈（根據回合數決定數量，放在通道上）
+        function initGhosts() {
+            const ghostColors = ['#ff0000', '#ff69b4', '#00ffff', '#ffb852', '#00ff00', '#ff8c00'];
+            const positions = [
+                { x: 1, y: 1 }, { x: 18, y: 1 }, { x: 1, y: 18 }, 
+                { x: 18, y: 18 }, { x: 10, y: 5 }, { x: 10, y: 14 }
+            ];
+            const directions = [
+                { dx: 1, dy: 0 }, { dx: -1, dy: 0 }, { dx: 0, dy: 1 },
+                { dx: 0, dy: -1 }, { dx: 1, dy: 0 }, { dx: -1, dy: 0 }
+            ];
+            
+            let ghostCount;
+            if (round === 1) ghostCount = 3;
+            else if (round === 2) ghostCount = 4;
+            else ghostCount = 6;
+            
+            ghosts = [];
+            for (let i = 0; i < ghostCount; i++) {
+                ghosts.push({
+                    x: positions[i].x,
+                    y: positions[i].y,
+                    color: ghostColors[i],
+                    dx: directions[i].dx,
+                    dy: directions[i].dy
+                });
+            }
+        }
+        
+        // 開始新遊戲
+        function startGame() {
+            pacman = { x: 10, y: 10, direction: 0, mouthOpen: 0 };
+            round = 1;
+            gameOver = false;
+            won = false;
+            animationFrame = 0;
+            initFoods();
+            initGhosts();
+            endScreen.classList.remove('show');
+            endScreen.innerHTML = '';
+            if (roundTimer) clearTimeout(roundTimer);
+            scheduleNextRound();
+            gameLoop();
+        }
+        
+        // 開始新回合（現在改為手動觸發用於按鍵控制）
+        function startNewRound() {
+            if (foods.length === 0) {
+                endGame(true);
+                return;
+            }
+            
+            if (round >= 3) {
+                endGame(false);
+                return;
+            }
+            
+            round++;
+            pacman = { x: 10, y: 10, direction: 0 };
+            initGhosts();
+        }
+        
+        // 新增：自動進入下一輪的計時器
+        let roundTimer = null;
+        
+        function scheduleNextRound() {
+            if (roundTimer) clearTimeout(roundTimer);
+            
+            // 60秒後自動進入下一輪
+            roundTimer = setTimeout(() => {
+                if (!gameOver && round < 3) {
+                    round++;
+                    pacman = { x: 10, y: 10, direction: 0 };
+                    initGhosts();
+                    scheduleNextRound();
+                } else if (!gameOver && round >= 3) {
+                    // 第三輪時間到，遊戲結束
+                    endGame(false);
+                }
+            }, 60000);
+        }
+        
+        // 繪製小精靈
+        function drawPacman() {
+            ctx.fillStyle = '#ffff00';
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#ffff00';
+            ctx.beginPath();
+            const centerX = pacman.x * CELL_SIZE + CELL_SIZE / 2;
+            const centerY = pacman.y * CELL_SIZE + CELL_SIZE / 2;
+            const radius = CELL_SIZE / 2 - 2;
+            
+            // 嘴巴動畫：在0.2到0.5之間擺動
+            const mouthAngle = 0.2 + Math.abs(Math.sin(animationFrame * 0.3)) * 0.3;
+            
+            ctx.arc(centerX, centerY, radius, 
+                pacman.direction + mouthAngle, 
+                pacman.direction - mouthAngle + Math.PI * 2);
+            ctx.lineTo(centerX, centerY);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        
+        // 繪製幽靈
+        function drawGhosts() {
+            ghosts.forEach(ghost => {
+                ctx.fillStyle = ghost.color;
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = ghost.color;
+                const x = ghost.x * CELL_SIZE;
+                const y = ghost.y * CELL_SIZE;
+                
+                ctx.beginPath();
+                ctx.arc(x + CELL_SIZE / 2, y + CELL_SIZE / 3, CELL_SIZE / 3, Math.PI, 0);
+                ctx.lineTo(x + CELL_SIZE - 2, y + CELL_SIZE - 2);
+                ctx.lineTo(x + CELL_SIZE * 0.75, y + CELL_SIZE * 0.75);
+                ctx.lineTo(x + CELL_SIZE / 2, y + CELL_SIZE - 2);
+                ctx.lineTo(x + CELL_SIZE * 0.25, y + CELL_SIZE * 0.75);
+                ctx.lineTo(x + 2, y + CELL_SIZE - 2);
+                ctx.closePath();
+                ctx.fill();
+                
+                // 眼睛
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(x + 8, y + 8, 6, 8);
+                ctx.fillRect(x + 16, y + 8, 6, 8);
+                ctx.fillStyle = '#000';
+                ctx.fillRect(x + 10, y + 10, 3, 4);
+                ctx.fillRect(x + 18, y + 10, 3, 4);
+            });
+            ctx.shadowBlur = 0;
+        }
+        
+        // 繪製食物
+        function drawFoods() {
+            ctx.fillStyle = '#fff';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#00ffff';
+            foods.forEach(food => {
+                ctx.beginPath();
+                ctx.arc(food.x * CELL_SIZE + CELL_SIZE / 2, 
+                       food.y * CELL_SIZE + CELL_SIZE / 2, 
+                       3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.shadowBlur = 0;
+        }
+        
+        // 更新遊戲狀態
+        function update() {
+            if (gameOver) return;
+            
+            // 移動幽靈（避開牆壁）
+            ghosts.forEach(ghost => {
+                const newX = ghost.x + ghost.dx;
+                const newY = ghost.y + ghost.dy;
+                
+                // 檢查新位置是否為牆壁或超出邊界
+                if (newX < 0 || newX >= COLS || newY < 0 || newY >= ROWS || maze[newY][newX] === 1) {
+                    // 碰到牆壁，隨機選擇新方向
+                    const possibleDirs = [];
+                    if (ghost.x > 0 && maze[ghost.y][ghost.x - 1] === 0) possibleDirs.push({ dx: -1, dy: 0 });
+                    if (ghost.x < COLS - 1 && maze[ghost.y][ghost.x + 1] === 0) possibleDirs.push({ dx: 1, dy: 0 });
+                    if (ghost.y > 0 && maze[ghost.y - 1][ghost.x] === 0) possibleDirs.push({ dx: 0, dy: -1 });
+                    if (ghost.y < ROWS - 1 && maze[ghost.y + 1][ghost.x] === 0) possibleDirs.push({ dx: 0, dy: 1 });
+                    
+                    if (possibleDirs.length > 0) {
+                        const dir = possibleDirs[Math.floor(Math.random() * possibleDirs.length)];
+                        ghost.dx = dir.dx;
+                        ghost.dy = dir.dy;
+                    }
+                } else {
+                    ghost.x = newX;
+                    ghost.y = newY;
+                }
+                
+                // 隨機改變方向
+                if (Math.random() < 0.1) {
+                    const possibleDirs = [];
+                    if (ghost.x > 0 && maze[ghost.y][ghost.x - 1] === 0) possibleDirs.push({ dx: -1, dy: 0 });
+                    if (ghost.x < COLS - 1 && maze[ghost.y][ghost.x + 1] === 0) possibleDirs.push({ dx: 1, dy: 0 });
+                    if (ghost.y > 0 && maze[ghost.y - 1][ghost.x] === 0) possibleDirs.push({ dx: 0, dy: -1 });
+                    if (ghost.y < ROWS - 1 && maze[ghost.y + 1][ghost.x] === 0) possibleDirs.push({ dx: 0, dy: 1 });
+                    
+                    if (possibleDirs.length > 0) {
+                        const dir = possibleDirs[Math.floor(Math.random() * possibleDirs.length)];
+                        ghost.dx = dir.dx;
+                        ghost.dy = dir.dy;
+                    }
+                }
+            });
+            
+            // 檢查碰撞
+            ghosts.forEach(ghost => {
+                if (ghost.x === pacman.x && ghost.y === pacman.y) {
+                    // 被抓到後自動進入下一輪
+                    if (round < 3) {
+                        round++;
+                        pacman = { x: 10, y: 10, direction: 0 };
+                        initGhosts();
+                    } else {
+                        // 第三輪被抓到，遊戲結束
+                        endGame(false);
+                    }
+                }
+            });
+            
+            // 吃食物
+            foods = foods.filter(food => 
+                !(food.x === pacman.x && food.y === pacman.y)
+            );
+            
+            // 檢查是否吃完所有食物
+            if (foods.length === 0) {
+                endGame(true);
+            }
+        }
+        
+        // 繪製
+        function draw() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 繪製迷宮牆壁
+            ctx.fillStyle = '#1a4d8f';
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 2;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#00ffff';
+            
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    if (maze[y][x] === 1) {
+                        const px = x * CELL_SIZE;
+                        const py = y * CELL_SIZE;
+                        
+                        // 繪製牆壁方塊
+                        ctx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
+                        ctx.strokeRect(px, py, CELL_SIZE, CELL_SIZE);
+                        
+                        // 添加內部細節
+                        ctx.fillStyle = '#0d2647';
+                        ctx.fillRect(px + 3, py + 3, CELL_SIZE - 6, CELL_SIZE - 6);
+                        ctx.fillStyle = '#1a4d8f';
+                    }
+                }
+            }
+            ctx.shadowBlur = 0;
+            
+            drawFoods();
+            drawGhosts();
+            drawPacman();
+            
+            document.getElementById('round').textContent = round;
+            document.getElementById('foodCount').textContent = foods.length;
+            
+            animationFrame++;
+        }
+        
+        // 遊戲循環
+        function gameLoop() {
+            if (!gameOver) {
+                update();
+                draw();
+                setTimeout(gameLoop, 150);
+            }
+        }
+        
+        // 結束遊戲
+        function endGame(victory) {
+            gameOver = true;
+            won = victory;
+            endScreen.classList.add('show');
+            
+            if (victory) {
+                const randomQuote = inspirationalQuotes[Math.floor(Math.random() * inspirationalQuotes.length)];
+                endScreen.innerHTML = `
+                    <div>🎉 恭喜獲勝！🎉</div>
+                    <div style="font-size: 20px; margin-top: 30px; max-width: 600px; line-height: 1.6; text-align: center; padding: 0 20px;">
+                        ${randomQuote}
+                    </div>
+                `;
+                createFireworks();
+            } else {
+                endScreen.innerHTML = '<div style="font-size: 120px;">👎</div><div>遊戲失敗</div>';
+            }
+            
+            setTimeout(() => {
+                endScreen.innerHTML += '<div style="font-size: 24px; margin-top: 30px;">按任意鍵重新開始</div>';
+            }, 2000);
+        }
+        
+        // 放鞭炮效果
+        function createFireworks() {
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const x = Math.random() * window.innerWidth;
+                    const y = Math.random() * window.innerHeight;
+                    const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+                    
+                    for (let j = 0; j < 20; j++) {
+                        const particle = document.createElement('div');
+                        particle.className = 'firework';
+                        particle.style.left = x + 'px';
+                        particle.style.top = y + 'px';
+                        particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+                        
+                        const angle = (Math.PI * 2 * j) / 20;
+                        const distance = 50 + Math.random() * 100;
+                        particle.style.setProperty('--tx', Math.cos(angle) * distance + 'px');
+                        particle.style.setProperty('--ty', Math.sin(angle) * distance + 'px');
+                        
+                        document.body.appendChild(particle);
+                        
+                        setTimeout(() => particle.remove(), 1000);
+                    }
+                }, i * 200);
+            }
+        }
+        
+        // 鍵盤控制
+        document.addEventListener('keydown', (e) => {
+            if (gameOver) {
+                startGame();
+                return;
+            }
+            
+            let newX = pacman.x;
+            let newY = pacman.y;
+            let newDir = pacman.direction;
+            
+            switch(e.key) {
+                case 'ArrowUp':
+                    newY--;
+                    newDir = Math.PI * 1.5;
+                    break;
+                case 'ArrowDown':
+                    newY++;
+                    newDir = Math.PI * 0.5;
+                    break;
+                case 'ArrowLeft':
+                    newX--;
+                    newDir = Math.PI;
+                    break;
+                case 'ArrowRight':
+                    newX++;
+                    newDir = 0;
+                    break;
+                default:
+                    return;
+            }
+            
+            // 檢查新位置是否有效（不是牆壁且在邊界內）
+            if (newX >= 0 && newX < COLS && newY >= 0 && newY < ROWS && maze[newY][newX] === 0) {
+                pacman.x = newX;
+                pacman.y = newY;
+                pacman.direction = newDir;
+            }
+            
+            e.preventDefault();
+        });
+        
+        startGame();
+    </script>
+</body>
+</html>

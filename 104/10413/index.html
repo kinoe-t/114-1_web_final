@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>塔羅抽卡</title>
+<style>
+    body{
+        background-color:#E6E6FA;
+        font-family: Arial, sans-serif;
+        text-align:center;
+        padding-top:40px;
+    }
+    .hidden{display:none;}
+
+    /* 放大按鈕 */
+    button{
+        font-size:22px;
+        padding:15px 40px;
+        margin:10px;
+        cursor:pointer;
+    }
+
+    .cardImg{
+        width:110px;
+        height:170px;
+        margin:6px;
+        cursor:pointer;
+        object-fit:cover;
+    }
+
+    #shuffle{
+        font-size:30px;
+        animation:rotate 1s infinite linear;
+        margin-top:20px;
+    }
+    @keyframes rotate {
+        0%{transform:rotate(0deg);}
+        100%{transform:rotate(360deg);}
+    }
+</style>
+</head>
+
+<body>
+
+<h1>來抽塔羅吧!</h1>
+
+<button id="startBtn">開始</button>
+
+<!-- 選擇面向 -->
+<div id="aspectArea" class="hidden">
+    <h2>請選擇占卜面向</h2>
+    <button class="aspect">愛情</button>
+    <button class="aspect">財運</button>
+    <button class="aspect">工作學業</button>
+    <button class="aspect">整體運勢</button>
+</div>
+
+<!-- 洗牌動畫 -->
+<div id="shuffleArea" class="hidden">
+    <div id="shuffle">🔮</div>
+    <p>洗牌中……</p>
+</div>
+
+<!-- 抽牌階段 -->
+<div id="pickArea" class="hidden">
+    <h2 id="pickMsg">請選第一張（過去）</h2>
+    <div id="cards"></div>
+</div>
+
+<!-- 結果區 -->
+<div id="results" class="hidden"></div>
+
+<script>
+
+const tarotInfo = [
+{name:"0 愚者",up:"冒險、新機會",rev:"迷惘、缺乏方向"},
+{name:"I 魔術師",up:"能力、創造力",rev:"欺騙、阻礙"},
+{name:"II 女祭司",up:"直覺、智慧",rev:"壓抑、困惑"},
+{name:"III 皇后",up:"豐盛、滋養",rev:"依賴、停滯"},
+{name:"IV 皇帝",up:"穩定、秩序",rev:"固執、壓迫"},
+{name:"V 教皇",up:"學習、傳統",rev:"偏見、叛逆"},
+{name:"VI 戀人",up:"關係、選擇",rev:"分歧、誘惑"},
+{name:"VII 戰車",up:"勝利、意志",rev:"失控、延遲"},
+{name:"VIII 力量",up:"勇氣、耐心",rev:"焦慮、軟弱"},
+{name:"IX 隱者",up:"反省、思考",rev:"孤立、退縮"},
+{name:"X 命運之輪",up:"轉機、變化",rev:"阻礙、逆境"},
+{name:"XI 正義",up:"公平、真相",rev:"不公、偏誤"},
+{name:"XII 吊人",up:"轉念、犧牲",rev:"拖延、抗拒"},
+{name:"XIII 死神",up:"結束、重生",rev:"害怕改變"},
+{name:"XIV 節制",up:"平衡、合作",rev:"衝動、失衡"},
+{name:"XV 惡魔",up:"束縛、欲望",rev:"解放、抗拒"},
+{name:"XVI 塔",up:"破除、改革",rev:"維持假象"},
+{name:"XVII 星星",up:"希望、療癒",rev:"失望、悲觀"},
+{name:"XVIII 月亮",up:"直覺、潛意識",rev:"真相浮現"},
+{name:"XIX 太陽",up:"成功、幸福",rev:"拖延、不安"},
+{name:"XX 審判",up:"反省、決斷",rev:"逃避、遲疑"},
+{name:"XXI 世界",up:"完成、圓滿",rev:"停滯、缺乏結束"}
+];
+
+const good=["保持樂觀","真誠溝通","專注目標","善待自己","相信直覺"];
+const bad=["衝動行動","逃避問題","過度消耗","固執己見","拖延不決"];
+
+let picks=[];
+let aspect="";
+let pickCount=0;
+let shuffled=[];
+
+// 開始
+document.getElementById("startBtn").onclick=()=>{
+    document.getElementById("startBtn").style.display="none";
+    document.getElementById("aspectArea").classList.remove("hidden");
+};
+
+// 選面向
+document.querySelectorAll(".aspect").forEach(btn=>{
+    btn.onclick=()=>{
+        aspect=btn.innerText;
+        document.getElementById("aspectArea").classList.add("hidden");
+        document.getElementById("shuffleArea").classList.remove("hidden");
+
+        // 執行洗牌打亂
+        shuffled=Array.from({length:22},(_,i)=>i+1)
+            .sort(()=>Math.random()-0.5);
+
+        setTimeout(()=>{
+            document.getElementById("shuffleArea").classList.add("hidden");
+            startPick();
+        },2000);
+    };
+});
+
+function startPick(){
+    document.getElementById("pickArea").classList.remove("hidden");
+    const cards=document.getElementById("cards");
+    cards.innerHTML="";
+
+    shuffled.forEach(num=>{
+        const img=document.createElement("img");
+        img.className="cardImg";
+        img.src="牌背.jpg";
+        img.dataset.index=num;
+        img.onclick=function(){
+            revealCard(this);
+        }
+        cards.appendChild(img);
+    });
+}
+
+function revealCard(cardElement){
+    if(pickCount>=3) return;
+
+    const realIndex=cardElement.dataset.index-1;
+    const data=tarotInfo[realIndex];
+
+    const upright=Math.random()<0.5;
+
+    picks.push({
+        name:data.name,
+        status:upright?"正位":"逆位",
+        meaning:upright?data.up:data.rev,
+        good:good[Math.floor(Math.random()*good.length)],
+        bad:bad[Math.floor(Math.random()*bad.length)]
+    });
+
+    cardElement.src=`塔羅牌${realIndex+1}.jpg`;
+    cardElement.style.pointerEvents="none";
+
+    pickCount++;
+
+    if(pickCount==1)
+        document.getElementById("pickMsg").innerText="請選第二張（現在）";
+    if(pickCount==2)
+        document.getElementById("pickMsg").innerText="請選第三張（未來）";
+    if(pickCount==3)
+        showResults();
+}
+
+function showResults(){
+    document.getElementById("pickArea").classList.add("hidden");
+
+    const res=document.getElementById("results");
+    res.classList.remove("hidden");
+    res.innerHTML=`<h2>${aspect}運勢解析</h2>`;
+
+    const pos=["過去","現在","未來"];
+    picks.forEach((c,i)=>{
+        res.innerHTML+=`
+        <p>
+        【${pos[i]}】<br>
+        ${c.status}：${c.name}<br>
+        牌義：${c.meaning}<br>
+        宜：${c.good}<br>
+        忌：${c.bad}
+        </p>`;
+    });
+
+    const restart=document.createElement("button");
+    restart.innerText="重新開始";
+    restart.onclick=()=>location.reload();
+    res.appendChild(restart);
+}
+
+</script>
+
+</body>
+</html>

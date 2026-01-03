@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>節奏遊戲</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #1a1a2e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #gameContainer {
+            position: relative;
+            z-index: 1;
+        }
+
+        #scoreBoard {
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            font-size: 22px;
+            padding: 12px 20px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 15px;
+            font-weight: bold;
+            backdrop-filter: blur(10px);
+        }
+
+        .score-info {
+            display: flex;
+            gap: 25px;
+        }
+
+        #gameCanvas {
+            border: none;
+            display: block;
+            background: linear-gradient(to bottom, #0a0a15 0%, #1a1a2e 100%);
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+        }
+
+        #judgment {
+            position: absolute;
+            top: 45%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 64px;
+            font-weight: 900;
+            color: white;
+            text-shadow: 
+                0 0 30px currentColor,
+                0 0 60px currentColor,
+                0 8px 15px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 10;
+            letter-spacing: 4px;
+            font-family: 'Arial Black', sans-serif;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            color: white;
+            margin-top: 15px;
+            font-size: 15px;
+            font-weight: bold;
+        }
+
+        .stat-item {
+            padding: 8px 18px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        #startBtn {
+            padding: 10px 30px;
+            font-size: 18px;
+            background: linear-gradient(135deg, #00d9ff 0%, #00a8cc 100%);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 900;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 217, 255, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        #startBtn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 217, 255, 0.6);
+        }
+
+        #startBtn:active {
+            transform: scale(0.98);
+        }
+
+        #startBtn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <audio id="bgMusic" src="高雄女中校歌.mp3" preload="auto"></audio>
+        <div id="scoreBoard">
+            <div class="score-info">
+                <div>SCORE: <span id="score">0</span></div>
+                <div>COMBO: <span id="combo">0</span></div>
+            </div>
+            <button id="startBtn">START</button>
+        </div>
+        <div style="position: relative;">
+            <canvas id="gameCanvas" width="600" height="800"></canvas>
+            <div id="judgment"></div>
+        </div>
+        <div class="stats">
+            <div class="stat-item">PERFECT: <span id="perfectCount">0</span></div>
+            <div class="stat-item">GREAT: <span id="goodCount">0</span></div>
+            <div class="stat-item">MISS: <span id="missCount">0</span></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const judgmentDiv = document.getElementById('judgment');
+        const bgMusic = document.getElementById('bgMusic');
+        
+        // 遊戲狀態
+        let gameRunning = false;
+        let score = 0;
+        let combo = 0;
+        let perfectCount = 0;
+        let goodCount = 0;
+        let missCount = 0;
+        
+        // 遊戲設定
+        const LANES = 4;
+        const LANE_WIDTH = canvas.width / LANES;
+        const NOTE_WIDTH = 120; // 音符寬度
+        const NOTE_HEIGHT = 25; // 音符高度
+        const HIT_LINE_Y = canvas.height - 150;
+        const FALL_SPEED = 3;
+        const PERFECT_RANGE = 50;
+        const GOOD_RANGE = 100;
+        
+        // 按鍵對應
+        const KEYS = {
+            'ArrowLeft': 0,
+            'ArrowDown': 1,
+            'ArrowUp': 2,
+            'ArrowRight': 3
+        };
+        
+        // 音符陣列
+        let notes = [];
+        let pressedKeys = new Set();
+        let particles = []; // 粒子效果
+        
+        // 粒子類別
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 8;
+                this.vy = (Math.random() - 0.5) * 8 - 3;
+                this.alpha = 1;
+                this.color = color;
+                this.size = Math.random() * 4 + 2;
+            }
+            
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += 0.3;
+                this.alpha -= 0.02;
+            }
+            
+            draw() {
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+        
+        // 音符類別
+        class Note {
+            constructor(lane) {
+                this.lane = lane;
+                this.y = -NOTE_HEIGHT;
+                this.hit = false;
+                this.alpha = 1;
+            }
+            
+            update() {
+                this.y += FALL_SPEED;
+            }
+            
+            draw() {
+                const x = this.lane * LANE_WIDTH + (LANE_WIDTH - NOTE_WIDTH) / 2;
+                const y = this.y;
+                
+                // Project SEKAI 的音符顏色
+                const colors = [
+                    { main: '#33CCFF', dark: '#0099CC', glow: '#66DDFF' },  // 天藍色
+                    { main: '#66FF66', dark: '#33CC33', glow: '#99FF99' },  // 螢光綠
+                    { main: '#FF6666', dark: '#CC3333', glow: '#FF9999' },  // 珊瑚紅
+                    { main: '#FFAA33', dark: '#CC7700', glow: '#FFCC66' }   // 橘黃色
+                ];
+                
+                const color = colors[this.lane];
+                
+                ctx.globalAlpha = this.alpha;
+                
+                // 外發光
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = color.glow;
+                
+                // 主體長方形（漸層）
+                const gradient = ctx.createLinearGradient(x, y, x, y + NOTE_HEIGHT);
+                gradient.addColorStop(0, color.main);
+                gradient.addColorStop(0.5, color.main);
+                gradient.addColorStop(1, color.dark);
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(x, y, NOTE_WIDTH, NOTE_HEIGHT);
+                
+                // 白色外框
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(x, y, NOTE_WIDTH, NOTE_HEIGHT);
+                
+                // 內部白色高光
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.fillRect(x + 4, y + 4, NOTE_WIDTH - 8, NOTE_HEIGHT / 3);
+                
+                ctx.shadowBlur = 0;
+                ctx.globalAlpha = 1;
+            }
+            
+            isInRange(range) {
+                const noteCenter = this.y + NOTE_HEIGHT / 2;
+                return Math.abs(noteCenter - HIT_LINE_Y) <= range;
+            }
+            
+            isMissed() {
+                return this.y > HIT_LINE_Y + GOOD_RANGE;
+            }
+        }
+        
+        // 創建粒子效果
+        function createParticles(x, y, color) {
+            for (let i = 0; i < 15; i++) {
+                particles.push(new Particle(x, y, color));
+            }
+        }
+        
+        // 繪製遊戲場景
+        function drawGame() {
+            // 清空畫布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 繪製軌道線（更細、更暗）
+            for (let i = 1; i < LANES; i++) {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(i * LANE_WIDTH, 0);
+                ctx.lineTo(i * LANE_WIDTH, canvas.height);
+                ctx.stroke();
+            }
+            
+            // 繪製判定線區域光暈
+            const hitZoneGradient = ctx.createLinearGradient(0, HIT_LINE_Y - 80, 0, HIT_LINE_Y + 80);
+            hitZoneGradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
+            hitZoneGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.03)');
+            hitZoneGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = hitZoneGradient;
+            ctx.fillRect(0, HIT_LINE_Y - 80, canvas.width, 160);
+            
+            // 繪製判定線
+            ctx.shadowBlur = 30;
+            ctx.shadowColor = '#FFFFFF';
+            
+            // 主判定線
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, HIT_LINE_Y);
+            ctx.lineTo(canvas.width, HIT_LINE_Y);
+            ctx.stroke();
+            
+            ctx.shadowBlur = 0;
+            
+            // 繪製按鍵位置（軌道底部的提示）
+            const keyLabels = ['←', '↓', '↑', '→'];
+            const keyColors = [
+                '#33CCFF',  // 天藍
+                '#66FF66',  // 螢光綠
+                '#FF6666',  // 珊瑚紅
+                '#FFAA33'   // 橘黃
+            ];
+            
+            for (let i = 0; i < LANES; i++) {
+                const x = i * LANE_WIDTH + LANE_WIDTH / 2;
+                const isPressed = pressedKeys.has(i);
+                
+                // 按鍵提示文字
+                ctx.font = 'bold 32px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // 按下時的發光效果
+                if (isPressed) {
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = keyColors[i];
+                    ctx.fillStyle = '#FFFFFF';
+                } else {
+                    ctx.fillStyle = keyColors[i];
+                }
+                
+                ctx.fillText(keyLabels[i], x, HIT_LINE_Y + 50);
+                ctx.shadowBlur = 0;
+            }
+            
+            // 繪製音符
+            notes.forEach(note => note.draw());
+            
+            // 繪製粒子效果
+            particles = particles.filter(p => {
+                p.update();
+                p.draw();
+                return p.alpha > 0;
+            });
+        }
+        
+        // 顯示判定
+        function showJudgment(type) {
+            const colors = {
+                'PERFECT': '#FFD700',
+                'GREAT': '#00FF00',
+                'MISS': '#FF0000'
+            };
+            
+            const texts = {
+                'PERFECT': 'PERFECT',
+                'GREAT': 'GREAT',
+                'MISS': 'MISS'
+            };
+            
+            judgmentDiv.textContent = texts[type];
+            judgmentDiv.style.color = colors[type];
+            judgmentDiv.style.opacity = '1';
+            
+            setTimeout(() => {
+                judgmentDiv.style.opacity = '0';
+            }, 400);
+        }
+        
+        // 判定音符
+        function judgeNote(note) {
+            const x = note.lane * LANE_WIDTH + LANE_WIDTH / 2;
+            const y = HIT_LINE_Y;
+            
+            const keyColors = ['#33CCFF', '#66FF66', '#FF6666', '#FFAA33'];
+            
+            if (note.isInRange(PERFECT_RANGE)) {
+                score += 100;
+                combo++;
+                perfectCount++;
+                showJudgment('PERFECT');
+                createParticles(x, y, '#FFD700');
+                return true;
+            } else if (note.isInRange(GOOD_RANGE)) {
+                score += 50;
+                combo++;
+                goodCount++;
+                showJudgment('GREAT');
+                createParticles(x, y, keyColors[note.lane]);
+                return true;
+            }
+            return false;
+        }
+        
+        // 處理按鍵
+        function handleKeyPress(lane) {
+            for (let i = 0; i < notes.length; i++) {
+                const note = notes[i];
+                if (note.lane === lane && !note.hit) {
+                    if (judgeNote(note)) {
+                        note.hit = true;
+                        notes.splice(i, 1);
+                    }
+                    break;
+                }
+            }
+        }
+        
+        // 生成音符
+        function generateNotes() {
+            // 高雄女中校歌譜面 (40秒)
+            const pattern = [
+                // 前奏 (0-5秒)
+                { time: 1500, lane: 1 },
+                { time: 2000, lane: 2 },
+                { time: 2500, lane: 1 },
+                { time: 3000, lane: 0 },
+                { time: 3500, lane: 2 },
+                { time: 4000, lane: 3 },
+                { time: 4500, lane: 1 },
+                
+                // 第一段 "壽山蒼蒼 愛水泱泱" (5-12秒)
+                { time: 5000, lane: 0 },
+                { time: 5400, lane: 1 },
+                { time: 5800, lane: 2 },
+                { time: 6200, lane: 3 },
+                { time: 6600, lane: 2 },
+                { time: 7000, lane: 1 },
+                { time: 7400, lane: 0 },
+                { time: 7800, lane: 1 },
+                { time: 8200, lane: 2 },
+                { time: 8600, lane: 3 },
+                { time: 9000, lane: 2 },
+                { time: 9400, lane: 1 },
+                { time: 9800, lane: 0 },
+                { time: 10200, lane: 2 },
+                { time: 10600, lane: 3 },
+                { time: 11000, lane: 1 },
+                { time: 11400, lane: 2 },
+                { time: 11800, lane: 0 },
+                
+                // 第二段 "巍巍學府 百年流芳" (12-19秒)
+                { time: 12000, lane: 3 },
+                { time: 12400, lane: 1 },
+                { time: 12800, lane: 2 },
+                { time: 13200, lane: 0 },
+                { time: 13600, lane: 3 },
+                { time: 14000, lane: 2 },
+                { time: 14400, lane: 1 },
+                { time: 14800, lane: 0 },
+                { time: 15200, lane: 3 },
+                { time: 15600, lane: 2 },
+                { time: 16000, lane: 1 },
+                { time: 16400, lane: 0 },
+                { time: 16800, lane: 2 },
+                { time: 17200, lane: 3 },
+                { time: 17600, lane: 1 },
+                { time: 18000, lane: 0 },
+                { time: 18400, lane: 2 },
+                { time: 18800, lane: 3 },
+                
+                // 第三段 "莘莘學子 濟濟一堂" (19-26秒)
+                { time: 19000, lane: 1 },
+                { time: 19400, lane: 0 },
+                { time: 19800, lane: 2 },
+                { time: 20200, lane: 3 },
+                { time: 20600, lane: 1 },
+                { time: 21000, lane: 2 },
+                { time: 21400, lane: 0 },
+                { time: 21800, lane: 3 },
+                { time: 22200, lane: 2 },
+                { time: 22600, lane: 1 },
+                { time: 23000, lane: 0 },
+                { time: 23400, lane: 3 },
+                { time: 23800, lane: 2 },
+                { time: 24200, lane: 1 },
+                { time: 24600, lane: 0 },
+                { time: 25000, lane: 2 },
+                { time: 25400, lane: 3 },
+                { time: 25800, lane: 1 },
+                
+                // 第四段 "德智體群美五育並揚" (26-33秒)
+                { time: 26000, lane: 0 },
+                { time: 26400, lane: 3 },
+                { time: 26800, lane: 1 },
+                { time: 27200, lane: 2 },
+                { time: 27600, lane: 0 },
+                { time: 28000, lane: 3 },
+                { time: 28400, lane: 2 },
+                { time: 28800, lane: 1 },
+                { time: 29200, lane: 3 },
+                { time: 29600, lane: 0 },
+                { time: 30000, lane: 2 },
+                { time: 30400, lane: 1 },
+                { time: 30800, lane: 3 },
+                { time: 31200, lane: 2 },
+                { time: 31600, lane: 0 },
+                { time: 32000, lane: 1 },
+                { time: 32400, lane: 3 },
+                { time: 32800, lane: 2 },
+                
+                // 高潮段 "女中女中..." (33-38秒)
+                { time: 33000, lane: 0 },
+                { time: 33300, lane: 1 },
+                { time: 33600, lane: 2 },
+                { time: 33900, lane: 3 },
+                { time: 34200, lane: 1 },
+                { time: 34500, lane: 0 },
+                { time: 34800, lane: 2 },
+                { time: 35100, lane: 3 },
+                { time: 35400, lane: 1 },
+                { time: 35700, lane: 2 },
+                { time: 36000, lane: 0 },
+                { time: 36300, lane: 3 },
+                { time: 36600, lane: 1 },
+                { time: 36900, lane: 2 },
+                { time: 37200, lane: 0 },
+                { time: 37500, lane: 3 },
+                
+                // 尾奏 (38-40秒)
+                { time: 38000, lane: 1 },
+                { time: 38400, lane: 2 },
+                { time: 38800, lane: 3 },
+                { time: 39200, lane: 0 },
+                { time: 39600, lane: 2 },
+            ];
+            
+            pattern.forEach(p => {
+                setTimeout(() => {
+                    if (gameRunning) {
+                        notes.push(new Note(p.lane));
+                    }
+                }, p.time);
+            });
+        }
+        
+        // 更新遊戲
+        function updateGame(currentTime) {
+            if (!gameRunning) return;
+            
+            // 更新音符
+            notes.forEach(note => note.update());
+            
+            // 檢查 Miss
+            notes = notes.filter(note => {
+                if (!note.hit && note.isMissed()) {
+                    combo = 0;
+                    missCount++;
+                    showJudgment('MISS');
+                    return false;
+                }
+                return true;
+            });
+            
+            // 更新顯示
+            document.getElementById('score').textContent = score;
+            document.getElementById('combo').textContent = combo;
+            document.getElementById('perfectCount').textContent = perfectCount;
+            document.getElementById('goodCount').textContent = goodCount;
+            document.getElementById('missCount').textContent = missCount;
+            
+            drawGame();
+            requestAnimationFrame(updateGame);
+        }
+        
+        // 鍵盤事件
+        document.addEventListener('keydown', (e) => {
+            if (!gameRunning) return;
+            
+            const lane = KEYS[e.key];
+            if (lane !== undefined && !pressedKeys.has(lane)) {
+                pressedKeys.add(lane);
+                handleKeyPress(lane);
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            if (!gameRunning) return;
+            
+            const lane = KEYS[e.key];
+            if (lane !== undefined) {
+                pressedKeys.delete(lane);
+            }
+        });
+        
+        // 開始遊戲
+        document.getElementById('startBtn').addEventListener('click', () => {
+            if (gameRunning) return;
+            
+            gameRunning = true;
+            score = 0;
+            combo = 0;
+            perfectCount = 0;
+            goodCount = 0;
+            missCount = 0;
+            notes = [];
+            pressedKeys.clear();
+            particles = [];
+            
+            document.getElementById('startBtn').textContent = 'PLAYING...';
+            document.getElementById('startBtn').disabled = true;
+            
+            // 播放音樂
+            bgMusic.currentTime = 0;
+            bgMusic.play();
+            
+            generateNotes();
+            requestAnimationFrame(updateGame);
+            
+            // 音樂結束後結束遊戲
+            bgMusic.onended = () => {
+                gameRunning = false;
+                document.getElementById('startBtn').textContent = 'RESTART';
+                document.getElementById('startBtn').disabled = false;
+                alert(`遊戲結束！\n最終分數: ${score}\n最高連擊: ${combo}\nPerfect: ${perfectCount}\nGreat: ${goodCount}\nMiss: ${missCount}`);
+            };
+        });
+        
+        // 初始繪製
+        drawGame();
+    </script>
+</body>
+</html>
