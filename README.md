@@ -19,7 +19,6 @@
 * https://kinoe-t.github.io/114-1_web_final/102/10215/index.html
 * https://kinoe-t.github.io/114-1_web_final/102/10216/index.html
 * https://kinoe-t.github.io/114-1_web_final/102/10217/index.html
-* https://kinoe-t.github.io/114-1_web_final/102/10218/index.html
 
 ## 103
 
