@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地瓜鳥神諭所</title>
+    <style>
+        :root {
+            --primary-color: #A0522D;
+            --secondary-color: #2C3E50;
+            --accent-color: #F4D03F;
+            --bg-color: #F0F2F5;
+            --text-color: #333;
+            --white: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: "Microsoft JhengHei", "PingFang TC", sans-serif;
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+
+            /* --- 新背景設計 --- */
+            background-color: #f4f1e8; /* 溫暖的米色基底 */
+            background-image: 
+                /* 1. 左上角的溫暖陽光 (黃色) */
+                radial-gradient(circle at 10% 20%, rgba(244, 208, 63, 0.3) 0%, transparent 50%),
+                /* 2. 右下角的草地氛圍 (綠色) */
+                radial-gradient(circle at 90% 90%, rgba(76, 175, 80, 0.2) 0%, transparent 50%),
+                /* 3. 下方的大地土壤感 (紅褐色) */
+                radial-gradient(circle at 50% 100%, rgba(160, 82, 45, 0.2) 0%, transparent 60%),
+                /* 4. 原本的葉子紋理，改為淡淡的大地色 */
+                url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23A0522D' fill-opacity='0.08'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            
+            /* 讓背景固定，不隨卷軸滾動 */
+            background-attachment: fixed;
+            background-size: auto, auto, auto, 60px 60px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95); /* 稍微透明一點，讓背景透出來 */
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+            border-radius: 25px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1), 0 5px 15px rgba(0,0,0,0.05); /* 加強陰影層次 */
+            text-align: center;
+            border-top: 6px solid var(--primary-color);
+            position: relative;
+            backdrop-filter: blur(5px); /* 磨砂玻璃效果 (支援的瀏覽器才會有) */
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+            font-size: 1.8rem;
+        }
+
+        p.subtitle {
+            color: #666;
+            font-size: 0.95rem;
+            margin-bottom: 2rem;
+            line-height: 1.4;
+        }
+
+        .mascot-wrapper {
+            width: 180px;
+            height: 180px;
+            margin: 0 auto 2rem;
+            position: relative;
+            border-bottom: 3px solid #eee; /* 改淡一點 */
+            /* 確保圖片和SVG都能在容器中居中顯示 */
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        /* SVG 的預設樣式 */
+        #normal-mascot {
+            width: 100%;
+            height: auto;
+            display: block; /* 預設顯示 */
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); /* 幫地瓜鳥加一點立體感 */
+        }
+
+        /* 真・地瓜鳥圖片的樣式 */
+        #rare-mascot {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; /* 保持圖片比例 */
+            display: none; /* 預設隱藏 */
+            filter: drop-shadow(0 5px 15px rgba(160, 82, 45, 0.5)); /* 加強真地瓜鳥的陰影 */
+        }
+
+        .thinking {
+            animation: shake-hard 0.8s infinite;
+        }
+
+        @keyframes shake-hard {
+            0% { transform: translate(0px, 0px) rotate(0deg); }
+            10% { transform: translate(-2px, -2px) rotate(-2deg); }
+            20% { transform: translate(2px, 0px) rotate(2deg); }
+            30% { transform: translate(-2px, 2px) rotate(0deg); }
+            40% { transform: translate(2px, -2px) rotate(2deg); }
+            50% { transform: translate(-2px, 2px) rotate(-2deg); }
+            60% { transform: translate(2px, 0px) rotate(0deg); }
+            70% { transform: translate(-2px, 2px) rotate(2deg); }
+            80% { transform: translate(2px, -2px) rotate(-2deg); }
+            90% { transform: translate(-2px, 0px) rotate(0deg); }
+            100% { transform: translate(0px, 0px) rotate(0deg); }
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        textarea {
+            width: 100%;
+            height: 80px;
+            border: 2px solid #eee;
+            background-color: #fafafa;
+            border-radius: 15px;
+            padding: 12px;
+            font-size: 1rem;
+            resize: none;
+            box-sizing: border-box;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        textarea:focus {
+            border-color: var(--primary-color);
+            background-color: #fff;
+            box-shadow: 0 0 0 3px rgba(160, 82, 45, 0.1);
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 35px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(160, 82, 45, 0.2);
+            width: 80%;
+        }
+
+        button:hover {
+            background-color: #8a4524;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(160, 82, 45, 0.3);
+        }
+
+        button:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px rgba(160, 82, 45, 0.2);
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #result-area {
+            margin-top: 2.5rem;
+            padding-top: 1.5rem;
+            border-top: 2px dashed #eee;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            scroll-margin-top: 20px; 
+        }
+
+        #result-area.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .result-title {
+            font-weight: bold;
+            font-size: 1.4rem;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+        
+        /* 特殊結果的標題樣式 */
+        .special-title {
+            color: #FFD700; /* 金色 */
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            font-size: 1.6rem;
+        }
+
+        .result-text {
+            font-size: 1.05rem;
+            line-height: 1.6;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>地瓜神諭所</h1>
+        <p class="subtitle">牠平常在公園發呆，其實是在思考宇宙真理。<br>寫下你的問題，等待牠的開示。(?)</p>
+
+        <div class="mascot-wrapper" id="mascot-container">
+            <svg id="normal-mascot" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                <path d="M85,160 L80,190" stroke="#F4D03F" stroke-width="5" stroke-linecap="round"/>
+                <path d="M115,160 L120,190" stroke="#F4D03F" stroke-width="5" stroke-linecap="round"/>
+                <path d="M75,190 L85,190 M115,190 L125,190" stroke="#F4D03F" stroke-width="5" stroke-linecap="round"/>
+                <path d="M70,170 Q40,140 50,100 Q55,50 100,40 Q145,50 150,100 Q160,140 130,170 L70,170 Z" fill="#A0522D"/>
+                <path d="M60,110 Q80,130 100,120" stroke="#8a4524" stroke-width="3" fill="none"/>
+                <path d="M140,110 Q120,130 100,120" stroke="#8a4524" stroke-width="3" fill="none"/>
+                <circle cx="100" cy="50" r="25" fill="#A0522D"/>
+                <path d="M80,40 Q100,15 120,40 Q115,55 100,55 Q85,55 80,40 Z" fill="#2C3E50"/>
+                <path d="M120,50 L170,45 L170,55 L120,60 Z" fill="#F4D03F"/>
+                <circle cx="105" cy="48" r="5" fill="#F4D03F" stroke="#2C3E50" stroke-width="1"/>
+                <circle cx="107" cy="48" r="2" fill="#2C3E50"/>
+            </svg>
+            
+            <img id="rare-mascot" src="resize-removebg-preview.png" alt="真・地瓜鳥顯靈">
+        </div>
+
+        <div class="input-group">
+            <textarea id="question" placeholder="這裡可以寫下你的煩惱，但牠不識字。牠會直接感應，不用擔心"></textarea>
+        </div>
+
+        <button onclick="askOracle()" id="askBtn">請求開示</button>
+
+        <div id="result-area">
+            <div class="result-title" id="result-title"></div>
+            <div class="result-text" id="result-text"></div>
+        </div>
+    </div>
+
+    <script>
+        // 修正：將所有籤詩整合成一個完整的列表
+        const fortunes = [
+            // --- 原始 11 句 (部分重複的已移除，保留獨特內容) ---
+            { title: "大吉！咕！", text: "就像在草地上輕鬆抓到大蚯蚓一樣順利！時機完美，行動吧！" },
+            { title: "建議", text: "現在不是出擊的好時機。先偽裝自己，融入環境，觀察一下局勢。" },
+            { title: "提醒", text: "你太緊繃了！學學我，脖子伸長一點，放鬆肩膀，視野會更開闊。" },
+            { title: "疑惑", text: "地瓜歪著頭看著你... 牠似乎聽不懂你在說什麼，可能問題太複雜了。" },
+            { title: "驚喜", text: "意想不到的好運即將從土裡鑽出來！準備好迎接它。" },
+            { title: "休息", text: "地瓜閉上眼睛開始打盹了。這表示你也該休息了，別再想了。" },
+            { title: "轉機", text: "雖然現在看起來像在發呆沒進展，但其實是在蓄力，準備下一次的精準出擊。" },
+
+            // --- 大吉區 (1-8) ---
+            { title: "大吉", text: "就像在剛翻過的土裡發現超大蚯蚓！運氣好到擋不住，今天做什麼都會順順利利。" },
+            { title: "上上籤", text: "你的羽毛在陽光下閃閃發亮，全公園的鳥都羨慕你。自信展現自己吧！" },
+            { title: "大豐收", text: "不用辛苦翻找，機會自動送上門。就像好心人直接把麵包丟在你腳邊一樣。" },
+            { title: "超級幸運", text: "走在路上都會撿到寶。記得抬頭挺胸，別錯過天上的禮物（希望不是鳥屎）。" },
+            { title: "飛黃騰達", text: "逆風也能高飛！現在的阻力都是為了讓你飛得更高的助力。" },
+            { title: "心想事成", text: "你想抓魚就抓到魚，想睡覺就找到樹蔭。宇宙今天站在你這邊。" },
+            { title: "萬事如意", text: "所有的結都解開了，就像梳理整齊的羽毛一樣舒服。" },
+            { title: "霸氣外露", text: "今天的你氣場強大，連野狗看到你都要繞道走。去做你想做的決定！" },
+
+            // --- 吉區 (9-25) ---
+            { title: "吉", text: "平穩就是福。慢慢走，像地瓜鳥散步一樣，風景會很美。" },
+            { title: "中吉", text: "雖然沒有大魚大肉，但也不會餓肚子。知足常樂，小確幸就在身邊。" },
+            { title: "小吉", text: "有點小驚喜，可能是一杯好喝的飲料，或是一個久違的問候。" },
+            { title: "漸入佳境", text: "剛開始可能有點卡卡的（像吞太大口的魚），但這只是過程，後面就順了。" },
+            { title: "蓄勢待發", text: "你現在的靜止不是偷懶，是為了下一次精準的出擊。準備好了嗎？" },
+            { title: "貴人運", text: "會有人像公園阿伯一樣突然出現幫你一把。記得說謝謝。" },
+            { title: "桃花運", text: "有人在偷偷觀察你喔，就像賞鳥人士拿著望遠鏡一樣專注。" },
+            { title: "財運不錯", text: "口袋會多出幾個銅板的感覺，雖然不是大錢，但心情會很好。" },
+            { title: "適合放空", text: "學學地瓜鳥，找個地方發呆一小時。靈感會在你腦袋放空時跑進來。" },
+            { title: "宜大吃", text: "能吃就是福！今天就把減肥的事拋到腦後，吃飽才有力氣煩惱。" },
+            { title: "宜出門", text: "去公園走走，去曬曬太陽，維生素D會讓你的心情變好。" },
+            { title: "友誼長存", text: "找朋友聊聊吧，就像鳥兒們在樹上嘰嘰喳喳一樣，說出來就輕鬆了。" },
+            { title: "考試運佳", text: "你的直覺很準，不會寫的題目猜C可能都會對（僅供參考）。" },
+            { title: "工作運順", text: "老闆今天心情好，不會找你麻煩。趁機把棘手的事處理掉。" },
+            { title: "健康運吉", text: "身體感覺輕盈，甚至想跳一段求偶舞（？）。" },
+            { title: "家庭和樂", text: "回家就像回到巢裡一樣溫暖。今天適合跟家人一起吃晚餐。" },
+            { title: "旅行運吉", text: "去沒去過的地方探險吧，哪怕只是隔壁巷子的新早餐店。" },
+
+            // --- 平/普通區 (26-40) ---
+            { title: "普普通通", text: "今天就是... 很普通的一天。沒有大事發生，也是一種幸福。" },
+            { title: "耐心", text: "地瓜鳥抓蟲可以站著不動半小時。你只需要再多等個五分鐘。" },
+            { title: "偽裝", text: "今天適合低調。穿得像樹皮一樣，融入背景，別讓麻煩看到你。" },
+            { title: "觀察", text: "別急著行動，歪著頭多看兩眼。事情可能跟表面上長得不一樣。" },
+            { title: "平", text: "不好也不壞，就像一杯溫開水。多喝水沒事，沒事多喝水。" },
+            { title: "保持現狀", text: "現在不是改變的好時機，先維持原樣，別隨便亂動。" },
+            { title: "有點無聊", text: "無聊的時候就整理羽毛（或整理房間）吧，會發現意外的樂趣。" },
+            { title: "等待", text: "雨還在下，羽毛都濕了。但雨總會停的，在那之前先躲好。" },
+            { title: "練習", text: "雖然現在飛得不穩，但多拍幾次翅膀總會熟練的。" },
+            { title: "模仿", text: "看看別人怎麼做，跟著做就不會錯太大。模仿是學習的第一步。" },
+            { title: "伸展", text: "你的脖子（或肩膀）太僵硬了！學地瓜鳥做個詭異的伸展操吧。" },
+            { title: "清潔", text: "把身邊的雜物清一清，環境乾淨了，運氣也會跟著變好。" },
+            { title: "聽音樂", text: "今天適合聽一些大自然的聲音，或是很吵的搖滾樂來發洩一下。" },
+            { title: "看書", text: "書中自有黃金屋，雖然地瓜鳥看不懂字，但你可以。" },
+            { title: "早睡", text: "晚上的公園很危險，早點回巢睡覺才是上策。" },
+
+            // --- 凶/注意區 (41-50) ---
+            { title: "注意腳下", text: "走路小心，不要踩到狗屎，也不要被樹根絆倒。今天適合看路。" },
+            { title: "小心驚嚇", text: "可能會有人突然衝出來嚇你一跳。隨時做好起飛（逃跑）的準備。" },
+            { title: "消化不良", text: "最近是不是吃太多垃圾食物了？腸胃在抗議囉，吃點清淡的吧。" },
+            { title: "口舌是非", text: "不要在背後說人壞話，就像不要隨便對路人嘎嘎叫一樣，會惹禍上身。" },
+            { title: "破財", text: "錢包看緊點，不要衝動購物。那件衣服你買回去不會穿的。" },
+            { title: "稍微倒霉", text: "地瓜差點飛起來，有考分科之風險。可能會錯過公車，或食物剛好賣完。深呼吸，下一班會更好的。" },
+            { title: "犯小人", text: "有人像討厭的野貓一樣盯著你。保持距離，以策安全。" },
+            { title: "判斷失誤", text: "以為是蚯蚓結果是樹枝。今天眼力不太好，重要決定留到明天再做。" },
+            { title: "大凶", text: "你嚇到我了！給我去吃書本考分科!!" },
+            { title: "大凶（假）", text: "騙你的啦！地瓜鳥只是想嚇嚇你。不過還是要小心過馬路喔。" },
+
+            // --- 地瓜鳥特區/怪怪的 (51-60) ---
+            { title: "扭脖子", text: "地瓜鳥把脖子扭成S型看著你。這代表... 你的筋骨該活動了。" },
+            { title: "嘎！", text: "地瓜鳥發出了一聲慘叫。意思是：把你的煩惱大聲吼出來就沒事了！" },
+            { title: "石化中", text: "地瓜鳥正在玩「一二三木頭人」。你也加入吧，暫停一下，世界依然運轉。" },
+            { title: "地瓜慢步", text: "左腳... 右腳... 慢... 慢... 來... 急事要緩辦。" },
+            { title: "炸毛", text: "地瓜鳥頭上的冠羽豎起來了！這代表你今天很有個性，不用在意別人的眼光。" },
+            { title: "吃土", text: "雖然地瓜鳥真的會吃土裡的蟲，但你不可以吃土。省著點花錢！" },
+            { title: "夜行性", text: "越晚精神越好？你是貓頭鷹還是黑冠麻鷺？記得還是要睡覺啦。" },
+            { title: "歪頭殺", text: "遇到聽不懂的事，就歪頭裝可愛吧。這招通常很有用。(??)" },
+            { title: "迷之自信", text: "雖然長得像地瓜，但自以為是老鷹。你也該有這種莫名其妙的自信！" },
+            { title: "？", text: "籤筒裡掉出了一根羽毛。這... 大概是叫你「輕於鴻毛」，看開點吧。" }
+        ];
+
+        // 特殊占卜結果 (搭配圖片)
+        const specialFortune = {
+            title: "✨傳說中的真・地瓜鳥現身！✨",
+            text: "太不可思議了！你召喚出了萬中選一的「真・地瓜鳥本尊」！這代表超級無敵巨大的好運已經降臨在你身上，現在的你做什麼都會成功，快去實現你的夢想吧！"
+        };
+
+        function askOracle() {
+            const mascotContainer = document.getElementById('mascot-container');
+            const normalMascot = document.getElementById('normal-mascot');
+            const rareMascot = document.getElementById('rare-mascot');
+            
+            const resultArea = document.getElementById('result-area');
+            const titleEl = document.getElementById('result-title');
+            const textEl = document.getElementById('result-text');
+            const btn = document.getElementById('askBtn');
+            
+            // 鎖定按鈕
+            btn.disabled = true;
+            btn.textContent = "地瓜感應中...";
+            resultArea.classList.remove('show');
+            
+            // 開始動畫 (對整個容器進行動畫)
+            mascotContainer.classList.add('thinking');
+
+            // 1.5秒後顯示結果
+            setTimeout(() => {
+                mascotContainer.classList.remove('thinking');
+                
+                // --- 決定命運的時刻 ---
+                // 產生一個 0 到 1 之間的隨機數
+                const chance = Math.random();
+                const probability = 0.01; // 設定機率為 1% (0.01)
+
+                if (chance < probability) {
+                    // === 觸發特殊事件 (1%機率) ===
+                    // 切換顯示圖片
+                    normalMascot.style.display = 'none';
+                    rareMascot.style.display = 'block';
+                    
+                    // 顯示特殊籤詩
+                    titleEl.textContent = specialFortune.title;
+                    textEl.textContent = specialFortune.text;
+                    titleEl.classList.add('special-title'); // 加入特殊標題樣式
+
+                } else {
+                    // === 正常事件 (99%機率) ===
+                    // 確保顯示的是 SVG
+                    normalMascot.style.display = 'block';
+                    rareMascot.style.display = 'none';
+                    titleEl.classList.remove('special-title'); // 移除特殊標題樣式
+
+                    // 隨機選取正常結果
+                    const randomFortune = fortunes[Math.floor(Math.random() * fortunes.length)];
+                    titleEl.textContent = randomFortune.title;
+                    textEl.textContent = randomFortune.text;
+                }
+                
+                // 顯示結果區塊
+                resultArea.classList.add('show');
+                resultArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                
+                // 恢復按鈕
+                btn.disabled = false;
+                btn.textContent = "再次請求開示";
+                
+            }, 1500);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>每日自律打卡</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+:root{
+  --bg:#f4f9f4;
+  --text:#2f4f2f;
+  --sub:#4f6f4f;
+  --primary:#4caf50;
+  --secondary:#607d8b;
+  --tree:#8b5a2b;
+  --leaf:#4caf50;
+}
+body.dark{
+  --bg:#121814;
+  --text:#e0efe0;
+  --sub:#9fb39f;
+  --primary:#6fdc8c;
+  --secondary:#90a4ae;
+  --tree:#a97c50;
+  --leaf:#6fdc8c;
+}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:system-ui,"Noto Sans TC",sans-serif;
+  text-align:center;
+  padding:36px 20px;
+  transition:.3s;
+}
+
+button{
+  margin:6px;
+  padding:10px 20px;
+  font-size:15px;
+  border:none;
+  border-radius:8px;
+  background:var(--primary);
+  color:#fff;
+}
+button.secondary{background:var(--secondary);}
+button:disabled{opacity:.45}
+
+.tree-area{
+  height:260px;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  margin:26px 0;
+}
+
+.tree{
+  width:44px;
+  background:var(--tree);
+  border-radius:10px;
+  position:relative;
+}
+
+.leaves{
+  position:absolute;
+  bottom:100%;
+  left:50%;
+  transform:translateX(-50%);
+  background:var(--leaf);
+  border-radius:50%;
+}
+
+.rings{
+  position:absolute;
+  bottom:0;
+  width:100%;
+}
+.ring{
+  height:2px;
+  width:70%;
+  margin:8px auto;
+  background:rgba(255,255,255,.35);
+  border-radius:2px;
+}
+
+.checklist{
+  font-size:20px;
+  margin:10px 0;
+}
+
+textarea{
+  width:100%;
+  max-width:460px;
+  height:240px;
+  margin-top:14px;
+  padding:10px;
+  background:var(--bg);
+  color:var(--text);
+  border:1px solid var(--sub);
+}
+</style>
+</head>
+
+<body>
+
+<button id="modeBtn" class="secondary">🌙 深色模式</button>
+
+<h1>🌱 每日自律打卡</h1>
+<p style="color:var(--sub)">早・中・晚各完成一次</p>
+
+<div class="tree-area">
+  <div id="tree" class="tree">
+    <div id="rings" class="rings"></div>
+    <div id="leaves" class="leaves"></div>
+  </div>
+</div>
+
+<div>
+  <button id="morningBtn">🌅 早</button>
+  <button id="noonBtn">🌞 中</button>
+  <button id="nightBtn">🌙 晚</button>
+</div>
+
+<div class="checklist" id="checklist">早 ▢　中 ▢　晚 ▢</div>
+
+<p>累積完成天數：<span id="days">0</span> 天</p>
+<p id="status"></p>
+
+<button id="exportBtn" class="secondary">📤 匯出紀錄</button>
+<textarea id="exportArea" readonly placeholder="這裡會產生純文字紀錄與統計摘要…"></textarea>
+
+<script>
+const KEY="discipline_tree_final";
+const MODE="ui_mode";
+
+const btns={
+  morning:morningBtn,
+  noon:noonBtn,
+  night:nightBtn
+};
+
+function today(){
+  const d=new Date();
+  return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();
+}
+function hour(){return new Date().getHours();}
+function period(){
+  const h=hour();
+  if(h>=5 && h<12) return "morning";
+  if(h>=12 && h<18) return "noon";
+  if(h>=18) return "night";
+  return null;
+}
+
+function load(){
+  return JSON.parse(localStorage.getItem(KEY)) || {
+    date:today(),
+    days:0,
+    records:[],
+    done:{morning:false,noon:false,night:false}
+  };
+}
+function save(d){localStorage.setItem(KEY,JSON.stringify(d));}
+
+function updateTree(days){
+  const baseTrunk=110, baseLeaf=160;
+  tree.style.height=(baseTrunk+days*10)+"px";
+  leaves.style.width=(baseLeaf+days*6)+"px";
+  leaves.style.height=(baseLeaf+days*6)+"px";
+}
+
+function updateRings(days){
+  rings.innerHTML="";
+  for(let i=0;i<days;i++){
+    const r=document.createElement("div");
+    r.className="ring";
+    rings.appendChild(r);
+  }
+}
+
+function refresh(d){
+  checklist.textContent=
+    "早 "+(d.done.morning?"✔":"▢")+"　"+
+    "中 "+(d.done.noon?"✔":"▢")+"　"+
+    "晚 "+(d.done.night?"✔":"▢");
+
+  days.textContent=d.days;
+
+  Object.keys(btns).forEach(p=>{
+    btns[p].disabled=d.done[p] || period()!==p;
+  });
+
+  status.textContent=
+    d.done.morning&&d.done.noon&&d.done.night
+    ?"今天已完成 ✔":"今天尚未完成";
+
+  updateTree(d.days);
+  updateRings(d.days);
+}
+
+Object.keys(btns).forEach(p=>{
+  btns[p].onclick=()=>{
+    const d=load();
+    if(d.date!==today()){
+      d.date=today();
+      d.done={morning:false,noon:false,night:false};
+    }
+    if(d.done[p]) return;
+
+    d.done[p]=true;
+
+    if(d.done.morning&&d.done.noon&&d.done.night){
+      d.days++;
+      d.records.push(d.date);
+    }
+    save(d);refresh(d);
+  };
+});
+
+function weekCount(records){
+  const n=new Date();
+  const s=new Date(n);
+  s.setDate(n.getDate()-n.getDay());
+  return records.filter(d=>new Date(d)>=s).length;
+}
+function monthCount(records){
+  const n=new Date();
+  const ym=n.getFullYear()+"-"+(n.getMonth()+1);
+  return records.filter(d=>d.startsWith(ym)).length;
+}
+
+exportBtn.onclick=()=>{
+  const d=load();
+  let t="每日自律打卡紀錄\n----------------\n";
+  d.records.forEach(r=>t+=r+" ✔✔✔\n");
+  t+="\n【本週摘要】\n完成天數："+weekCount(d.records)+" 天\n";
+  t+="\n【本月摘要】\n完成天數："+monthCount(d.records)+" 天\n";
+  t+="\n累積完成天數："+d.days+" 天";
+  exportArea.value=t;
+};
+
+// 深色模式
+function applyMode(m){
+  document.body.classList.toggle("dark",m==="dark");
+  modeBtn.textContent=m==="dark"?"☀️ 淺色模式":"🌙 深色模式";
+  localStorage.setItem(MODE,m);
+}
+modeBtn.onclick=()=>{
+  applyMode((localStorage.getItem(MODE)||"light")==="light"?"dark":"light");
+};
+
+// 初始化
+applyMode(localStorage.getItem(MODE)||"light");
+const d=load();
+if(d.date!==today()){
+  d.date=today();
+  d.done={morning:false,noon:false,night:false};
+  save(d);
+}
+refresh(d);
+</script>
+
+</body>
+</html>
+

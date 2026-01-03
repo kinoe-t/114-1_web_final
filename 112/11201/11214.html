@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星啟命盤 - 專業占星分析</title>
+    <style>
+        :root {
+            --gold: #ffd36e;
+            --deep-blue: #05060f;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Noto Sans TC", system-ui, sans-serif;
+            background: radial-gradient(circle at top, #1b1f3b, var(--deep-blue));
+            color: #fff;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #starfield {
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+        }
+
+        .center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 20px;
+            width: 100%;
+            box-sizing: border-box;
+            transition: opacity 0.5s ease;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 12px 35px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 999px;
+            border: none;
+            cursor: pointer;
+            background: linear-gradient(135deg, var(--gold), #ff9f43);
+            color: #2c1a00;
+            box-shadow: 0 0 20px rgba(255, 200, 100, 0.4);
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255, 200, 100, 0.6);
+        }
+
+        /* ----- 修正後的轉場動畫層 (Loader) ----- */
+        #loader-overlay {
+            position: fixed;
+            inset: 0;
+            background: #05060f; /* 完全不透明，遮擋切換過程 */
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+
+        .astrology-loader {
+            position: relative;
+            width: 160px;
+            height: 160px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .orbit {
+            position: absolute;
+            border: 1px solid rgba(255, 211, 110, 0.15);
+            border-radius: 50%;
+        }
+
+        .orbit.outer { width: 160px; height: 160px; border-top: 2px solid var(--gold); animation: spin 3s linear infinite; }
+        .orbit.middle { width: 110px; height: 110px; border-bottom: 2px solid #fff; animation: spin-reverse 2s linear infinite; }
+        .orbit.inner { width: 60px; height: 60px; border-left: 2px solid var(--gold); animation: spin 1s linear infinite; }
+        .loader-star { color: var(--gold); font-size: 1.5rem; text-shadow: 0 0 15px var(--gold); animation: pulse 1.5s infinite; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes spin-reverse { to { transform: rotate(-360deg); } }
+        @keyframes pulse { 0%, 100% { transform: scale(0.8); opacity: 0.5; } 50% { transform: scale(1.2); opacity: 1; } }
+
+        .loading-text {
+            margin-top: 35px;
+            font-size: 1.2rem;
+            letter-spacing: 5px;
+            color: var(--gold);
+        }
+
+        /* ----- UI 元件 ----- */
+        .hidden { display: none !important; }
+        .fade-out { opacity: 0; pointer-events: none; }
+
+        .typing { font-size: 1.4rem; margin-bottom: 30px; color: var(--gold); height: 1.5em; }
+
+        .zodiac-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            max-width: 850px;
+            width: 100%;
+        }
+
+        .zodiac {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 18px 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .zodiac:hover {
+            transform: translateY(-5px);
+            background: rgba(255,255,255,0.15);
+            border-color: var(--gold);
+        }
+
+        .zodiac .icon { font-size: 2.2rem; margin-bottom: 8px; }
+
+        .card {
+            max-width: 520px;
+            width: 90%;
+            background: rgba(20, 25, 50, 0.85);
+            border: 1px solid rgba(255, 211, 110, 0.3);
+            border-radius: 25px;
+            padding: 30px;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 0 40px rgba(0,0,0,0.6);
+        }
+
+        .title { font-size: 2rem; color: var(--gold); margin-bottom: 20px; border-bottom: 1px solid rgba(255,211,110,0.2); padding-bottom: 10px; }
+        .row { margin: 12px 0; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; }
+        .stars-row { font-size: 1.5rem; letter-spacing: 4px; margin-left: 10px; }
+        .star.filled { color: var(--gold); text-shadow: 0 0 5px var(--gold); }
+        .star.empty { color: #444; }
+
+        .color-box {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            margin-left: 10px;
+            border: 2px solid #fff;
+            vertical-align: middle;
+        }
+
+        .analysis-text {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            text-align: left;
+            color: #ddd;
+        }
+
+        .soup { margin-top: 20px; font-style: italic; color: var(--gold); font-size: 1.1rem; }
+
+        @media (max-width: 600px) { .zodiac-grid { grid-template-columns: repeat(3, 1fr); } }
+    </style>
+</head>
+<body>
+
+<canvas id="starfield"></canvas>
+
+<div id="loader-overlay">
+    <div class="astrology-loader">
+        <div class="orbit outer"></div>
+        <div class="orbit middle"></div>
+        <div class="orbit inner"></div>
+        <div class="loader-star">★</div>
+    </div>
+    <div class="loading-text">正在對齊星軌能量...</div>
+</div>
+
+<div id="start-screen" class="center">
+    <h1 style="font-size: 2.2rem; letter-spacing: 3px;">準備好進入占星了嗎</h1>
+    <button id="readyBtn">準備好了</button>
+</div>
+
+<div id="select-screen" class="center hidden">
+    <div id="typing-text" class="typing"></div>
+    <div class="zodiac-grid" id="zodiacGrid"></div>
+</div>
+
+<div id="result-screen" class="center hidden" style="opacity: 0;">
+    <div class="card" id="resultCard"></div>
+    <button onclick="location.reload()" style="background: none; border: 1px solid var(--gold); color: var(--gold); margin-top: 25px;">重新感應</button>
+</div>
+
+<script>
+    const zodiacs = [
+        { name: '白羊座', icon: '♈' }, { name: '金牛座', icon: '♉' }, { name: '雙子座', icon: '♊' },
+        { name: '巨蟹座', icon: '♋' }, { name: '獅子座', icon: '♌' }, { name: '處女座', icon: '♍' },
+        { name: '天秤座', icon: '♎' }, { name: '天蠍座', icon: '♏' }, { name: '射手座', icon: '♐' },
+        { name: '摩羯座', icon: '♑' }, { name: '水瓶座', icon: '♒' }, { name: '雙魚座', icon: '♓' }
+    ];
+
+    const colors = [
+        { name: '赤紅', hex: '#ff5252' }, { name: '靛藍', hex: '#448aff' },
+        { name: '翠綠', hex: '#69f0ae' }, { name: '琥珀', hex: '#ffd740' },
+        { name: '魅紫', hex: '#e040fb' }, { name: '青嵐', hex: '#18ffff' }
+    ];
+
+    const soups = [
+        "星辰不問趕路人，光芒終會照亮你的勇氣。",
+        "今日的沉澱，是為了明日如恆星般的爆發。",
+        "宇宙在你的靈魂裡種下了光，記得去灌溉它。",
+        "不必追隨光，當你堅定時，你就是光。"
+    ];
+
+    const today = new Date();
+    const dateKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+
+    // 種子隨機函數
+    function seededRandom(seed) {
+        let h = 2166136261 >>> 0;
+        for (let i = 0; i < seed.length; i++) {
+            h ^= seed.charCodeAt(i);
+            h = Math.imul(h, 16777619);
+        }
+        return () => {
+            h += h << 13; h ^= h >>> 7; h += h << 3; h ^= h >>> 17; h += h << 5;
+            return (h >>> 0) / 4294967296;
+        };
+    }
+
+    // 流程邏輯
+    document.getElementById('readyBtn').onclick = () => {
+        const start = document.getElementById('start-screen');
+        start.classList.add('fade-out');
+        setTimeout(() => {
+            start.classList.add('hidden');
+            const select = document.getElementById('select-screen');
+            select.classList.remove('hidden');
+            // 讓打字效果與淡入同步
+            setTimeout(() => {
+                select.style.opacity = '1';
+                startTyping();
+                renderZodiacs();
+            }, 50);
+        }, 500);
+    };
+
+    function startTyping() {
+        const text = `今天是 ${today.getFullYear()} 年 ${today.getMonth() + 1} 月 ${today.getDate()} 日，請選擇你的星座`;
+        let i = 0;
+        const el = document.getElementById('typing-text');
+        el.textContent = ""; 
+        const timer = setInterval(() => {
+            el.textContent += text[i++];
+            if (i >= text.length) clearInterval(timer);
+        }, 60);
+    }
+
+    function renderZodiacs() {
+        const grid = document.getElementById('zodiacGrid');
+        grid.innerHTML = "";
+        zodiacs.forEach(z => {
+            const div = document.createElement('div');
+            div.className = 'zodiac';
+            div.innerHTML = `<div class="icon">${z.icon}</div><div>${z.name}</div>`;
+            div.onclick = () => triggerAnalysis(z.name);
+            grid.appendChild(div);
+        });
+    }
+
+    function triggerAnalysis(name) {
+        const loader = document.getElementById('loader-overlay');
+        const select = document.getElementById('select-screen');
+        const result = document.getElementById('result-screen');
+
+        // 1. 開啟遮罩動畫
+        loader.style.display = 'flex';
+        
+        // 2. 在遮罩完全覆蓋時（延遲 100ms 確保覆蓋），直接切換後台 DOM
+        setTimeout(() => {
+            select.classList.add('hidden'); // 隱藏主畫面
+            prepareResult(name);           // 填入結果數據
+            result.classList.remove('hidden'); // 準備好結果畫面（此時仍被 loader 遮住）
+        }, 100);
+
+        // 3. 模擬運算 2.5 秒後，淡出遮罩顯示結果
+        setTimeout(() => {
+            loader.style.transition = 'opacity 0.8s';
+            loader.style.opacity = '0';
+            
+            // 讓結果畫面淡入
+            result.style.opacity = '1';
+
+            setTimeout(() => {
+                loader.style.display = 'none';
+                loader.style.opacity = '1'; // 重置供下次使用
+            }, 800);
+        }, 2500);
+    }
+
+    function prepareResult(name) {
+        const rand = seededRandom(dateKey + name);
+        const scores = [Math.floor(rand()*6), Math.floor(rand()*6), Math.floor(rand()*6)];
+        const color = colors[Math.floor(rand()*colors.length)];
+        const soup = soups[Math.floor(rand()*soups.length)];
+
+        const planets = ["太陽", "月亮", "金星", "火星", "水星"];
+        const planet = planets[Math.floor(rand()*planets.length)];
+        const house = Math.floor(rand()*12)+1;
+        const analysis = `今日你的個人能量與 **${planet}** 產生強烈共振。受限於第 ${house} 宮位的運行，你的${scores[2] > 3 ? '優勢將在溝通與直覺中顯現，適合主動出擊' : '當前相位需要更多的沉澱與內省'}。這是一段關於自我覺察的關鍵時刻。`;
+
+        const starsHTML = (n) => "★".repeat(n).split('').map(s => `<span class="star filled">${s}</span>`).join('') + "☆".repeat(5-n).split('').map(s => `<span class="star empty">${s}</span>`).join('');
+
+        document.getElementById('resultCard').innerHTML = `
+            <div class="title">${name} 命定運勢</div>
+            <div class="row">學習運勢：<span class="stars-row">${starsHTML(scores[0])}</span></div>
+            <div class="row">金錢運勢：<span class="stars-row">${starsHTML(scores[1])}</span></div>
+            <div class="row">整體運勢：<span class="stars-row">${starsHTML(scores[2])}</span></div>
+            <div class="row">今日幸運色：${color.name}<span class="color-box" style="background:${color.hex}"></span></div>
+            <div class="analysis-text"><strong>占星核心要素分析：</strong><br>${analysis}</div>
+            <div class="soup">「 ${soup} 」</div>
+        `;
+    }
+
+    // --- 星空背景 ---
+    const canvas = document.getElementById('starfield');
+    const ctx = canvas.getContext('2d');
+    let w, h, stars = [];
+
+    function initStars() {
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+        stars = Array.from({ length: 150 }, () => ({
+            x: Math.random() * w, y: Math.random() * h,
+            r: Math.random() * 1.5, a: Math.random(),
+            s: Math.random() * 0.02
+        }));
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, w, h);
+        stars.forEach(s => {
+            s.a += s.s;
+            ctx.fillStyle = `rgba(255,255,255,${Math.abs(Math.sin(s.a))})`;
+            ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+        });
+        requestAnimationFrame(draw);
+    }
+
+    window.addEventListener('resize', initStars);
+    initStars(); draw();
+</script>
+</body>
+</html>

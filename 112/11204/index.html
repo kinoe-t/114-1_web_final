@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>烏薩奇的魔法鋪</title>
+    <style>
+        :root {
+            --main-font: "PingFang TC", "Microsoft JhengHei", "Arial Rounded MT Bold", sans-serif;
+            --text-outline: 5px 5px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 2px 2px 0 #fff;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            /* 背景設定：調整為由頂部下移 20% 以露出耳朵 */
+            background-image: url('烏薩奇.webp');
+            background-size: cover;
+            background-position: center 20%; 
+            background-attachment: fixed;
+            font-family: var(--main-font);
+            overflow-x: hidden;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            color: #000;
+            text-shadow: 5px 5px 0 #fff;
+            margin: 40px 0 120px 0;
+            font-weight: 900;
+            letter-spacing: 6px;
+            z-index: 10;
+        }
+
+        #fortune-screen {
+            display: none;
+            width: 95%;
+            max-width: 1400px;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 160px 40px;
+            width: 100%;
+            padding-top: 50px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.98);
+            border: 7px solid #000;
+            border-radius: 50px;
+            box-shadow: 18px 18px 0px #000;
+            height: 220px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding-bottom: 35px;
+            text-align: center;
+            transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .usagi-img {
+            position: absolute;
+            top: -160px; 
+            left: 50%;
+            transform: translateX(-50%);
+            width: 280px; 
+            height: 280px;
+            object-fit: contain;
+            filter: drop-shadow(0 20px 10px rgba(0,0,0,0.3));
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .label {
+            display: block;
+            color: #000;
+            font-size: 2.4rem; 
+            font-weight: 900;
+            margin-bottom: 5px;
+            z-index: 10;
+        }
+
+        .value {
+            display: block;
+            font-size: 3.8rem; 
+            font-weight: 900;
+            text-shadow: var(--text-outline);
+            z-index: 10;
+            line-height: 1.1;
+        }
+
+        #start-btn {
+            padding: 50px 100px;
+            background: #fff;
+            border: 8px solid #000;
+            border-radius: 80px;
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: #000;
+            cursor: pointer;
+            box-shadow: 25px 25px 0px #FFD700;
+            transition: all 0.2s;
+        }
+
+        #start-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 30px 30px 0px #FFD700;
+        }
+
+        #start-btn:active {
+            transform: translate(15px, 15px);
+            box-shadow: 0px 0px 0px #FFD700;
+        }
+
+        .hint {
+            margin: 120px 0 60px 0;
+            background: #fff;
+            color: #000;
+            border: 4px solid #000;
+            padding: 20px 60px;
+            border-radius: 70px;
+            font-size: 1.8rem;
+            font-weight: 900;
+            box-shadow: 10px 10px 0 #000;
+        }
+
+        #v1 { color: #FF3B30; } 
+        #v2 { color: #FF2D55; } 
+        #v3 { color: #FF9500; } 
+        #v4 { color: #4CD964; } 
+        #v5 { color: #007AFF; } 
+        #v6 { color: #5856D6; } 
+        #v7 { color: #1C1C1E; } 
+
+        @media (max-width: 600px) {
+            body { background-position: center 10%; } /* 手機板下移量稍微減少 */
+            .container { grid-template-columns: 1fr; gap: 180px 20px; }
+            h1 { font-size: 2.5rem; }
+            .usagi-img { width: 220px; height: 220px; top: -130px; }
+            #start-btn { font-size: 2.5rem; padding: 40px 60px; }
+            .value { font-size: 3rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>烏薩奇的魔法鋪</h1>
+
+    <div id="start-screen">
+        <button id="start-btn" onclick="triggerFortune()">今日運勢為?</button>
+    </div>
+
+    <div id="fortune-screen">
+        <div class="container">
+            <div class="card">
+                <img src="456456456.png" class="usagi-img">
+                <span class="label">1. 事業</span><span class="value" id="v1">--</span>
+            </div>
+            <div class="card">
+                <img src="456456456.png" class="usagi-img">
+                <span class="label">2. 感情</span><span class="value" id="v2">--</span>
+            </div>
+            <div class="card">
+                <img src="456456456.png" class="usagi-img">
+                <span class="label">3. 財運</span><span class="value" id="v3">--</span>
+            </div>
+            <div class="card">
+                <img src="456456456.png" class="usagi-img">
+                <span class="label">4. 健康</span><span class="value" id="v4">--</span>
+            </div>
+            <div class="card">
+                <img src="456456456.png" class="usagi-img">
+                <span class="label">5. 考試運</span><span class="value" id="v5">--</span>
+            </div>
+            <div class="card">
+                <img src="456456456.png" class="usagi-img">
+                <span class="label">6. 幸運數字</span><span class="value" id="v6">--</span>
+            </div>
+            <div class="card">
+                <img src="456456456.png" class="usagi-img">
+                <span class="label">7. 幸運顏色</span><span class="value" id="v7">--</span>
+            </div>
+        </div>
+        <p class="hint">按 [空白鍵] 或 [點擊螢幕] 再次召喚！</p>
+    </div>
+
+    <script>
+        const colorList = ["紅", "橙", "黃", "綠", "藍", "靛", "紫"];
+        let hasStarted = false;
+
+        function triggerFortune() {
+            if (!hasStarted) {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('fortune-screen').style.display = 'flex';
+                hasStarted = true;
+            }
+
+            for (let i = 1; i <= 5; i++) {
+                document.getElementById(`v${i}`).innerText = Math.floor(Math.random() * 101) + "%";
+            }
+            document.getElementById('v6').innerText = Math.floor(Math.random() * 10);
+            document.getElementById('v7').innerText = colorList[Math.floor(Math.random() * colorList.length)];
+
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                card.style.transform = "scale(0.85) translateY(40px)";
+                setTimeout(() => {
+                    card.style.transform = "scale(1) translateY(0)";
+                }, 100);
+            });
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                triggerFortune();
+            }
+        });
+
+        window.addEventListener('mousedown', () => {
+            if (hasStarted) triggerFortune();
+        });
+    </script>
+</body>
+</html>

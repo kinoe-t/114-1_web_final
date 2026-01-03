@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>接水果遊戲</title>
+<style>
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #cfe9c9;
+  }
+  h1 { text-align: center; margin: 10px 0; }
+  #layout {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+  }
+  #gameContainer {
+    position: relative;
+  }
+  canvas {
+    border: 2px solid #333;
+    background: #b7e4a8;
+  }
+  #scoreBoard {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(255,255,255,0.9);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 16px;
+  }
+  #panel {
+    width: 260px;
+    background: #f6fff3;
+    border: 2px solid #333;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 14px;
+  }
+  #startBtn {
+    display: block;
+    margin: 10px auto;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<h1>🌲 接水果遊戲 🍎</h1>
+
+<div id="layout">
+  <div id="gameContainer">
+    <canvas id="gameCanvas" width="640" height="420"></canvas>
+    <div id="scoreBoard">分數：0<br>炸彈：0 / 3</div>
+    <button id="startBtn">開始遊戲</button>
+  </div>
+
+  <div id="panel">
+    <h3>🎮 遊戲規則</h3>
+    <ul>
+      <li>使用鍵盤 ← → 移動籃子</li>
+      <li>接到水果可得分</li>
+      <li>接到 3 顆炸彈遊戲結束</li>
+    </ul>
+    <h3>🍓 水果得分</h3>
+    <ul>
+      <li>🍌 香蕉：2 分</li>
+      <li>🍎 蘋果：3 分</li>
+      <li>🍓 草莓：4 分</li>
+      <li>🍊 橘子：3 分</li>
+      <li>🍉 西瓜：6 分</li>
+    </ul>
+    <p>💣 炸彈：接到會扣命</p>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const scoreBoard = document.getElementById('scoreBoard');
+const startBtn = document.getElementById('startBtn');
+
+// 音效（使用 Web Audio，不需外部檔案）
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(freq, duration=0.15) {
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.frequency.value = freq;
+  osc.type = 'square';
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  gain.gain.value = 0.1;
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration);
+}
+
+const basket = { x: 280, y: 370, width: 80, height: 20, speed: 8 };
+
+const fruits = [
+  { name:'banana', color:'#FFD700', score:2 },
+  { name:'apple', color:'#FF3B3B', score:3 },
+  { name:'strawberry', color:'#FF5C8A', score:4 },
+  { name:'orange', color:'#FFA500', score:3 },
+  { name:'watermelon', color:'#2ECC71', score:6 }
+];
+
+let items = [];
+let score = 0;
+let bombs = 0;
+let running = false;
+let left = false;
+let right = false;
+let spawnTimer;
+
+addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft') left = true;
+  if (e.key === 'ArrowRight') right = true;
+});
+addEventListener('keyup', e => {
+  if (e.key === 'ArrowLeft') left = false;
+  if (e.key === 'ArrowRight') right = false;
+});
+
+function startGame() {
+  score = 0; bombs = 0; items = [];
+  basket.x = 280;
+  running = true;
+  scoreBoard.innerHTML = '分數：0<br>炸彈：0 / 3';
+  clearInterval(spawnTimer);
+  spawnTimer = setInterval(spawnItem, 400);
+  requestAnimationFrame(loop);
+}
+
+function endGame() {
+  running = false;
+  clearInterval(spawnTimer);
+  playSound(120, 0.4);
+  alert('遊戲結束！\n你的總分是：' + score);
+}
+
+function spawnItem() {
+  const isBomb = Math.random() < 0.3;
+  if (isBomb) {
+    items.push({ type:'bomb', x:Math.random()*(canvas.width-30), y:-30, size:30, speed:6 });
+  } else {
+    const fruit = fruits[Math.floor(Math.random()*fruits.length)];
+    items.push({ type:'fruit', fruit, x:Math.random()*(canvas.width-30), y:-30, size:30, speed:5 + Math.random()*3 });
+  }
+}
+
+function update() {
+  if (left) basket.x -= basket.speed;
+  if (right) basket.x += basket.speed;
+  basket.x = Math.max(0, Math.min(canvas.width-basket.width, basket.x));
+
+  items.forEach(i => i.y += i.speed);
+
+  items = items.filter(i => {
+    const hit = i.y + i.size >= basket.y && i.x + i.size >= basket.x && i.x <= basket.x + basket.width;
+    if (hit) {
+      if (i.type === 'fruit') {
+        score += i.fruit.score;
+        playSound(600);
+      } else {
+        bombs++;
+        playSound(200, 0.25);
+        if (bombs >= 3) endGame();
+      }
+      return false;
+    }
+    return i.y < canvas.height;
+  });
+
+  scoreBoard.innerHTML = `分數：${score}<br>炸彈：${bombs} / 3`;
+}
+
+function drawBackground() {
+  ctx.fillStyle = '#7bc47f';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  // 樹
+  for (let x=0; x<canvas.width; x+=80) {
+    ctx.fillStyle = '#8B5A2B';
+    ctx.fillRect(x+30, 260, 20, 80);
+    ctx.fillStyle = '#2E8B57';
+    ctx.beginPath();
+    ctx.arc(x+40, 250, 40, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+function drawBasket() {
+  ctx.fillStyle = '#8B4513';
+  ctx.fillRect(basket.x, basket.y, basket.width, basket.height);
+  ctx.strokeStyle = '#5A2E0F';
+  ctx.strokeRect(basket.x, basket.y, basket.width, basket.height);
+}
+
+function drawItems() {
+  items.forEach(i => {
+    if (i.type === 'bomb') {
+      ctx.fillStyle = '#000';
+      ctx.beginPath();
+      ctx.arc(i.x+15, i.y+15, 15, 0, Math.PI*2);
+      ctx.fill();
+      ctx.strokeStyle = '#FFA500';
+      ctx.beginPath();
+      ctx.moveTo(i.x+15, i.y);
+      ctx.lineTo(i.x+22, i.y-10);
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = i.fruit.color;
+      ctx.beginPath();
+      ctx.arc(i.x+15, i.y+15, 14, 0, Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle = '#228B22';
+      ctx.beginPath();
+      ctx.ellipse(i.x+18, i.y+5, 6, 3, 0, 0, Math.PI*2);
+      ctx.fill();
+    }
+  });
+}
+
+function loop() {
+  if (!running) return;
+  drawBackground();
+  update();
+  drawBasket();
+  drawItems();
+  requestAnimationFrame(loop);
+}
+
+startBtn.onclick = () => {
+  audioCtx.resume();
+  startGame();
+};
+</script>
+</body>
+</html>

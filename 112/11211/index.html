@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>養成</title>
+    <style>
+        body {
+            font-family: "Microsoft JhengHei", sans-serif;
+            background-color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            color: #333;
+        }
+
+        #game-container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+            text-align: center;
+            width: 400px;
+            border: 1px solid #f0f0f0;
+        }
+
+        .phase-title {
+            font-size: 1em;
+            letter-spacing: 3px;
+            margin-bottom: 25px;
+            color: #999;
+        }
+
+        #image-holder {
+            background: #fafafa;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            width: 280px;
+            height: 320px;
+            margin-left: auto;
+            margin-right: auto;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #eee;
+        }
+
+        #character-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        .options-area {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            min-height: 120px;
+        }
+
+        .option-card {
+            cursor: pointer;
+            text-align: center;
+            background: #fff;
+            padding: 15px;
+            border-radius: 15px;
+            width: 90px;
+            transition: all 0.2s ease;
+            border: 1px solid #eee;
+        }
+
+        .option-card:hover {
+            background-color: #f9f9f9;
+            transform: translateY(-3px);
+            border-color: #ddd;
+        }
+
+        .option-card img {
+            width: 40px;
+            height: 40px;
+            display: block;
+            margin: 0 auto 10px;
+        }
+
+        .option-card span {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        #overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            color: white;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            cursor: pointer;
+        }
+
+        .dialog-text {
+            font-size: 1.5em;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div id="overlay" onclick="closeOverlay()">
+    <div class="dialog-text">你是認真的嗎…..</div>
+</div>
+
+<div id="game-container">
+    <div class="phase-title">PHASE <span id="current-phase">1</span></div>
+    
+    <div id="image-holder">
+        <img id="character-img" src="" alt="人物狀態">
+    </div>
+
+    <div class="options-area" id="options-container"></div>
+</div>
+
+<script>
+    // 圖片 ID 設定
+    const IMG_NORMAL = "136m06iScyMIv-8I3DU9ihvoVaSb7q0SK";
+    const IMG_SPECIAL = "1pqbx9wu_W8OVzv8e0OKtePKFUFghNn57";
+
+    function getDriveUrl(id) {
+        return `https://drive.google.com/uc?export=view&id=${id}`;
+    }
+
+    let phase = 1;
+    let totalClicks = 0;
+    let refuseCount = 0;
+    let isTriggered = false;
+
+    function renderOptions() {
+        const container = document.getElementById('options-container');
+        container.innerHTML = ''; 
+
+        let items = [];
+        if (phase === 1) {
+            items = [
+                { id: 'cake', name: '蛋糕', img: 'https://cdn-icons-png.flaticon.com/512/992/992717.png' },
+                { id: 'milk', name: '牛奶', img: 'https://cdn-icons-png.flaticon.com/512/372/372971.png' },
+                { id: 'none', name: '不給', img: 'https://cdn-icons-png.flaticon.com/512/1828/1828843.png' }
+            ];
+        } else if (phase === 2) {
+            items = [
+                { id: 'book', name: '書本', img: 'https://cdn-icons-png.flaticon.com/512/2702/2702134.png' },
+                { id: 'head', name: '人頭', img: 'https://cdn-icons-png.flaticon.com/512/1077/1077114.png' }
+            ];
+        } else {
+            container.innerHTML = '<div style="color:#bbb; margin-top:20px;">進入最終階段</div>';
+            return;
+        }
+
+        items.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'option-card';
+            card.onclick = () => handleAction(item.id);
+            card.innerHTML = `<img src="${item.img}"><span>${item.name}</span>`;
+            container.appendChild(card);
+        });
+    }
+
+    function handleAction(choice) {
+        totalClicks++;
+
+        // 第一階段不給次數邏輯
+        if (phase === 1 && choice === 'none') {
+            refuseCount++;
+            if (refuseCount === 3) {
+                isTriggered = true;
+                updateCharacterImage();
+                document.getElementById('overlay').style.display = 'flex';
+            }
+        }
+
+        // 階段切換邏輯 (6次點擊)
+        if (phase === 1 && totalClicks >= 6) {
+            alert("第一階段完成");
+            phase = 2;
+            totalClicks = 0;
+            updateUI();
+        } else if (phase === 2 && totalClicks >= 6) {
+            alert("第二階段完成");
+            phase = 3;
+            totalClicks = 0;
+            updateUI();
+        }
+    }
+
+    function updateCharacterImage() {
+        const imgElement = document.getElementById('character-img');
+        imgElement.src = isTriggered ? getDriveUrl(IMG_SPECIAL) : getDriveUrl(IMG_NORMAL);
+    }
+
+    function closeOverlay() {
+        document.getElementById('overlay').style.display = 'none';
+    }
+
+    function updateUI() {
+        document.getElementById('current-phase').innerText = phase;
+        updateCharacterImage();
+        renderOptions();
+    }
+
+    // 初始化介面
+    window.onload = updateUI;
+</script>
+
+</body>
+</html>

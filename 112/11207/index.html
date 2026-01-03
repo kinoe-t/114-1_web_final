@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>午餐拉霸機</title>
+    <style>
+        :root {
+            --gold: #ffcf33;
+            --slot-w: 180px;
+            --slot-h: 120px; 
+            --bg-dark: #000000;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: white;
+            font-family: "PingFang TC", "Microsoft JhengHei", sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        .title-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: var(--gold);
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 10px rgba(255, 207, 51, 0.5);
+            margin: 0;
+            letter-spacing: 4px;
+        }
+
+        .machine-frame {
+            position: relative;
+            background: #333;
+            padding: 30px 90px 30px 30px;
+            border-radius: 40px;
+            border: 10px solid #555;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.9);
+        }
+
+        .slots-container {
+            display: flex;
+            gap: 10px;
+            background: #111;
+            padding: 15px;
+            border-radius: 15px;
+            border: 6px solid var(--gold);
+        }
+
+        .slot {
+            width: var(--slot-w);
+            height: var(--slot-h);
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .slot::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(0,0,0,0.4) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.4) 100%);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .reel {
+            display: flex;
+            flex-direction: column;
+            transition: transform 5s cubic-bezier(0.1, 0, 0.05, 1);
+            will-change: transform;
+        }
+
+        .food-item {
+            width: var(--slot-w);
+            height: var(--slot-h);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* 關鍵修改：縮小圖片比例至 70% 確保字體清晰不被切到 */
+            background-size: 70% auto; 
+            background-repeat: no-repeat;
+            background-position: center 30%; /* 圖片略微靠上 */
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .food-label {
+            background: rgba(0, 0, 0, 0.8); /* 加深背景確保閱讀 */
+            color: #fff;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            z-index: 1;
+            /* 關鍵修改：將食物名稱移至下方，完全避開背景圖標題 */
+            transform: translateY(35px); 
+        }
+
+        .reel-main-bg { background-image: url('line_crop_1.png'); }
+        .reel-snack-bg { background-image: url('line_crop_2.png'); }
+        .reel-drink-bg { background-image: url('line_crop_3.png'); }
+
+        .handle-arm {
+            position: absolute;
+            right: -45px;
+            top: 60px;
+            width: 22px;
+            height: 130px;
+            background: #666;
+            border-radius: 10px;
+            cursor: pointer;
+            transform-origin: bottom;
+            transition: transform 0.3s;
+        }
+
+        .handle-ball {
+            position: absolute;
+            top: -40px; left: -14px; width: 50px; height: 50px;
+            background: radial-gradient(circle at 30% 30%, #ff4d4d, #900);
+            border-radius: 50%;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.7);
+        }
+
+        .pulling { transform: rotateX(60deg); }
+
+        #result-display {
+            opacity: 0;
+            margin-top: 30px;
+            text-align: center;
+            transition: 1s;
+        }
+
+        .res-grid {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .res-btn {
+            background: var(--gold);
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 0 #b8860b;
+        }
+
+        .res-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #b8860b; }
+
+        .hint { margin-top: 25px; color: #555; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+
+    <div class="title-container">
+        <h1>🍱 午餐拉霸機 🍱</h1>
+    </div>
+
+    <div class="machine-frame">
+        <div class="slots-container">
+            <div class="slot"><div id="reel-main" class="reel"></div></div>
+            <div class="slot"><div id="reel-snack" class="reel"></div></div>
+            <div class="slot"><div id="reel-drink" class="reel"></div></div>
+        </div>
+        <div id="lever" class="handle-arm" onclick="spin()">
+            <div class="handle-ball"></div>
+        </div>
+    </div>
+
+    <div id="result-display">
+        <h2 id="result-text" style="font-size: 1.5rem;"></h2>
+        <div class="res-grid" id="res-actions"></div>
+    </div>
+
+    <p class="hint">圖片比例已調整為 70%，確保分類字樣清晰可見。</p>
+
+    <audio id="spinSfx" src="Slot machine.mp3"></audio>
+
+    <script>
+        const mainList = ["滷肉飯","雞肉飯","肉燥飯","控肉飯","排骨飯","炸雞腿便當","燒肉便當","鯖魚便當","紅燒牛肉麵","清燉牛肉麵","擔仔麵","麻醬麵","炒米粉","湯米粉","粄條","碗粿","油飯","肉圓","筒仔米糕","豬腳飯","鴨肉飯","鵝肉飯","鍋燒意麵","魯麵","台式炒飯","台式炒麵","滷味","壽司","拉麵","烏龍麵","牛丼","豬排丼","咖哩飯","炸豬排定食","石鍋拌飯","韓式炸雞","辣炒年糕","部隊鍋","泡菜鍋","四川麻辣鍋","北京烤鴨","上海小籠包","炒河粉","越南河粉","打拋豬飯","泰式綠咖哩","海南雞飯","肉骨茶","蘭州拉麵","義大利麵","燉飯","披薩","漢堡","牛排","焗烤","三明治","捲餅"];
+        const snackList = ["鹽酥雞","雞排","甜不辣","關東煮","蚵仔煎","大腸包小腸","煎餃","蘿蔔糕","蔥抓餅","韭菜盒","燒餅油條","胡椒餅","地瓜球","花枝丸","炸魷魚","珍珠粉圓","芋圓","地瓜圓","豆花","仙草","愛玉","燒仙草","紅豆湯","綠豆湯","米苔目(甜)","剉冰","雪花冰","雞蛋糕","車輪餅","草仔粿","麻糬","鳳梨酥","太陽餅","可麗餅","鬆餅","馬卡龍","泡芙","提拉米蘇","起司蛋糕","布朗尼","日式糰子","鯛魚燒","韓式糖餅"];
+        const drinkList = ["茶典紅茶牛奶","神農本舖","Ai-Yo哎呦愛玉","小雅芋頭西米露","禾茶養生茶飲","「布」好喝的茶","正思維齋製茶","日川手搖飲","金芋良圓","悠果","回憶小時候","一手私藏紅茶","楓堂茶飲","拾年茶事","UG","BUBBLE茶冷萃","希望奶茶","春水堂 Riverside","華達奶茶","大茗","迷客夏","麻古","五桐號","樂法","珍煮丹"];
+
+        function initReel(id, items, bgClass) {
+            const reel = document.getElementById(id);
+            const shuffled = [...items].sort(() => Math.random() - 0.5);
+            const displayList = Array(15).fill(shuffled).flat();
+            
+            displayList.forEach(name => {
+                const div = document.createElement('div');
+                div.className = `food-item ${bgClass}`;
+                div.innerHTML = `<span class="food-label">${name}</span>`;
+                reel.appendChild(div);
+            });
+            return shuffled;
+        }
+
+        let mSet = initReel('reel-main', mainList, 'reel-main-bg');
+        let sSet = initReel('reel-snack', snackList, 'reel-snack-bg');
+        let dSet = initReel('reel-drink', drinkList, 'reel-drink-bg');
+
+        let spinning = false;
+
+        function spin() {
+            if (spinning) return;
+            spinning = true;
+
+            const sfx = document.getElementById('spinSfx');
+            sfx.currentTime = 0; sfx.play().catch(()=>{});
+            
+            document.getElementById('lever').classList.add('pulling');
+            document.getElementById('result-display').style.opacity = '0';
+            setTimeout(() => document.getElementById('lever').classList.remove('pulling'), 300);
+
+            const i1 = Math.floor(Math.random() * mSet.length);
+            const i2 = Math.floor(Math.random() * sSet.length);
+            const i3 = Math.floor(Math.random() * dSet.length);
+
+            const itemH = 120; 
+            const target1 = (8 * mSet.length + i1) * itemH;
+            const target2 = (10 * sSet.length + i2) * itemH;
+            const target3 = (12 * dSet.length + i3) * itemH;
+
+            document.getElementById('reel-main').style.transform = `translateY(-${target1}px)`;
+            document.getElementById('reel-snack').style.transform = `translateY(-${target2}px)`;
+            document.getElementById('reel-drink').style.transform = `translateY(-${target3}px)`;
+
+            setTimeout(() => {
+                const m = mSet[i1]; const s = sSet[i2]; const d = dSet[i3];
+                document.getElementById('result-text').innerHTML = 
+                    `今天吃：<span style="color:var(--gold)">${m} + ${s}</span><br><small>配：${d}</small>`;
+                
+                const act = document.getElementById('res-actions');
+                const searchBase = "https://www.google.com/maps/search/";
+                act.innerHTML = `
+                    <a href="${searchBase + encodeURIComponent("高雄 " + m)}" target="_blank" class="res-btn">🔍 找主食</a>
+                    <a href="${searchBase + encodeURIComponent("高雄 " + s)}" target="_blank" class="res-btn">🔍 找點心</a>
+                    <a href="${searchBase + encodeURIComponent("高雄 " + d)}" target="_blank" class="res-btn">🔍 找飲品</a>
+                `;
+                
+                document.getElementById('result-display').style.opacity = '1';
+                spinning = false;
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

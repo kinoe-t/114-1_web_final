@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>考試季生存模擬器：現代極致版</title>
+<style>
+  :root {
+    --primary: #4f7cff;
+    --bg: #f8f9fc;
+    --card-bg: #ffffff;
+    --text: #2d3436;
+    --stress: #ff7675;
+    --energy: #55efc4;
+    --score: #74b9ff;
+  }
+
+  body {
+    font-family: "SF Pro Display", "Noto Sans TC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+  }
+
+  .card {
+    background: var(--card-bg);
+    width: 90%;
+    max-width: 550px; /* 放大顯示區域 */
+    padding: 40px;
+    border-radius: 24px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  h1 { 
+    text-align: center; 
+    font-size: 28px; 
+    font-weight: 800; 
+    margin-bottom: 30px; 
+    letter-spacing: -0.5px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 30px;
+  }
+
+  .stat-item {
+    background: #f1f3f9;
+    padding: 15px;
+    border-radius: 16px;
+    position: relative;
+  }
+
+  .stat-label { font-size: 15px; font-weight: 600; margin-bottom: 8px; display: block; }
+  .stat-value { font-size: 20px; font-weight: 800; color: var(--primary); }
+
+  /* 進度條優化 */
+  .progress-container {
+    background: #e0e6ed;
+    height: 10px;
+    border-radius: 5px;
+    margin-top: 10px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .event-container {
+    min-height: 120px;
+    margin: 30px 0;
+    padding: 20px;
+    background: #fff;
+    border: 2px solid #f1f3f9;
+    border-radius: 18px;
+    font-size: 18px;
+    line-height: 1.6;
+    font-weight: 500;
+  }
+
+  .day-indicator {
+    display: inline-block;
+    background: var(--text);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+
+  .button-group button {
+    width: 100%;
+    margin-bottom: 12px;
+    padding: 16px;
+    border: none;
+    border-radius: 14px;
+    background: #f1f3f9;
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+  }
+
+  .button-group button:hover {
+    background: var(--primary);
+    color: white;
+    transform: translateX(5px);
+  }
+
+  /* 道具通知動畫 */
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .item-pop {
+    background: #fdf2f2;
+    border: 1px solid #ff7675;
+    color: #d63031;
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    margin-bottom: 20px;
+    animation: slideIn 0.5s ease;
+    display: none;
+  }
+
+  .end-screen { text-align: center; }
+  .restart-btn { 
+    background: var(--primary) !important; 
+    color: white !important; 
+    text-align: center !important; 
+    margin-top: 20px;
+  }
+</style>
+</head>
+<body>
+
+<div class="card" id="startScreen">
+  <div style="font-size: 60px; text-align: center;">🎒</div>
+  <h1>考試季生存模擬</h1>
+  <p style="text-align: center; color: #636e72; margin-bottom: 30px;">
+    這是一個關於 14 天內如何不崩潰的實驗。
+  </p>
+  <div class="button-group">
+    <button class="restart-btn" onclick="startGame()">開始體驗</button>
+  </div>
+</div>
+
+<div class="card" id="gameScreen" style="display:none">
+  <div class="stats-grid">
+    <div class="stat-item">
+      <span class="stat-label">📚 成績</span>
+      <span class="stat-value" id="score">50</span>
+      <div class="progress-container"><div id="scoreBar" class="progress-fill" style="background: var(--score)"></div></div>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">😫 壓力</span>
+      <span class="stat-value" id="stress">30</span>
+      <div class="progress-container"><div id="stressBar" class="progress-fill" style="background: var(--stress)"></div></div>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">😄 精神</span>
+      <span class="stat-value" id="energy">50</span>
+      <div class="progress-container"><div id="energyBar" class="progress-fill" style="background: var(--energy)"></div></div>
+    </div>
+    <div class="stat-item" style="display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700;">
+      ⏳ 剩餘 <span id="days" style="color:var(--primary); margin: 0 5px;">14</span> 天
+    </div>
+  </div>
+
+  <div id="itemPop" class="item-pop"></div>
+  
+  <div class="event-container">
+    <div class="day-indicator" id="dayLabel">DAY 1</div>
+    <div id="eventText">載入中...</div>
+  </div>
+
+  <div class="button-group" id="choices"></div>
+</div>
+
+<script>
+let score, stress, energy, days, currentPool;
+
+// 擴充事件庫（確保超過 14 個以防抽完）
+const allEvents = [
+  { text: '你在書包發現一本全新課本，封面的泡麵漬讓你覺得很有藝術感。', options: [
+    { t: '當作聖經開始狂背', s: 15, st: 10, e: -10 },
+    { t: '這本應該不考，拿來墊便當', s: -5, st: -5, e: 8 },
+    { t: '只讀目錄，假裝掌握全局', s: 5, st: 2, e: -2 }
+  ]},
+  { text: '群組傳來「特價大薯買一送一」的消息，大家都在標註你。', options: [
+    { t: '忍痛關靜音，我愛讀書', s: 8, st: 8, e: -5 },
+    { t: '衝了！大薯是靈魂燃料', s: -2, st: -15, e: 15 },
+    { t: '幫隊友代購，順便社交', s: -5, st: -5, e: 10 }
+  ]},
+  { text: '你研究了 3 小時，成功在計算紙上畫出了完美的派大星。', options: [
+    { t: '自責到原地崩潰', s: -2, st: 15, e: -5 },
+    { t: '這也是一種藝術天賦', s: -5, st: -10, e: 10 },
+    { t: '把派大星貼在准考證上', s: 3, st: -5, e: 2 }
+  ]},
+  { text: '演算法推給你「水豚泡溫泉 10 小時」的 4K 影片。', options: [
+    { t: '看 5 分鐘獲得靈魂洗滌', s: -2, st: -15, e: 8 },
+    { t: '看完 10 小時，整個人變水豚', s: -25, st: -25, e: 30 },
+    { t: '憤而檢舉該影片', s: 5, st: 15, e: -5 }
+  ]},
+  { text: '你在圖書館讀書讀到一半，隔壁桌的人開始吃炸雞。', options: [
+    { t: '用憤怒轉化為讀書動力', s: 10, st: 15, e: -5 },
+    { t: '跟他買一塊腿排', s: -5, st: -10, e: 10 },
+    { t: '默默換到廁所門口讀', s: 5, st: 5, e: -5 }
+  ]},
+  { text: '你試圖使用「量子波動速讀」在 10 分鐘內讀完微積分。', options: [
+    { t: '感受到宇宙的知識流', s: 20, st: 10, e: -15 },
+    { t: '只有風吹過臉龐的虛無感', s: -10, st: 5, e: 5 },
+    { t: '眼睛差點抽筋', s: -5, st: 10, e: -5 }
+  ]},
+  { text: '半夜三點，你覺得地板太髒，突然開始進行全屋大掃除。', options: [
+    { t: '掃得一塵不染，心情極佳', s: -5, st: -20, e: -10 },
+    { t: '掃到一半開始看舊照片感嘆', s: -15, st: -5, e: -5 },
+    { t: '強迫自己放下掃把看書', s: 8, st: 15, e: -10 }
+  ]},
+  { text: '老師在課堂上暗示：「這題不考我隨便你們。」', options: [
+    { t: '反心理學：這題絕對必考', s: 15, st: 10, e: -5 },
+    { t: '相信老師，這輩子沒這麼輕鬆過', s: -10, st: -15, e: 15 },
+    { t: '整本撕掉，老師說不考', s: -30, st: -20, e: 20 }
+  ]},
+  { text: '你發現你的「綠色乖乖」過期了，而且變成了黃色。', options: [
+    { t: '這代表我的成績會發黃', s: -10, st: 20, e: -5 },
+    { t: '過期才補，負負得正', s: 5, st: -5, e: 10 },
+    { t: '把它塗成綠色繼續拜', s: 5, st: 10, e: -5 }
+  ]},
+  { text: '暗戀的對象問你：「這題怎麼寫？」', options: [
+    { t: '教到他變教授，我變大神', s: 25, st: 15, e: -20 },
+    { t: '「我也不會，我們要不一起去夜唱？」', s: -20, st: -20, e: 30 },
+    { t: '冷酷回覆：請看課本第 5 頁', s: 5, st: 5, e: -2 }
+  ]},
+  { text: '你在筆記本夾層發現一張 1000 元鈔票。', options: [
+    { t: '買補腦神藥', s: 15, st: -5, e: 5 },
+    { t: '去吃豪華大餐犒賞自己', s: -10, st: -20, e: 15 },
+    { t: '存起來當重修費', s: 2, st: 10, e: -5 }
+  ]},
+  { text: '鄰居的小孩突然開始練嗩吶。', options: [
+    { t: '戴上抗噪耳機硬撐', s: 8, st: 15, e: -5 },
+    { t: '跟他合奏，釋放壓力', s: -15, st: -25, e: 10 },
+    { t: '去檢舉他（但也浪費時間）', s: 2, st: 10, e: -5 }
+  ]},
+  { text: '你夢到教授告訴你考試題目，結果醒來全忘了。', options: [
+    { t: '崩潰大哭一整天', s: -10, st: 25, e: -10 },
+    { t: '努力回想（雖然沒用）', s: 2, st: 15, e: -5 },
+    { t: '這一定是老天叫我別讀了', s: -10, st: -15, e: 15 }
+  ]},
+  { text: '室友在旁邊打遊戲，狂叫「奈斯！」。', options: [
+    { t: '加入他，一場就好', s: -15, st: -10, e: 15 },
+    { t: '瞪他（但他沒看你）', s: 2, st: 15, e: -5 },
+    { t: '去圖書館流浪', s: 10, st: 10, e: -10 }
+  ]},
+  { text: '你在這本書的第一頁寫下「必勝」後就累了。', options: [
+    { t: '寫字也是體力活', s: -5, st: -10, e: 10 },
+    { t: '再寫兩頁「努力」', s: 5, st: 5, e: -5 },
+    { t: '把筆折斷棄療', s: -20, st: -20, e: 20 }
+  ]}
+];
+
+const items = [
+  { name: "💊 腦殘片", msg: "你吞下不明提神藥物，思維變快，但心跳到快炸開。", s: 12, st: 15, e: -5 },
+  { name: "🧧 紅包袋", msg: "在舊外套發現錢，精神瞬間恢復！", s: 0, st: -15, e: 20 },
+  { name: "🧻 前輩小抄", msg: "在圖書館桌縫撿到寶，這題穩了。", s: 20, st: -10, e: 0 }
+];
+
+function updateUI() {
+  document.getElementById('score').textContent = score;
+  document.getElementById('stress').textContent = stress;
+  document.getElementById('energy').textContent = energy;
+  document.getElementById('days').textContent = days;
+  
+  document.getElementById('scoreBar').style.width = Math.max(0, Math.min(score, 100)) + '%';
+  document.getElementById('stressBar').style.width = Math.max(0, Math.min(stress, 100)) + '%';
+  document.getElementById('energyBar').style.width = Math.max(0, Math.min(energy, 100)) + '%';
+}
+
+function startGame() {
+  score = 50; stress = 30; energy = 50; days = 14;
+  currentPool = [...allEvents]; // 重置事件池（深拷貝）
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('gameScreen').style.display = 'block';
+  updateUI();
+  nextDay();
+}
+
+function nextDay() {
+  if (stress >= 100) return endGame("🤯 壓力爆表", "你在走廊突然跳起科目三，被保安架走了。");
+  if (energy <= 0) return endGame("💀 精神崩離", "你在考卷上畫了個派大星後就進入了永眠。");
+  if (score <= 0) return endGame("📉 成績歸零", "你的成績跌入地殼，教授建議你改行炸雞排。");
+  if (days <= 0) return endGame("🏁 模擬結束", "考試季結束了，活下來就是奇蹟。");
+
+  // 隨機道具觸發
+  const itemPop = document.getElementById('itemPop');
+  if (Math.random() < 0.2) {
+    const item = items[Math.floor(Math.random() * items.length)];
+    score += item.s; stress += item.st; energy += item.e;
+    itemPop.innerHTML = `<b>✨ 隨機事件：${item.name}</b><br>${item.msg}`;
+    itemPop.style.display = 'block';
+    setTimeout(() => itemPop.style.display = 'none', 3500);
+  }
+
+  // 抽取不重複事件
+  const eventIdx = Math.floor(Math.random() * currentPool.length);
+  const ev = currentPool.splice(eventIdx, 1)[0]; // 關鍵：刪除已選事件，確保不重複
+
+  document.getElementById('dayLabel').textContent = `DAY ${15 - days}`;
+  document.getElementById('eventText').textContent = ev.text;
+  
+  const choicesEl = document.getElementById('choices');
+  choicesEl.innerHTML = '';
+  
+  ev.options.forEach(op => {
+    const b = document.createElement('button');
+    b.textContent = op.t;
+    b.onclick = () => {
+      score += op.s; stress += op.st; energy += op.e; days--;
+      updateUI();
+      nextDay();
+    };
+    choicesEl.appendChild(b);
+  });
+}
+
+function endGame(title, msg) {
+  let grade, icon, sub;
+  if (score >= 90) { grade = '學術大師'; icon = '👑'; sub = '教授問你要不要直接念博士。'; }
+  else if (score >= 70) { grade = '普通大學生'; icon = '🏫'; sub = '平淡才是真，順利拿到畢業證書。'; }
+  else if (energy >= 80) { grade = '快樂水豚'; icon = '🍊'; sub = '考試可以再考，命只有一條。'; }
+  else if (score < 40) { grade = '雞排店老闆'; icon = '🍗'; sub = '炸雞排也是一種專業技能。'; }
+  else { grade = '混分教主'; icon = '🤡'; sub = '在被當邊緣反覆橫跳。'; }
+
+  document.getElementById('gameScreen').innerHTML = `
+    <div class="end-screen">
+      <div style="font-size: 80px;">${icon}</div>
+      <h1>${title}</h1>
+      <p style="font-size: 18px; color:#636e72;">${msg}</p>
+      <div style="font-size: 32px; font-weight: 800; color:var(--primary); margin: 20px 0;">稱號：${grade}</div>
+      <p style="color:#888; margin-bottom: 30px;">${sub}</p>
+      <div class="button-group">
+        <button class="restart-btn" onclick="location.reload()">再啟人生</button>
+      </div>
+    </div>
+  `;
+}
+</script>
+
+</body>
+</html>

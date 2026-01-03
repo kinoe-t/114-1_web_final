@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kpop 抽卡遊戲</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #001f4d; /* 深藍色背景 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+
+        #card-container {
+            width: 300px;
+            height: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 2px solid white;
+            border-radius: 15px;
+            background-color: #003366; /* 深藍色略變化 */
+            margin-bottom: 20px;
+        }
+
+        #card-container img {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            background-color: #ff3366;
+            color: white;
+            transition: transform 0.1s;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="card-container">
+        <p>點擊下方按鈕抽卡</p>
+    </div>
+
+    <button id="draw-button">點擊</button>
+
+    <script>
+        const kpopGroups = [
+            { name: "Red Velvet", img: "red_velvet.png" },
+            { name: "Cortis", img: "cortis.png" },
+            { name: "ZEROBASEONE", img: "zerobaseone.png" },
+            { name: "boynextdoor", img: "boynextdoor.png" },
+            { name: "BTS", img: "bts.png" },
+            { name: "EXO", img: "exo.png" },
+            { name: "TWICE", img: "twice.png" },
+            { name: "Stray Kids", img: "stray_kids.png" },
+            { name: "ITZY", img: "itzy.png" },
+            { name: "aespa", img: "aespa.png" },
+            { name: "IVE", img: "ive.png" },
+            { name: "NewJeans", img: "newjeans.png" },
+            { name: "LE SSERAFIM", img: "le_sserafim.png" },
+            { name: "BABYMONSTER", img: "babymonster.png" },
+            { name: "ILLIT", img: "illit.png" }
+        ];
+
+        const button = document.getElementById("draw-button");
+        const container = document.getElementById("card-container");
+
+        button.addEventListener("click", () => {
+            const randomIndex = Math.floor(Math.random() * kpopGroups.length);
+            const group = kpopGroups[randomIndex];
+
+            container.innerHTML = `
+                <img src="${group.img}" alt="${group.name}">
+            `;
+        });
+    </script>
+
+</body>
+</html>

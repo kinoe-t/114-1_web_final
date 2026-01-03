@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>極簡美學俄羅斯方塊</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --panel-color: #ffffff;
+            --text-color: #4a4a4a;
+            --border-color: #d1d9e6;
+            /* 柔和繽紛配色 */
+            --color-I: #a2d2ff;
+            --color-J: #bde0fe;
+            --color-L: #ffafcc;
+            --color-O: #ffc8dd;
+            --color-S: #cdb4db;
+            --color-T: #afcbff;
+            --color-Z: #ffd6a5;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-color);
+        }
+
+        #game-container {
+            display: flex;
+            gap: 30px;
+            padding: 25px;
+            background: var(--panel-color);
+            border-radius: 20px;
+            box-shadow: 10px 10px 20px #d1d9e6, -10px -10px 20px #ffffff;
+        }
+
+        /* 遊戲主面板 */
+        #tetris-wrapper {
+            position: relative;
+            border: 4px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            background-color: #fafbfc;
+        }
+
+        /* 側邊欄 */
+        #side-panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            width: 180px;
+        }
+
+        .info-box {
+            background: #fafbfc;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .info-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        #score {
+            font-size: 28px;
+            font-weight: bold;
+            color: #5a67d8;
+        }
+
+        /* 提示方塊容器：確保置中 */
+        #next-container {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        /* 遮罩層 */
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            z-index: 10;
+            border-radius: 8px;
+        }
+
+        .instruction {
+            line-height: 1.8;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        kbd {
+            background: #eee;
+            border-radius: 3px;
+            padding: 2px 6px;
+            border: 1px solid #ccc;
+            font-size: 12px;
+        }
+
+        h2 { margin-top: 0; color: #5a67d8; }
+        #final-msg { font-style: italic; color: #718096; padding: 0 15px; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="tetris-wrapper">
+        <canvas id="tetris" width="300" height="600"></canvas>
+        
+        <div id="overlay">
+            <div id="start-screen">
+                <h2>準備好了嗎？</h2>
+                <div class="instruction">
+                    ← → 左右移動<br>
+                    ↓ 加速下墜<br>
+                    <kbd>Space</kbd> 旋轉方塊<br>
+                    <kbd>Enter</kbd> 瞬間落地<br>
+                    <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
+                    <strong>按下 [空白鍵] 開始遊戲</strong>
+                </div>
+            </div>
+            <div id="game-over-screen" style="display:none;">
+                <h2>遊戲結束</h2>
+                <p id="final-score-display"></p>
+                <p id="final-msg"></p>
+                <p>按下 [空白鍵] 重新挑戰</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="side-panel">
+        <div>
+            <div class="info-box">
+                <div class="info-title">Next</div>
+                <div id="next-container">
+                    <canvas id="next" width="100" height="100"></canvas>
+                </div>
+            </div>
+            <div class="info-box">
+                <div class="info-title">Score</div>
+                <div id="score">0</div>
+            </div>
+            <div class="info-box">
+                <div class="info-title">Level</div>
+                <div id="level">1</div>
+            </div>
+        </div>
+        <div style="font-size: 12px; color: #ccc; text-align: center;">
+            Tetris Aesthetic Edition
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('tetris');
+    const context = canvas.getContext('2d');
+    const nextCanvas = document.getElementById('next');
+    const nextContext = nextCanvas.getContext('2d');
+    const scoreElement = document.getElementById('score');
+    const levelElement = document.getElementById('level');
+    const overlay = document.getElementById('overlay');
+    const startScreen = document.getElementById('start-screen');
+    const gameOverScreen = document.getElementById('game-over-screen');
+    const finalMsg = document.getElementById('final-msg');
+
+    const ROW = 20;
+    const COL = 10;
+    const SQ = 30; // 方格大小
+    const COLOR_MAP = {
+        'I': '#a2d2ff', 'J': '#bde0fe', 'L': '#ffafcc',
+        'O': '#ffc8dd', 'S': '#cdb4db', 'T': '#afcbff', 'Z': '#ffd6a5'
+    };
+
+    const PIECES = [
+        [ [0,1,0,0],[0,1,0,0],[0,1,0,0],[0,1,0,0], 'I' ],
+        [ [0,1,0],[0,1,0],[1,1,0], 'J' ],
+        [ [0,1,0],[0,1,0],[0,1,1], 'L' ],
+        [ [1,1],[1,1], 'O' ],
+        [ [0,1,1],[1,1,0],[0,0,0], 'S' ],
+        [ [1,1,1],[0,1,0],[0,0,0], 'T' ],
+        [ [1,1,0],[0,1,1],[0,0,0], 'Z' ]
+    ];
+
+    let board = [];
+    let score = 0;
+    let level = 1;
+    let gameRunning = false;
+    let dropCounter = 0;
+    let dropInterval = 1000; 
+    let lastTime = 0;
+
+    // 情緒價值訊息
+    const encouragement = [
+        "你剛才的反應太流暢了！差一點就打破紀錄！",
+        "每一塊方塊都有它的位置，就像你在這世界上一樣重要。",
+        "沒關係，深呼吸，下一局你會更強大。",
+        "這局雖然結束了，但你展現的韌性令人驚艷。",
+        "高手都是在無數次的「Game Over」中誕生的。"
+    ];
+
+    function initBoard() {
+        for (let r = 0; r < ROW; r++) {
+            board[r] = Array(COL).fill('white');
+        }
+    }
+
+    function drawSquare(x, y, color, ctx = context) {
+        ctx.fillStyle = color;
+        ctx.fillRect(x * SQ, y * SQ, SQ, SQ);
+        ctx.strokeStyle = "rgba(255,255,255,0.5)";
+        ctx.strokeRect(x * SQ, y * SQ, SQ, SQ);
+    }
+
+    function drawBoard() {
+        for (let r = 0; r < ROW; r++) {
+            for (let c = 0; c < COL; c++) {
+                drawSquare(c, r, board[r][c] === 'white' ? '#fafbfc' : board[r][c]);
+            }
+        }
+    }
+
+    class Piece {
+        constructor(tetromino, color) {
+            this.tetromino = tetromino;
+            this.color = color;
+            this.tetrominoN = 0;
+            this.activeTetromino = this.tetromino[this.tetrominoN];
+            this.x = 3;
+            this.y = -2;
+        }
+
+        fill(color, ctx = context, offsetX = 0, offsetY = 0) {
+            for (let r = 0; r < this.activeTetromino.length; r++) {
+                for (let c = 0; c < this.activeTetromino.length; c++) {
+                    if (this.activeTetromino[r][c]) {
+                        drawSquare(this.x + c + offsetX, this.y + r + offsetY, color, ctx);
+                    }
+                }
+            }
+        }
+
+        draw() { this.fill(this.color); }
+        unDraw() { this.fill('#fafbfc'); }
+
+        moveDown() {
+            if (!this.collision(0, 1, this.activeTetromino)) {
+                this.unDraw();
+                this.y++;
+                this.draw();
+            } else {
+                this.lock();
+                p = nextP;
+                nextP = randomPiece();
+                drawNext();
+            }
+        }
+
+        moveRight() {
+            if (!this.collision(1, 0, this.activeTetromino)) {
+                this.unDraw();
+                this.x++;
+                this.draw();
+            }
+        }
+
+        moveLeft() {
+            if (!this.collision(-1, 0, this.activeTetromino)) {
+                this.unDraw();
+                this.x--;
+                this.draw();
+            }
+        }
+
+        rotate() {
+            let nextPattern = this.tetromino[(this.tetrominoN + 1) % this.tetromino.length];
+            let kick = 0;
+            if (this.collision(0, 0, nextPattern)) {
+                kick = this.x > COL / 2 ? -1 : 1;
+            }
+            if (!this.collision(kick, 0, nextPattern)) {
+                this.unDraw();
+                this.x += kick;
+                this.tetrominoN = (this.tetrominoN + 1) % this.tetromino.length;
+                this.activeTetromino = nextPattern;
+                this.draw();
+            }
+        }
+
+        hardDrop() {
+            this.unDraw();
+            while (!this.collision(0, 1, this.activeTetromino)) {
+                this.y++;
+            }
+            this.draw();
+            this.lock();
+            p = nextP;
+            nextP = randomPiece();
+            drawNext();
+        }
+
+        collision(x, y, piece) {
+            for (let r = 0; r < piece.length; r++) {
+                for (let c = 0; c < piece.length; c++) {
+                    if (!piece[r][c]) continue;
+                    let newX = this.x + c + x;
+                    let newY = this.y + r + y;
+                    if (newX < 0 || newX >= COL || newY >= ROW) return true;
+                    if (newY < 0) continue;
+                    if (board[newY][newX] !== 'white') return true;
+                }
+            }
+            return false;
+        }
+
+        lock() {
+            for (let r = 0; r < this.activeTetromino.length; r++) {
+                for (let c = 0; c < this.activeTetromino.length; c++) {
+                    if (!this.activeTetromino[r][c]) continue;
+                    if (this.y + r < 0) {
+                        gameOver();
+                        return;
+                    }
+                    board[this.y + r][this.x + c] = this.color;
+                }
+            }
+            // 消除邏輯
+            let rowsCleared = 0;
+            for (let r = 0; r < ROW; r++) {
+                if (board[r].every(cell => cell !== 'white')) {
+                    board.splice(r, 1);
+                    board.unshift(Array(COL).fill('white'));
+                    rowsCleared++;
+                }
+            }
+            if (rowsCleared > 0) {
+                score += [0, 100, 300, 500, 800][rowsCleared];
+                scoreElement.innerHTML = score;
+                // 每 500 分升一級並加速
+                let newLevel = Math.floor(score / 500) + 1;
+                if (newLevel > level) {
+                    level = newLevel;
+                    levelElement.innerHTML = level;
+                    dropInterval = Math.max(100, 1000 - (level - 1) * 100);
+                }
+            }
+            drawBoard();
+        }
+    }
+
+    // 旋轉算法優化
+    function rotateMatrix(matrix) {
+        return matrix[0].map((val, index) => matrix.map(row => row[index]).reverse());
+    }
+
+    function randomPiece() {
+        let r = Math.floor(Math.random() * PIECES.length);
+        let pieceData = PIECES[r];
+        let rotations = [pieceData.slice(0, pieceData.length - 1)];
+        // 預產生四個旋轉狀態
+        for (let i = 0; i < 3; i++) {
+            rotations.push(rotateMatrix(rotations[i]));
+        }
+        return new Piece(rotations, COLOR_MAP[pieceData[pieceData.length - 1]]);
+    }
+
+    let p = randomPiece();
+    let nextP = randomPiece();
+
+    function drawNext() {
+        nextContext.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+        const matrix = nextP.activeTetromino;
+        const size = matrix.length;
+        
+        // 置中計算：找出方塊實際佔用的範圍
+        let minX = size, maxX = 0, minY = size, maxY = 0;
+        let hasContent = false;
+        for(let r=0; r<size; r++) {
+            for(let c=0; c<size; c++) {
+                if(matrix[r][c]) {
+                    if(c < minX) minX = c;
+                    if(c > maxX) maxX = c;
+                    if(r < minY) minY = r;
+                    if(r > maxY) maxY = r;
+                    hasContent = true;
+                }
+            }
+        }
+        
+        if(!hasContent) return;
+
+        const pieceW = (maxX - minX + 1) * SQ;
+        const pieceH = (maxY - minY + 1) * SQ;
+        const startX = (nextCanvas.width - pieceW) / 2;
+        const startY = (nextCanvas.height - pieceH) / 2;
+
+        for (let r = 0; r < size; r++) {
+            for (let c = 0; c < size; c++) {
+                if (matrix[r][c]) {
+                    nextContext.fillStyle = nextP.color;
+                    nextContext.fillRect(startX + (c - minX) * SQ, startY + (r - minY) * SQ, SQ, SQ);
+                    nextContext.strokeStyle = "white";
+                    nextContext.strokeRect(startX + (c - minX) * SQ, startY + (r - minY) * SQ, SQ, SQ);
+                }
+            }
+        }
+    }
+
+    function update(time = 0) {
+        if (!gameRunning) return;
+        const deltaTime = time - lastTime;
+        lastTime = time;
+        dropCounter += deltaTime;
+        if (dropCounter > dropInterval) {
+            p.moveDown();
+            dropCounter = 0;
+        }
+        requestAnimationFrame(update);
+    }
+
+    function gameOver() {
+        gameRunning = false;
+        overlay.style.display = 'flex';
+        startScreen.style.display = 'none';
+        gameOverScreen.style.display = 'block';
+        document.getElementById('final-score-display').innerText = "最終得分: " + score;
+        finalMsg.innerText = encouragement[Math.floor(Math.random() * encouragement.length)];
+    }
+
+    function startGame() {
+        initBoard();
+        score = 0;
+        level = 1;
+        dropInterval = 1000;
+        scoreElement.innerHTML = score;
+        levelElement.innerHTML = level;
+        p = randomPiece();
+        nextP = randomPiece();
+        drawBoard();
+        drawNext();
+        gameRunning = true;
+        overlay.style.display = 'none';
+        requestAnimationFrame(update);
+    }
+
+    document.addEventListener('keydown', event => {
+        if (event.keyCode === 32) { // 空白鍵：旋轉 或 開始
+            if (!gameRunning) {
+                startGame();
+            } else {
+                p.rotate();
+            }
+            event.preventDefault();
+        }
+        if (!gameRunning) return;
+
+        if (event.keyCode === 37) p.moveLeft();
+        else if (event.keyCode === 38) p.rotate(); // 上鍵也支援旋轉
+        else if (event.keyCode === 39) p.moveRight();
+        else if (event.keyCode === 40) p.moveDown();
+        else if (event.keyCode === 13) p.hardDrop(); // Enter 直接落地
+    });
+
+    // 初始化背景
+    initBoard();
+    drawBoard();
+
+</script>
+</body>
+</html>

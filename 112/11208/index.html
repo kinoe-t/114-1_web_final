@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>aespa 2048</title>
+    <style>
+        :root {
+            --bg-color: #faf8ef;
+            --grid-bg: #bbada0;
+            --cell-bg: #cdc1b4;
+            --button-bg: #8f7a66;
+            --text-dark: #776e65;
+        }
+
+        body { background-color: var(--bg-color); font-family: "Clear Sans", Arial, sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; padding-top: 20px; min-height: 100vh; color: var(--text-dark); }
+        
+        /* 分數區域 */
+        .header { width: 340px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .score-container { display: flex; gap: 5px; }
+        .score-box { background: var(--grid-bg); padding: 5px 10px; border-radius: 3px; color: white; text-align: center; min-width: 65px; }
+        .score-value { font-size: 18px; font-weight: bold; display: block; }
+
+        /* 按鈕區域 */
+        .toolbar { width: 340px; display: flex; justify-content: space-between; margin-bottom: 15px; }
+        button { background: var(--button-bg); color: white; border: none; padding: 10px 15px; font-weight: bold; border-radius: 3px; cursor: pointer; }
+        button:disabled { opacity: 0.5; }
+
+        /* 遊戲盤面 */
+        .game-container { position: relative; width: 340px; height: 340px; background: var(--grid-bg); border-radius: 6px; padding: 10px; box-sizing: border-box; touch-action: none; }
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr); gap: 10px; width: 100%; height: 100%; }
+        .cell { width: 100%; height: 100%; background-color: var(--cell-bg); border-radius: 3px; display: flex; justify-content: center; align-items: center; background-size: cover; background-position: center; color: transparent; font-weight: bold; }
+
+        /* 圖片對應設定 */
+        .tile-2 { background-image: url('2.png'); }
+        .tile-4 { background-image: url('4.png'); }
+        .tile-8 { background-image: url('8.png'); }
+        .tile-16 { background-image: url('16.png'); }
+        .tile-32 { background-image: url('32.png'); }
+        .tile-64 { background-image: url('64.png'); }
+        .tile-128 { background-image: url('128.png'); }
+        .tile-256 { background-image: url('256.png'); }
+        .tile-512 { background-image: url('512.png'); }
+        .tile-1024 { background-image: url('1024.png'); }
+        .tile-2048 { background-image: url('2048.png'); }
+
+        /* 下方圖鑑區域 */
+        .gallery-title { margin-top: 25px; font-weight: bold; font-size: 14px; }
+        .gallery { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; width: 340px; margin-top: 10px; padding-bottom: 40px; }
+        .gallery-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .thumb { width: 45px; height: 45px; border-radius: 4px; background-size: cover; background-position: center; border: 2px solid var(--grid-bg); background-color: var(--cell-bg); }
+        .thumb-label { font-size: 10px; font-weight: bold; }
+
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(238, 228, 218, 0.7); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 10; border-radius: 6px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1 style="margin: 0;">2048</h1>
+        <div class="score-container">
+            <div class="score-box"><span>SCORE</span><span id="score" class="score-value">0</span></div>
+            <div class="score-box"><span>BEST</span><span id="best" class="score-value">0</span></div>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <button onclick="initGame()">新遊戲</button>
+        <button id="undo-btn" onclick="undo()">⬅ 返回上一步</button>
+    </div>
+
+    <div class="game-container" id="game-box">
+        <div id="grid" class="grid"></div>
+        <div id="game-over" class="overlay"><h2>Game Over</h2><button onclick="initGame()">再試一次</button></div>
+    </div>
+
+    <div class="gallery-title">進化史：</div>
+    <div class="gallery">
+        <script>
+            const levels = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048];
+            levels.forEach(num => {
+                document.write(`
+                    <div class="gallery-item">
+                        <div class="thumb" style="background-image: url('${num}.png')"></div>
+                        <span class="thumb-label">${num}</span>
+                    </div>
+                `);
+            });
+        </script>
+    </div>
+
+    <script>
+        const gridElement = document.getElementById('grid');
+        const scoreElement = document.getElementById('score');
+        const bestElement = document.getElementById('best');
+        const undoBtn = document.getElementById('undo-btn');
+        const gameOverOverlay = document.getElementById('game-over');
+
+        let board = [], score = 0, history = [], bestScore = localStorage.getItem('2048-best-photo') || 0;
+        bestElement.innerText = bestScore;
+
+        function initGame() {
+            board = Array(16).fill(0); score = 0; history = [];
+            scoreElement.innerText = score; gameOverOverlay.style.display = 'none';
+            addTile(); addTile(); render(); updateUndoButton();
+        }
+
+        function addTile() {
+            let empty = board.map((v, i) => v === 0 ? i : null).filter(v => v !== null);
+            if (empty.length > 0) board[empty[Math.floor(Math.random() * empty.length)]] = Math.random() < 0.9 ? 2 : 4;
+        }
+
+        function render() {
+            gridElement.innerHTML = '';
+            board.forEach(value => {
+                const cell = document.createElement('div');
+                cell.className = 'cell' + (value ? ` tile-${value}` : '');
+                cell.innerText = value || '';
+                gridElement.appendChild(cell);
+            });
+        }
+
+        function undo() {
+            if (history.length > 0) {
+                const last = history.pop();
+                board = last.board; score = last.score;
+                scoreElement.innerText = score; render(); updateUndoButton();
+                gameOverOverlay.style.display = 'none';
+            }
+        }
+
+        function updateUndoButton() { undoBtn.disabled = history.length === 0; }
+
+        function slide(row) {
+            let filtered = row.filter(x => x !== 0);
+            for (let i = 0; i < filtered.length - 1; i++) {
+                if (filtered[i] === filtered[i+1]) {
+                    filtered[i] *= 2; score += filtered[i]; filtered[i+1] = 0;
+                }
+            }
+            filtered = filtered.filter(x => x !== 0);
+            while (filtered.length < 4) filtered.push(0);
+            return filtered;
+        }
+
+        function move(dir) {
+            let oldBoard = [...board], oldScore = score;
+            for (let i = 0; i < 4; i++) {
+                let idxs = [];
+                for (let j = 0; j < 4; j++) {
+                    if (dir === 'L') idxs.push(i * 4 + j);
+                    else if (dir === 'R') idxs.push(i * 4 + (3 - j));
+                    else if (dir === 'U') idxs.push(j * 4 + i);
+                    else if (dir === 'D') idxs.push((3 - j) * 4 + i);
+                }
+                let row = idxs.map(idx => board[idx]);
+                let newRow = slide(row);
+                idxs.forEach((idx, k) => board[idx] = newRow[k]);
+            }
+            if (JSON.stringify(oldBoard) !== JSON.stringify(board)) {
+                history.push({ board: oldBoard, score: oldScore });
+                if (history.length > 30) history.shift();
+                addTile(); scoreElement.innerText = score;
+                if (score > bestScore) { bestScore = score; bestElement.innerText = bestScore; localStorage.setItem('2048-best-photo', bestScore); }
+                render(); updateUndoButton();
+                if (board.every(v => v !== 0) && !canMove()) gameOverOverlay.style.display = 'flex';
+            }
+        }
+
+        function canMove() {
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j < 4; j++) {
+                    let cur = board[i * 4 + j];
+                    if (j < 3 && cur === board[i * 4 + j + 1]) return true;
+                    if (i < 3 && cur === board[(i + 1) * 4 + j]) return true;
+                }
+            }
+            return false;
+        }
+
+        window.addEventListener('keydown', e => {
+            if (e.key === 'ArrowLeft') move('L');
+            if (e.key === 'ArrowRight') move('R');
+            if (e.key === 'ArrowUp') move('U');
+            if (e.key === 'ArrowDown') move('D');
+        });
+
+        initGame();
+    </script>
+</body>
+</html>
