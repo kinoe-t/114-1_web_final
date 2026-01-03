@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>隨機音樂盒</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #111;
+        color: #fff;
+        text-align: center;
+        padding: 40px;
+    }
+
+    h1 {
+        margin-bottom: 30px;
+    }
+
+    .boxes {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        margin-bottom: 40px;
+    }
+
+    .box {
+        width: 120px;
+        height: 120px;
+        background: linear-gradient(135deg, #ffcc70, #ff8c00);
+        border-radius: 20px;
+        cursor: pointer;
+        position: relative;
+        animation-duration: 0.6s;
+    }
+
+    .box::after {
+        content: "🎵";
+        font-size: 48px;
+        position: absolute;
+        top: 30px;
+        left: 36px;
+    }
+
+    .shake {
+        animation-name: shake;
+    }
+
+    @keyframes shake {
+        0% { transform: rotate(0deg); }
+        20% { transform: rotate(-10deg); }
+        40% { transform: rotate(10deg); }
+        60% { transform: rotate(-10deg); }
+        80% { transform: rotate(10deg); }
+        100% { transform: rotate(0deg); }
+    }
+
+    #result img {
+        max-width: 300px;
+        margin: 20px 0;
+        border-radius: 12px;
+    }
+
+    iframe {
+        margin-top: 20px;
+        border-radius: 12px;
+    }
+</style>
+</head>
+<body>
+
+<h1>🎁 隨機音樂盒</h1>
+
+<div class="boxes">
+    <div class="box" onclick="openBox(this)"></div>
+    <div class="box" onclick="openBox(this)"></div>
+    <div class="box" onclick="openBox(this)"></div>
+</div>
+
+<div id="result"></div>
+
+<script>
+const images = [
+    "1.jpeg","2.jpeg","3.jpeg","4.jpeg","5.jpeg","6.jpeg"
+];
+
+const songs = [
+    { title: "Queen – Bohemian Rhapsody", id: "fJ9rUzIMcZQ" },
+    { title: "The Beatles – Let It Be", id: "QDYfEBY9NM4" },
+    { title: "Michael Jackson – Billie Jean", id: "Zi_XLOBDo_Y" },
+    { title: "Adele – Someone Like You", id: "hLQl3WQQoQ0" },
+    { title: "Coldplay – Viva La Vida", id: "dvgZkm1xWPE" },
+    { title: "Imagine Dragons – Believer", id: "7wtfhZwyrcc" },
+    { title: "Nirvana – Smells Like Teen Spirit", id: "hTWKbfoikeg" },
+    { title: "Taylor Swift – Shake It Off", id: "nfWlot6h_JM" },
+    { title: "Ed Sheeran – Shape of You", id: "JGwWNGJdvx8" },
+    { title: "Linkin Park – Numb", id: "kXYiU_JCYtU" },
+
+    { title: "米津玄師 – Lemon", id: "SX_ViT4Ra7k" },
+    { title: "YOASOBI – 夜に駆ける", id: "x8VYWazR5mE" },
+    { title: "宇多田ヒカル – First Love", id: "o1sUaVJUeB0" },
+    { title: "RADWIMPS – 前前前世", id: "PDSkFeMVNFs" },
+
+    { title: "美秀集團 – 戀人", id: "U-bXx_4Nwx8" },
+    { title: "Yuika – Sukidakara", id: "eYAd4uDotF0" },
+    { title: "YOASOBI-群青", id: "rm3z6E3Yl2Q" },
+    { title: "周杰倫 – 稻香", id: "sHD_z90ZKV0" },
+
+    { title: "CORTIS – GO!", id: "WXS-o57VJ5w" },
+    { title: "BLACKPINK – DDU-DU DDU-DU", id: "IHNzOHi8sJs" },
+
+    { title: "Luis Fonsi – Despacito", id: "kJQP7kiw5Fk" },
+    { title: "Stromae – Alors on danse", id: "VHoT4N43jK8" },
+
+    { title: "Daft Punk – Get Lucky", id: "5NV6Rdv1a3I" },
+    { title: "Avicii – Wake Me Up", id: "IcrbM1l_BoI" },
+
+    { title: "Pachelbel – Canon in D（卡農）", id: "NlprozGcs80" },
+
+    { title: "Ludovico Einaudi – Nuvole Bianche", id: "4VR-6AS0-l4" },
+    { title: "Beethoven – Für Elise", id: "_mVW8tgGY_w" },
+    { title: "Joe Hisaishi – One Summer’s Day", id: "TK1Ij_-mank" },
+
+    { title: "Elvis Presley – Can’t Help Falling in Love", id: "vGJTaP6anOU" },
+    { title: "Frank Sinatra – My Way", id: "qQzdAsjWGPg" }
+];
+
+function openBox(box) {
+    box.classList.add("shake");
+
+    setTimeout(() => {
+        box.classList.remove("shake");
+
+        const img = images[Math.floor(Math.random() * images.length)];
+        const song = songs[Math.floor(Math.random() * songs.length)];
+
+        document.getElementById("result").innerHTML = `
+            <h2>${song.title}</h2>
+            <img src="${img}">
+            <iframe width="560" height="315"
+                src="https://www.youtube.com/embed/${song.id}?autoplay=1"
+                allow="autoplay; encrypted-media"
+                allowfullscreen>
+            </iframe>
+        `;
+    }, 600);
+}
+</script>
+
+</body>
+</html>

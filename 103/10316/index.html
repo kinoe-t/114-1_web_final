@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>及格保衛戰 - 期末考分數計算器</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f5a623;
+            --danger-color: #e74c3c;
+            --success-color: #2ecc71;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            background-color: var(--bg-color);
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            max-width: 450px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+        }
+
+        .info-box {
+            background: #eef5ff;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+            border-left: 5px solid var(--primary-color);
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        input[type="number"], select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            background: #fff8ee;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 1.5rem;
+        }
+
+        .checkbox-group input {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background-color: #357abd;
+        }
+
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            display: none;
+        }
+
+        .pass { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        .danger { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+        .result-score {
+            font-size: 2rem;
+            font-weight: bold;
+            display: block;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>學分保衛戰 🛡️</h1>
+    
+    <div class="info-box">
+        <strong>權重說明：</strong><br>
+        一般科目：段考(24%×3) + 平時(28%)<br>
+        國文科目：(上述成績×70%) + 國寫(30%)
+    </div>
+
+    <div class="form-group">
+        <label>及格分數門檻</label>
+        <select id="passGrade">
+            <option value="60">60 分 (一般生)</option>
+            <option value="40">40 分 (原住民/特殊生)</option>
+            <option value="50">50 分 (高三下限)</option>
+        </select>
+    </div>
+
+    <div class="checkbox-group">
+        <input type="checkbox" id="isChinese" onchange="toggleChinese()">
+        <label for="isChinese" style="margin-bottom:0">這科是「國文科」嗎？</label>
+    </div>
+
+    <div class="form-group">
+        <label>平時成績 (28%)</label>
+        <input type="number" id="dailyScore" placeholder="請輸入分數" min="0" max="100">
+    </div>
+
+    <div class="form-group">
+        <label>第一次段考 (24%)</label>
+        <input type="number" id="exam1" placeholder="請輸入分數" min="0" max="100">
+    </div>
+
+    <div class="form-group">
+        <label>第二次段考 (24%)</label>
+        <input type="number" id="exam2" placeholder="請輸入分數" min="0" max="100">
+    </div>
+
+    <div id="chineseSection" style="display: none;">
+        <div class="form-group">
+            <label>國寫成績 (30%)</label>
+            <input type="number" id="writingScore" placeholder="請輸入分數" min="0" max="100">
+        </div>
+    </div>
+
+    <button onclick="calculate()">算出我的生存分數</button>
+
+    <div id="result"></div>
+</div>
+
+<script>
+    function toggleChinese() {
+        const isChinese = document.getElementById('isChinese').checked;
+        document.getElementById('chineseSection').style.display = isChinese ? 'block' : 'none';
+    }
+
+    function calculate() {
+        const passGrade = parseFloat(document.getElementById('passGrade').value);
+        const daily = parseFloat(document.getElementById('dailyScore').value) || 0;
+        const e1 = parseFloat(document.getElementById('exam1').value) || 0;
+        const e2 = parseFloat(document.getElementById('exam2').value) || 0;
+        const isChinese = document.getElementById('isChinese').checked;
+        
+        let requiredTotal;
+        let currentPart;
+
+        if (isChinese) {
+            const writing = parseFloat(document.getElementById('writingScore').value) || 0;
+            // 國文公式: ( (E1*0.24 + E2*0.24 + E3*0.24 + Daily*0.28) * 0.7 ) + (Writing * 0.3) = Pass
+            // 反推 E3:
+            let targetInnerScore = (passGrade - (writing * 0.3)) / 0.7;
+            currentPart = (e1 * 0.24) + (e2 * 0.24) + (daily * 0.28);
+            requiredTotal = (targetInnerScore - currentPart) / 0.24;
+        } else {
+            // 一般公式: E1*0.24 + E2*0.24 + E3*0.24 + Daily*0.28 = Pass
+            currentPart = (e1 * 0.24) + (e2 * 0.24) + (daily * 0.28);
+            requiredTotal = (passGrade - currentPart) / 0.24;
+        }
+
+        displayResult(requiredTotal);
+    }
+
+    function displayResult(score) {
+        const resultDiv = document.getElementById('result');
+        resultDiv.style.display = 'block';
+        
+        let roundedScore = Math.ceil(score * 10) / 10; 
+        if (roundedScore < 0) roundedScore = 0;
+
+        let message = "";
+        let cssClass = "";
+
+        if (roundedScore <= 0) {
+            message = "恭喜！你期末考交白卷也會過！";
+            cssClass = "pass";
+            roundedScore = "躺著過";
+        } else if (roundedScore <= 60) {
+            message = "只要正常發揮，及格沒問題的！";
+            cssClass = "pass";
+        } else if (roundedScore <= 100) {
+            message = "有點危險！期末考需要加把勁喔。";
+            cssClass = "warning";
+        } else {
+            message = "這大概只有神仙救得了你...（需超過100分）";
+            cssClass = "danger";
+        }
+
+        resultDiv.className = cssClass;
+        resultDiv.innerHTML = `
+            <div>期末考至少需要考：</div>
+            <span class="result-score">${typeof roundedScore === 'number' ? roundedScore.toFixed(1) : roundedScore}</span>
+            <div>${message}</div>
+        `;
+    }
+</script>
+
+</body>
+</html>

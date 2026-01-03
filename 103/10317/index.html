@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>今晚吃什麼？- 超強圖文全集</title>
+    <style>
+        :root {
+            --primary-color: #ff4757;
+            --secondary-color: #2f3542;
+            --accent-color: #ffa502;
+            --bg-color: #f1f2f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Microsoft JhengHei, sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        /* 圖片容器 */
+        .image-box {
+            width: 100%;
+            height: 250px;
+            background-color: #f8f9fa;
+            border-radius: 15px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #eee;
+        }
+
+        #food-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+
+        #result-display {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin: 1rem 0;
+            min-height: 3rem;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+            box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3);
+        }
+
+        button:hover { transform: translateY(-3px); background-color: #ff6b81; }
+        button:active { transform: translateY(0); }
+
+        .history {
+            margin-top: 2rem;
+            text-align: left;
+            border-top: 1px solid #eee;
+            padding-top: 1rem;
+        }
+
+        .tag {
+            display: inline-block;
+            background: #dfe4ea;
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin: 3px;
+            font-size: 0.85rem;
+            color: #57606f;
+        }
+
+        .rolling { animation: shuffle 0.1s infinite; }
+        @keyframes shuffle {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); color: var(--accent-color); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>今晚吃什麼？</h1>
+    <p>集合了 30+ 種美味選項</p>
+    
+    <div class="image-box">
+        <div id="loading-text" style="color:#aaa;">點擊下方按鈕開始</div>
+        <img id="food-img" src="" alt="食物預覽">
+    </div>
+
+    <div id="result-display">今天想吃...</div>
+
+    <button onclick="pickDinner()">隨機抽取</button>
+
+    <div class="history">
+        <strong>最近紀錄 (前5筆)：</strong>
+        <div id="history-list"></div>
+    </div>
+</div>
+
+<script>
+    const dinnerOptions = [
+        // 你提供的新清單
+        { name: "壽司", img: "https://rimage.gnst.jp/livejapan.com/public/article/detail/a/00/01/a0001438/img/zh-tw/a0001438_main.jpg" },
+        { name: "拉麵", img: "https://tabiiro.travel/img/articles/19111801/main.jpg" },
+        { name: "丼飯", img: "https://rimage.gnst.jp/livejapan.com/public/article/detail/a/00/05/a0005066/img/zh-tw/a0005066_main.jpg" },
+        { name: "關東煮", img: "https://resources.matcha-jp.com/resize/720x2000/2019/07/12-81544.webp" },
+        { name: "韓式炸雞", img: "https://www.thehubnews.net/wp-content/uploads/180cf8cfdec15acb233b2effcb4e1c02.jpg" },
+        { name: "石鍋拌飯", img: "https://jlec-pr.jp/wp-content/uploads/2020/02/img-bibimbap.jpg" },
+        { name: "部隊鍋", img: "https://cdn-akamai.lkk.com/-/media/recipe-korean-army-stew.jpg?h=464&iar=0&w=600&hash=4BB1D761DA3EC2D5B80A3D2B07339C18" },
+        { name: "泰式料理", img: "https://www.gomaji.com/blog/wp-content/uploads/2021/01/Taipei-Thai-Food-Banner-e1609913742639.jpg" },
+        { name: "月亮蝦餅", img: "https://life.anyongfresh.com/wp-content/uploads/2020/11/%E5%AE%89%E6%B0%B8%E5%9A%B4%E9%81%B8-%E6%9C%88%E4%BA%AE%E8%9D%A6%E9%A4%85.jpg" },
+        { name: "越南河粉", img: "https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?w=500" },
+        { name: "咖哩飯", img: "https://img-global.cpcdn.com/recipes/f1cdeac14d14ced3b0b06fd0ff395869/1200x630cq80/photo.jpg" },
+        // 前一組台灣與歐美清單
+        { name: "滷肉飯", img: "https://tokyo-kitchen.icook.network/uploads/recipe/cover/391516/09d31648937000e3.jpg" },
+        { name: "雞肉飯", img: "https://tokyo-kitchen.icook.network/uploads/recipe/cover/373307/440590463b2f5670.jpg" },
+        { name: "排骨飯", img: "http://www.jengjong.tw/upload/food/20140421082415535.jpg" },
+        { name: "牛肉麵", img: "https://tokyo-kitchen.icook.network/uploads/recipe/cover/338564/739174620f5c90f2.jpg" },
+        { name: "水餃", img: "https://cdn-next.cybassets.com/media/W1siZiIsIjExMzA2L3Byb2R1Y3RzLzM0MzQ5MzM5LzE2MzAwNTQ3NjlfYjI5NWZlNGE5NzUxM2NlZDQxNWQuanBlZyJdLFsicCIsInRodW1iIiwiNjAweDYwMCJdXQ.jpeg?sha=70af2d7a724df99f" },
+        { name: "披薩", img: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500" },
+        { name: "漢堡", img: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500" },
+        { name: "火鍋", img: "https://www.fetnet.net/content/dam/fetnet/user_resource/cbu/images/life-circle/topics/2023/11/special_hotpot/special_hotpotN.jpg" }
+    ];
+
+    const display = document.getElementById('result-display');
+    const foodImg = document.getElementById('food-img');
+    const loadingText = document.getElementById('loading-text');
+    const historyList = document.getElementById('history-list');
+    let isRolling = false;
+
+    function pickDinner() {
+        if (isRolling) return;
+        isRolling = true;
+        
+        display.classList.add('rolling');
+        foodImg.style.display = "none";
+        loadingText.style.display = "block";
+        loadingText.innerText = "美味搜尋中...";
+
+        let count = 0;
+        const interval = setInterval(() => {
+            const tempIndex = Math.floor(Math.random() * dinnerOptions.length);
+            display.innerText = dinnerOptions[tempIndex].name;
+            count++;
+            if (count > 15) {
+                clearInterval(interval);
+                finalize();
+            }
+        }, 100);
+    }
+
+    function finalize() {
+        isRolling = false;
+        display.classList.remove('rolling');
+        const final = dinnerOptions[Math.floor(Math.random() * dinnerOptions.length)];
+        
+        display.innerText = "就決定吃 " + final.name + "！";
+        foodImg.src = final.img;
+        foodImg.style.display = "block";
+        loadingText.style.display = "none";
+        
+        addHistory(final.name);
+    }
+
+    function addHistory(name) {
+        const span = document.createElement('span');
+        span.className = 'tag';
+        span.innerText = name;
+        historyList.prepend(span);
+        if (historyList.children.length > 5) {
+            historyList.removeChild(historyList.lastChild);
+        }
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POPCAT 2025 極限反饋版</title>
+    <style>
+        :root {
+            --bg-color: #DCB5FF;
+            --text-shadow: 4px 4px 0px #000;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start; 
+            padding-top: 5vh;
+            height: 100vh;
+            background-color: var(--bg-color);
+            font-family: 'Arial Black', 'Verdana', sans-serif;
+            overflow: hidden;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #score {
+            font-size: clamp(60px, 15vw, 100px);
+            color: white;
+            text-shadow: var(--text-shadow);
+            margin-bottom: 40px;
+            display: inline-block;
+            will-change: transform;
+            transition: transform 0.05s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 10;
+        }
+
+        .cat-container {
+            width: 400px;
+            max-width: 80vw;
+            cursor: pointer;
+            position: relative;
+            margin-top: auto;
+            margin-bottom: auto;
+            transition: transform 0.05s; /* 讓貓咪縮放更有彈性 */
+        }
+
+        #cat-img {
+            width: 100%;
+            height: auto;
+            display: block;
+            image-rendering: -webkit-optimize-contrast;
+        }
+
+        /* 漂浮數字特效 */
+        .pop-particle {
+            position: absolute;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            pointer-events: none;
+            text-shadow: 2px 2px 0px #000;
+            animation: float-up 0.5s ease-out forwards;
+            z-index: 100;
+        }
+
+        @keyframes float-up {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
+        }
+
+        .hint {
+            position: absolute;
+            bottom: 20px;
+            color: #ffffff;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="score">0</div>
+
+    <div class="cat-container" id="pop-area">
+        <img id="cat-img" src="https://popcat.click/img/p.1e9d0ca2.png" alt="Cat Closed">
+    </div>
+
+    
+
+    <script>
+        const scoreEl = document.getElementById('score');
+        const catImg = document.getElementById('cat-img');
+        const popArea = document.getElementById('pop-area');
+
+        const imgP = "https://popcat.click/img/p.1e9d0ca2.png";
+        const imgOp = "https://popcat.click/img/op.3537672a.png";
+
+        const popSound = new Audio('https://popcat.click/waa.mp3');
+        popSound.load();
+
+        let count = parseInt(localStorage.getItem('popcat_save_count')) || 0;
+        scoreEl.innerText = count.toLocaleString();
+
+        function createParticle() {
+            const particle = document.createElement('div');
+            particle.className = 'pop-particle';
+            particle.innerText = '+1';
+            
+            // 隨機噴發位置
+            const x = Math.random() * 200 - 100; // -100 to 100
+            particle.style.left = `calc(50% + ${x}px)`;
+            particle.style.top = `40%`;
+            
+            popArea.appendChild(particle);
+            
+            // 動畫結束後移除元素
+            setTimeout(() => {
+                particle.remove();
+            }, 500);
+        }
+
+        function triggerPop() {
+            count++;
+            scoreEl.innerText = count.toLocaleString();
+            localStorage.setItem('popcat_save_count', count);
+
+            // 1. 視覺：張嘴
+            catImg.src = imgOp;
+
+            // 2. 隨機偏轉與文字放大
+            const side = Math.random() > 0.5 ? 1 : -1;
+            const randomDeg = (Math.floor(Math.random() * 12) + 4) * side;
+            scoreEl.style.transform = `scale(1.3) rotate(${randomDeg}deg)`;
+
+            // 3. 貓咪本體震動反饋
+            popArea.style.transform = `scale(0.95)`;
+
+            // 4. 產生漂浮 +1
+            createParticle();
+
+            // 5. 音效連發優化
+            const s = popSound.cloneNode();
+            s.volume = 0.6;
+            s.play().catch(() => {});
+
+            setTimeout(() => {
+                catImg.src = imgP;
+                scoreEl.style.transform = "scale(1) rotate(0deg)";
+                popArea.style.transform = `scale(1)`;
+            }, 80); // 縮短反應時間，回彈更快
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault(); 
+                if (!e.repeat) { 
+                    triggerPop();
+                }
+            }
+        });
+
+        popArea.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            triggerPop();
+        });
+
+        popArea.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            triggerPop();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>方格爆破對戰 - 音效增強版</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --success-color: #28a745;
+            --danger-color: #ff4d4d;
+            --bg-color: #f8f9fa;
+        }
+
+        body {
+            font-family: "PingFang TC", "Microsoft JhengHei", sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        #status-area {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 80%;
+            max-width: 600px;
+        }
+
+        .game-container {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(9, 40px);
+            grid-template-rows: repeat(7, 40px);
+            gap: 2px;
+            background-color: #bdc3c7;
+            border: 4px solid #34495e;
+            margin-top: 10px;
+        }
+
+        .cell {
+            width: 40px;
+            height: 40px;
+            background-color: #fff;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cell.ship { background-color: var(--primary-color); }
+        .cell.hit { background-color: var(--danger-color); animation: explode 0.3s; }
+        .cell.miss { background-color: #ecf0f1; }
+        .cell.miss::after { content: '•'; font-size: 30px; color: #bdc3c7; }
+        
+        .cell.preview { background-color: #a0c4ff !important; }
+        .cell.invalid { background-color: #ffadad !important; }
+
+        @keyframes explode {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); background-color: #ffaa00; }
+            100% { transform: scale(1); }
+        }
+
+        .controls { margin-top: 20px; display: flex; gap: 10px; }
+        
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            transition: transform 0.1s;
+        }
+
+        button:active { transform: scale(0.95); }
+        .btn-rotate { background-color: #6c757d; color: white; }
+        .btn-confirm { background-color: var(--success-color); color: white; }
+        
+        .turn-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            margin-top: 10px;
+            font-weight: bold;
+            background: #eee;
+        }
+        .active-turn { background: var(--danger-color); color: white; }
+    </style>
+</head>
+<body>
+
+    <audio id="hit-sound" src="xm3784.mp3" preload="auto"></audio>
+
+    <h1>方格爆破對戰</h1>
+
+    <div id="status-area">
+        <h2 id="instruction">玩家 A 準備階段</h2>
+        <div id="sub-msg">請點擊方格放置 5 個長方體</div>
+        <div id="turn-badge" class="turn-badge">準備中</div>
+        
+        <div class="controls" id="setup-controls">
+            <button class="btn-rotate" onclick="toggleOrientation()">切換方向：<span id="ori-text">水平</span></button>
+            <button class="btn-confirm" id="confirm-btn" onclick="nextPhase()" disabled>確認佈署</button>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <div>
+            <h3>玩家 A 的領地</h3>
+            <div id="board-A" class="grid"></div>
+        </div>
+        <div>
+            <h3>玩家 B 的領地</h3>
+            <div id="board-B" class="grid"></div>
+        </div>
+    </div>
+
+    <button id="restart-btn" onclick="location.reload()" style="display:none; margin: 20px auto; background-color: #34495e; color: white;">重新開始遊戲</button>
+
+    <script>
+        const ROWS = 7, COLS = 9, SHIP_SIZE = 3, SHIP_COUNT = 5;
+        let gameState = 'SETUP_A'; 
+        let currentPlayer = 'A';
+        let orientation = 'H'; 
+        let shipsA = [], shipsB = [];
+        let hitsA = 0, hitsB = 0;
+
+        const hitAudio = document.getElementById('hit-sound');
+
+        function init() {
+            createBoard('board-A', 'A');
+            createBoard('board-B', 'B');
+        }
+
+        function createBoard(id, player) {
+            const board = document.getElementById(id);
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.r = r; cell.dataset.c = c; cell.dataset.p = player;
+                    
+                    cell.onmouseover = () => showPreview(player, r, c);
+                    cell.onmouseout = () => clearPreview();
+                    cell.onclick = () => handleAction(player, r, c);
+                    board.appendChild(cell);
+                }
+            }
+        }
+
+        function playHitSound() {
+            // 重置音效時間確保連續擊中時能重複播放
+            hitAudio.currentTime = 0;
+            hitAudio.play().catch(e => console.log("音效播放被攔截，請先與頁面互動一次。"));
+        }
+
+        function toggleOrientation() {
+            orientation = (orientation === 'H') ? 'V' : 'H';
+            document.getElementById('ori-text').innerText = (orientation === 'H') ? '水平' : '垂直';
+        }
+
+        function getShipCoords(r, c, ori) {
+            const coords = [];
+            for (let i = 0; i < SHIP_SIZE; i++) {
+                const nr = ori === 'V' ? r + i : r;
+                const nc = ori === 'H' ? c + i : c;
+                if (nr < ROWS && nc < COLS) coords.push(`${nr}-${nc}`);
+            }
+            return coords;
+        }
+
+        function showPreview(player, r, c) {
+            if (!gameState.startsWith('SETUP') || gameState.slice(-1) !== player) return;
+            clearPreview();
+            const coords = getShipCoords(r, c, orientation);
+            const isValid = coords.length === SHIP_SIZE && !isOverlap(player, coords);
+            coords.forEach(coord => {
+                const cell = document.querySelector(`.cell[data-p="${player}"][data-r="${coord.split('-')[0]}"][data-c="${coord.split('-')[1]}"]`);
+                if (cell) cell.classList.add(isValid ? 'preview' : 'invalid');
+            });
+        }
+
+        function clearPreview() {
+            document.querySelectorAll('.cell').forEach(c => c.classList.remove('preview', 'invalid'));
+        }
+
+        function isOverlap(player, newCoords) {
+            const currentShips = (player === 'A' ? shipsA : shipsB).flat();
+            return newCoords.some(c => currentShips.includes(c));
+        }
+
+        function handleAction(player, r, c) {
+            if (gameState.startsWith('SETUP') && gameState.slice(-1) === player) {
+                const coords = getShipCoords(r, c, orientation);
+                const shipArray = (player === 'A' ? shipsA : shipsB);
+                if (coords.length === SHIP_SIZE && !isOverlap(player, coords) && shipArray.length < SHIP_COUNT) {
+                    shipArray.push(coords);
+                    renderShips(player);
+                    if (shipArray.length === SHIP_COUNT) document.getElementById('confirm-btn').disabled = false;
+                }
+            } else if (gameState === 'PLAYING') {
+                if (currentPlayer === 'A' && player === 'B') attack('B', r, c);
+                else if (currentPlayer === 'B' && player === 'A') attack('A', r, c);
+            }
+        }
+
+        function renderShips(player) {
+            const shipArray = (player === 'A' ? shipsA : shipsB).flat();
+            document.querySelectorAll(`.cell[data-p="${player}"]`).forEach(cell => {
+                if (shipArray.includes(`${cell.dataset.r}-${cell.dataset.c}`)) cell.classList.add('ship');
+            });
+        }
+
+        function nextPhase() {
+            if (gameState === 'SETUP_A') {
+                hideBoard('A');
+                gameState = 'SETUP_B';
+                document.getElementById('instruction').innerText = "玩家 B 準備階段";
+                document.getElementById('confirm-btn').disabled = true;
+            } else {
+                hideBoard('B');
+                startGame();
+            }
+        }
+
+        function hideBoard(player) {
+            document.querySelectorAll(`.cell[data-p="${player}"]`).forEach(c => c.classList.remove('ship'));
+        }
+
+        function startGame() {
+            gameState = 'PLAYING';
+            currentPlayer = Math.random() < 0.5 ? 'A' : 'B';
+            document.getElementById('setup-controls').style.display = 'none';
+            updateUI();
+        }
+
+        function attack(targetP, r, c) {
+            const cell = document.querySelector(`.cell[data-p="${targetP}"][data-r="${r}"][data-c="${c}"]`);
+            if (cell.classList.contains('hit') || cell.classList.contains('miss')) return;
+
+            const targetShips = (targetP === 'A' ? shipsA : shipsB).flat();
+            if (targetShips.includes(`${r}-${c}`)) {
+                playHitSound(); // 播放音效
+                cell.classList.add('hit');
+                targetP === 'A' ? hitsA++ : hitsB++;
+                if (checkWin()) return;
+                document.getElementById('sub-msg').innerText = "💥 擊中了！繼續攻擊！";
+            } else {
+                cell.classList.add('miss');
+                currentPlayer = (currentPlayer === 'A' ? 'B' : 'A');
+                updateUI();
+                document.getElementById('sub-msg').innerText = "❌ 落空了，換手！";
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('instruction').innerText = `玩家 ${currentPlayer} 的回合`;
+            const badge = document.getElementById('turn-badge');
+            badge.innerText = `請點擊對手方格進行攻擊`;
+            badge.className = 'turn-badge active-turn';
+        }
+
+        function checkWin() {
+            const winScore = SHIP_COUNT * SHIP_SIZE;
+            if (hitsA === winScore || hitsB === winScore) {
+                const winner = hitsB === winScore ? 'A' : 'B';
+                document.getElementById('instruction').innerText = `🏆 玩家 ${winner} 勝利！`;
+                document.getElementById('sub-msg').innerText = "敵方全數殲滅！";
+                gameState = 'END';
+                renderShips('A'); renderShips('B');
+                document.getElementById('restart-btn').style.display = 'block';
+                return true;
+            }
+            return false;
+        }
+
+        init();
+    </script>
+</body>
+</html>

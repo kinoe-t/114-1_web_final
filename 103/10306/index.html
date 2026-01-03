@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Project SEKAI 4★抽卡（覺醒前）</title>
+<style>
+:root{
+--panel: rgba(10, 14, 28, .72);
+--text: #eef3ff;
+--muted:#b9c6ff;
+--border: rgba(255,255,255,.16);
+--accent:#7aa2ff;
+--accent2:#56f2c5;
+--radius: 18px;
+--shadow: 0 18px 40px rgba(0,0,0,.45);
+}
+*{ box-sizing: border-box; }
+body{ margin:0; min-height:100vh; font-family: ui-sans-serif, system-ui, -apple-system, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif; color:var(--text); }
+.hero{
+min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+background-image:
+linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.75)),
+url("https://scontent.fkhh1-1.fna.fbcdn.net/v/t39.30808-6/553064121_1243035297851229_2674239152120863866_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=833d8c&_nc_ohc=gmjpHx1lhrYQ7kNvwFfSGuy&_nc_oc=Adlf_kRSELyWIGQ98RsrQJStXlxO5qlzYZ6YsrdjmRo3efa0ExYIotsAWHmdUdpRBz92oQwDQX9JF9HdeLVLfgOd&_nc_zt=23&_nc_ht=scontent.fkhh1-1.fna&_nc_gid=edyD6vvixB_6UJDJP-W7HQ&oh=00_AfkissD4yI6zWG6nWYkFmxdKWBRjkM0JI1PJzFQQz-HaCQ&oe=694EEB2E");
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+.card{
+width:min(1100px, 94vw);
+border:1px solid var(--border);
+border-radius:var(--radius);
+background:var(--panel);
+box-shadow:var(--shadow);
+overflow:hidden;
+backdrop-filter: blur(6px);
+}
+header{ padding:20px 18px 6px; display:flex; flex-direction:column; gap:10px; align-items:center; text-align:center; }
+h1{ margin:0; font-size:28px; letter-spacing:.6px; }
+.sub{ margin:0; max-width:78ch; color:var(--muted); font-size:13px; line-height:1.6; }
+.btnRow{ padding:14px 18px 18px; display:flex; justify-content:center; gap:12px; flex-wrap:wrap; }
+button{
+appearance:none; border:1px solid var(--border); background:rgba(255,255,255,.08); color:var(--text);
+padding:12px 18px; border-radius:14px; font-weight:800; cursor:pointer;
+transition: transform .15s ease, background .15s ease, opacity .15s ease; min-width:120px;
+}
+button:hover{ transform:translateY(-1px); background:rgba(255,255,255,.12); }
+button:disabled{ opacity:.55; cursor:not-allowed; transform:none; }
+.btn1{ border-color: rgba(122,162,255,.55); background: linear-gradient(180deg, rgba(122,162,255,.22), rgba(255,255,255,.06)); }
+.btn10{ border-color: rgba(86,242,197,.55); background: linear-gradient(180deg, rgba(86,242,197,.18), rgba(255,255,255,.06)); }
+.btnClear{ background: transparent; }
+.status{ padding:0 18px 18px; display:flex; flex-direction:column; gap:10px; align-items:center; text-align:center; color:var(--muted); font-size:13px; }
+.progress{ width:min(760px, 90%); height:12px; border-radius:999px; overflow:hidden; border:1px solid var(--border); background:rgba(255,255,255,.06); }
+.bar{ height:100%; width:0%; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .25s ease; }
+main{ padding:0 18px 18px; }
+.panel{ border:1px solid var(--border); border-radius:var(--radius); background:rgba(255,255,255,.06); padding:14px; margin-top:12px; }
+.panelTitle{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+.panelTitle h2{ margin:0; font-size:15px; letter-spacing:.3px; }
+.meta{ color:var(--muted); font-size:12px; }
+.grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap:12px; }
+.gachaCard{ border:1px solid rgba(255,255,255,.14); border-radius:16px; overflow:hidden; background:rgba(0,0,0,.20); display:flex; flex-direction:column; min-height:230px; }
+.thumb{ width:100%; aspect-ratio:16/9; background:rgba(255,255,255,.05); overflow:hidden; }
+.thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+.body{ padding:10px; display:flex; flex-direction:column; gap:6px; }
+.name{ margin:0; font-weight:900; font-size:12.5px; line-height:1.35; }
+.url{ font-size:12px; color:var(--muted); word-break:break-all; }
+.url a{ color:var(--accent); text-decoration:none; }
+.url a:hover{ text-decoration:underline; }
+details{ margin-top:12px; border:1px solid var(--border); border-radius:var(--radius); background:rgba(255,255,255,.04); padding:12px 14px; }
+summary{ cursor:pointer; font-weight:900; letter-spacing:.2px; }
+.list{ margin-top:10px; max-height:340px; overflow:auto; padding-right:6px; }
+.row{ padding:10px 0; border-bottom:1px dashed rgba(255,255,255,.14); display:flex; flex-direction:column; gap:6px; }
+.row:last-child{ border-bottom:none; }
+.hint{ margin:10px 0 0; color:var(--muted); font-size:12px; line-height:1.6; }
+.err{ color:#ff8a95; font-weight:900; }
+code{ background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); padding:2px 6px; border-radius:8px; }
+</style>
+</head>
+
+<body>
+<div class="hero">
+<div class="card">
+<header>
+<h1>Project SEKAI: COLORFUL STAGE!</h1>
+<p class="sub">4★卡面（覺醒前 / Untrained）抽卡頁：載入完成後可用 <b>1 連抽</b> 或 <b>10 連抽</b> 隨機抽出。</p>
+</header>
+
+<div class="btnRow">
+<button id="btn1" class="btn1" disabled>1 連抽</button>
+<button id="btn10" class="btn10" disabled>10 連抽</button>
+<button id="btnClear" class="btnClear" disabled>清空結果</button>
+</div>
+
+<div class="status">
+<div id="statusText">初始化中…</div>
+<div class="progress"><div class="bar" id="bar"></div></div>
+<div id="countText">目前卡池：0 張</div>
+</div>
+
+<main>
+<section class="panel" id="resultPanel" style="display:none;">
+<div class="panelTitle">
+<h2 id="resultTitle">抽卡結果</h2>
+<div class="meta" id="resultMeta">—</div>
+</div>
+<div class="grid" id="grid"></div>
+</section>
+
+<details id="allListBox" style="display:none;">
+<summary>查看「所有 4★覺醒前卡面圖」與「圖片網址」清單（展開才渲染，加速載入）</summary>
+<div class="list" id="list"></div>
+<p class="hint">
+✅ 已做本機快取：下次開啟會先用快取秒載入，再背景更新。<br/>
+若少數圖片缺失，代表該卡在 Wiki 的檔名不完全符合 <code>&lt;卡名&gt;.png</code> 規則。
+</p>
+</details>
+
+<section class="panel" id="errorPanel" style="display:none;">
+<div class="panelTitle"><h2 class="err">載入失敗</h2></div>
+<div class="hint" id="errorText"></div>
+</section>
+</main>
+</div>
+</div>
+
+<script>
+/** ========= 核心設定 ========= */
+const API = "https://projectsekai.fandom.com/api.php";
+const CATEGORY = "Category:4✰";
+
+/** ========= 快取設定 ========= */
+const CACHE_KEY = "pjsk_4star_untrained_pool_v2";
+const CACHE_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 7; // 7 天
+
+const state = { pool: [], listRendered: false };
+
+const el = {
+btn1: document.getElementById("btn1"),
+btn10: document.getElementById("btn10"),
+btnClear: document.getElementById("btnClear"),
+statusText: document.getElementById("statusText"),
+countText: document.getElementById("countText"),
+bar: document.getElementById("bar"),
+resultPanel: document.getElementById("resultPanel"),
+resultTitle: document.getElementById("resultTitle"),
+resultMeta: document.getElementById("resultMeta"),
+grid: document.getElementById("grid"),
+allListBox: document.getElementById("allListBox"),
+list: document.getElementById("list"),
+errorPanel: document.getElementById("errorPanel"),
+errorText: document.getElementById("errorText"),
+};
+
+function setProgress(pct, text){
+el.bar.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+if(text) el.statusText.textContent = text;
+}
+function escapeHtml(s){
+return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+.replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+
+/** ========= API：改用 POST（更少批次、更快） ========= */
+async function apiPost(params){
+params.origin = "*";
+params.format = "json";
+
+const body = new URLSearchParams();
+for(const [k,v] of Object.entries(params)){
+body.set(k, v);
+}
+
+const res = await fetch(API, {
+method: "POST",
+headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
+body,
+cache: "no-store",
+});
+if(!res.ok) throw new Error(`API request failed: ${res.status} ${res.statusText}`);
+return res.json();
+}
+
+/** ========= 取得分類頁全部卡片標題 ========= */
+async function fetchAll4StarPages(){
+let cmcontinue = null;
+const titles = [];
+let batch = 0;
+
+while(true){
+batch++;
+setProgress(Math.min(20, 3 + batch*2), `抓取 4★清單…（第 ${batch} 批）`);
+
+const data = await apiPost({
+action: "query",
+list: "categorymembers",
+cmtitle: CATEGORY,
+cmlimit: "500",
+cmtype: "page",
+cmcontinue: cmcontinue || ""
+});
+
+const arr = data?.query?.categorymembers || [];
+for(const it of arr){
+if(it?.title) titles.push(it.title);
+}
+
+if(data?.continue?.cmcontinue){
+cmcontinue = data.continue.cmcontinue;
+}else{
+break;
+}
+if(batch > 80) break; // safety
+}
+return titles;
+}
+
+function toFileTitle(cardTitle){
+return `File:${cardTitle}.png`; // 覺醒前：<卡名>.png
+}
+
+/** ========= 一次查更多圖片（POST + 大批次） ========= */
+async function fetchImageUrlsForFiles(fileTitles){
+const out = new Map(); // fileTitle -> url
+const batchSize = 200; // POST 可以大很多，減少請求次數
+
+const totalBatches = Math.ceil(fileTitles.length / batchSize);
+for(let i=0;i<totalBatches;i++){
+const pct = 20 + Math.round(75 * (i / Math.max(1,totalBatches)));
+setProgress(pct, `抓取覺醒前卡面網址…（${i+1}/${totalBatches}）`);
+
+const chunk = fileTitles.slice(i*batchSize, (i+1)*batchSize).join("|");
+const data = await apiPost({
+action: "query",
+prop: "imageinfo",
+titles: chunk,
+iiprop: "url",
+iilimit: "max"
+});
+
+const pages = data?.query?.pages || {};
+for(const page of Object.values(pages)){
+const ft = page?.title;
+const url = page?.imageinfo?.[0]?.url || null;
+if(ft) out.set(ft, url);
+}
+}
+return out;
+}
+
+/** ========= 快取：讀/寫 ========= */
+function loadCache(){
+try{
+const raw = localStorage.getItem(CACHE_KEY);
+if(!raw) return null;
+const obj = JSON.parse(raw);
+if(!obj?.ts || !Array.isArray(obj?.pool)) return null;
+if(Date.now() - obj.ts > CACHE_MAX_AGE_MS) return null;
+return obj.pool;
+}catch{ return null; }
+}
+function saveCache(pool){
+try{
+localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), pool }));
+}catch{}
+}
+
+/** ========= UI ========= */
+function enableButtons(){
+el.btn1.disabled = false;
+el.btn10.disabled = false;
+el.btnClear.disabled = false;
+el.allListBox.style.display = "";
+}
+function pickN(n){
+const picks = [];
+for(let i=0;i<n;i++){
+picks.push(state.pool[Math.floor(Math.random() * state.pool.length)]);
+}
+return picks;
+}
+function renderResults(picks, title){
+el.resultPanel.style.display = "";
+el.resultTitle.textContent = title;
+el.resultMeta.textContent = `抽到 ${picks.length} 張（卡池共 ${state.pool.length} 張）`;
+el.grid.innerHTML = "";
+
+for(const item of picks){
+const card = document.createElement("div");
+card.className = "gachaCard";
+
+const thumb = document.createElement("div");
+thumb.className = "thumb";
+const img = document.createElement("img");
+img.alt = item.title;
+img.loading = "lazy";
+img.referrerPolicy = "no-referrer";
+img.src = item.imgUrl;
+thumb.appendChild(img);
+
+const body = document.createElement("div");
+body.className = "body";
+
+const name = document.createElement("p");
+name.className = "name";
+name.textContent = item.title;
+
+const url = document.createElement("div");
+url.className = "url";
+url.innerHTML = `圖片：<a href="${item.imgUrl}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.imgUrl)}</a>`;
+
+body.appendChild(name);
+body.appendChild(url);
+
+card.appendChild(thumb);
+card.appendChild(body);
+el.grid.appendChild(card);
+}
+}
+
+/** 清單延後渲染（展開才做，避免一開始卡） */
+function renderAllListOnce(){
+if(state.listRendered) return;
+state.listRendered = true;
+
+const frag = document.createDocumentFragment();
+for(const item of state.pool){
+const row = document.createElement("div");
+row.className = "row";
+row.innerHTML =
+`<div><strong>${escapeHtml(item.title)}</strong></div>
+<div class="url">圖片網址：<a href="${item.imgUrl}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.imgUrl)}</a></div>`;
+frag.appendChild(row);
+}
+el.list.appendChild(frag);
+}
+
+/** ========= 主流程：先快取秒開，再背景更新 ========= */
+function setReady(pool, msg){
+state.pool = pool;
+enableButtons();
+setProgress(100, msg || `完成 ✅ 卡池已就緒：${state.pool.length} 張`);
+el.countText.textContent = `目前卡池：${state.pool.length} 張（覺醒前）`;
+}
+
+async function buildPoolFresh(){
+setProgress(2, "初始化中…");
+
+const cardTitles = await fetchAll4StarPages();
+if(!cardTitles.length) throw new Error("沒有抓到任何 4★卡片頁面（可能網路阻擋或來源結構變更）。");
+
+setProgress(20, `找到 4★頁面：${cardTitles.length} 個，準備抓覺醒前卡面…`);
+const fileTitles = cardTitles.map(toFileTitle);
+
+const urlMap = await fetchImageUrlsForFiles(fileTitles);
+
+const pool = [];
+for(const t of cardTitles){
+const ft = toFileTitle(t);
+const url = urlMap.get(ft);
+if(url) pool.push({ title: t, imgUrl: url });
+}
+if(!pool.length) throw new Error("抓不到任何覺醒前卡面 URL（可能檔名規則變更）。");
+
+saveCache(pool);
+return pool;
+}
+
+function showError(err){
+el.errorPanel.style.display = "";
+el.errorText.textContent = String(err?.message || err);
+setProgress(100, "發生錯誤");
+}
+
+/** ========= 事件 ========= */
+el.btn1.addEventListener("click", () => renderResults(pickN(1), "1 連抽結果"));
+el.btn10.addEventListener("click", () => renderResults(pickN(10), "10 連抽結果"));
+el.btnClear.addEventListener("click", () => { el.grid.innerHTML = ""; el.resultPanel.style.display = "none"; });
+
+el.allListBox.addEventListener("toggle", () => {
+if(el.allListBox.open) renderAllListOnce();
+});
+
+/** ========= 啟動 ========= */
+(async () => {
+try{
+// 1) 先用快取秒開
+const cached = loadCache();
+if(cached?.length){
+setReady(cached, `已載入快取 ✅（${cached.length} 張），背景更新中…`);
+// 2) 背景更新（不阻塞抽卡）
+buildPoolFresh()
+.then(pool => {
+// 若更新後數量不同/想更新內容，就覆蓋
+state.pool = pool;
+el.countText.textContent = `目前卡池：${state.pool.length} 張（覺醒前）`;
+el.statusText.textContent = `背景更新完成 ✅（${state.pool.length} 張）`;
+// 若清單已展開渲染過，重新渲染一次
+if(state.listRendered){
+el.list.innerHTML = "";
+state.listRendered = false;
+renderAllListOnce();
+}
+})
+.catch(e => {
+// 背景更新失敗不影響使用快取抽卡
+el.statusText.textContent = "背景更新失敗（仍可使用快取抽卡）";
+console.warn(e);
+});
+return;
+}
+
+// 沒快取就正常新建
+const pool = await buildPoolFresh();
+setReady(pool);
+
+}catch(err){
+showError(err);
+console.error(err);
+}
+})();
+</script>
+</body>
+</html>

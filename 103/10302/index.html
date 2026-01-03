@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>射氣球遊戲</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        #game-container {
+            text-align: center;
+            position: relative;
+        }
+        h1 {
+            color: white;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        #round-info {
+            color: white;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        #canvas-container {
+            position: relative;
+            display: inline-block;
+        }
+        canvas {
+            border: 3px solid white;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            cursor: crosshair;
+        }
+        #dart {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 100px;
+            pointer-events: none;
+            filter: drop-shadow(0 8px 15px rgba(0,0,0,0.7));
+            animation: dartPulse 1s ease-in-out infinite;
+        }
+        @keyframes dartPulse {
+            0%, 100% {
+                transform: translateX(-50%) scale(1);
+            }
+            50% {
+                transform: translateX(-50%) scale(1.1);
+            }
+        }
+        #result-container {
+            display: none;
+            color: white;
+            margin-top: 30px;
+        }
+        #selected-traits {
+            font-size: 1.5em;
+            margin: 30px 0;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 30px;
+            border-radius: 10px;
+        }
+        #selected-traits h2 {
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        #selected-traits p {
+            font-size: 1.4em;
+            line-height: 1.8;
+        }
+        #husband-photo {
+            margin: 30px 0;
+        }
+        #husband-photo img {
+            max-width: 500px;
+            width: 100%;
+            border-radius: 10px;
+            border: 5px solid white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        #husband-title {
+            font-size: 2em;
+            font-weight: bold;
+            margin-top: 20px;
+            color: #FFD700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .popup {
+            position: absolute;
+            color: #FFD700;
+            font-size: 1.5em;
+            font-weight: bold;
+            pointer-events: none;
+            animation: popup 1s ease-out forwards;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        @keyframes popup {
+            0% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) scale(1.5);
+                opacity: 0;
+            }
+        }
+        #start-button, #restart-button {
+            background: linear-gradient(45deg, #FF6B6B, #FFE66D);
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.5em;
+            border-radius: 50px;
+            cursor: pointer;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+        }
+        #start-button:hover, #restart-button:hover {
+            transform: scale(1.1);
+        }
+        .projectile {
+            position: absolute;
+            font-size: 30px;
+            pointer-events: none;
+            z-index: 100;
+        }
+        #instructions {
+            color: white;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>🎯 射氣球遊戲 🎈</h1>
+        <div id="round-info">點擊開始按鈕開始遊戲</div>
+        <div id="instructions" style="display: none;">點擊畫面任意處發射飛鏢！</div>
+        <button id="start-button" onclick="startGame()">開始遊戲</button>
+        <div id="canvas-container">
+            <canvas id="gameCanvas" width="800" height="800"></canvas>
+            <div id="dart" style="display: none;">🎯</div>
+        </div>
+        <div id="result-container">
+            <div id="selected-traits"></div>
+            <div id="husband-photo"></div>
+            <div id="husband-title">妳老公</div>
+            <button id="restart-button" onclick="location.reload()">再玩一次</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const centerX = canvas.width / 2;
+        const centerY = 250; // 上半部的中心
+        const radius = 200;
+
+        const rounds = [
+            ['負債1000萬', '口臭', '智力缺陷', '說教男', '有腹肌'],
+            ['AA制', '腿毛旺盛', '大男人', '死裝哥', '身高180'],
+            ['啤酒肚', '禿頭', '體臭', '兜不住使', '身價過億'],
+            ['媽寶', '有前科', '考考男', '虛', '顏質高'],
+            ['低情商', '腳臭', '普信', '油膩', '有家教']
+        ];
+
+        let currentRound = 0;
+        let selectedTraits = [];
+        let balloons = [];
+        let angle = 0;
+        let gameStarted = false;
+        let animationId;
+        let canShoot = true;
+
+        class Balloon {
+            constructor(trait, index, total) {
+                this.trait = trait;
+                this.index = index;
+                this.total = total;
+                this.baseAngle = (index / total) * Math.PI * 2;
+                this.radius = 35;
+                this.color = this.getRandomColor();
+                this.popped = false;
+            }
+
+            getRandomColor() {
+                const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#FFD93D', '#6BCF7F'];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+
+            getPosition(globalAngle) {
+                const currentAngle = this.baseAngle + globalAngle;
+                const x = centerX + Math.cos(currentAngle) * radius;
+                const y = centerY + Math.sin(currentAngle) * radius;
+                return { x, y };
+            }
+
+            draw(globalAngle) {
+                if (this.popped) return;
+                
+                const pos = this.getPosition(globalAngle);
+                
+                // 畫氣球
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // 畫繩子
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y + this.radius);
+                ctx.lineTo(pos.x, pos.y + this.radius + 25);
+                ctx.stroke();
+
+                // 畫文字
+                ctx.fillStyle = 'black';
+                ctx.font = 'bold 16px Microsoft JhengHei';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 3;
+                ctx.strokeText(this.trait, pos.x, pos.y);
+                ctx.fillText(this.trait, pos.x, pos.y);
+            }
+
+            isHit(x, y, globalAngle) {
+                if (this.popped) return false;
+                const pos = this.getPosition(globalAngle);
+                const distance = Math.sqrt((x - pos.x) ** 2 + (y - pos.y) ** 2);
+                return distance < this.radius + 20; // 稍微放寬判定範圍
+            }
+        }
+
+        function initRound() {
+            balloons = [];
+            const traits = rounds[currentRound];
+            for (let i = 0; i < traits.length; i++) {
+                balloons.push(new Balloon(traits[i], i, traits.length));
+            }
+        }
+
+        function animate() {
+            if (!gameStarted) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            angle += 0.08; // 快速旋轉
+            
+            balloons.forEach(balloon => {
+                balloon.draw(angle);
+            });
+
+            animationId = requestAnimationFrame(animate);
+        }
+
+        function startGame() {
+            document.getElementById('start-button').style.display = 'none';
+            document.getElementById('instructions').style.display = 'block';
+            document.getElementById('dart').style.display = 'block';
+            gameStarted = true;
+            initRound();
+            updateRoundInfo();
+            animate();
+            
+            // 點擊畫面任意處發射飛鏢
+            canvas.addEventListener('click', shootDart);
+        }
+
+        function updateRoundInfo() {
+            document.getElementById('round-info').textContent = `第 ${currentRound + 1} 輪 / 5`;
+        }
+
+        function showPopup(text, x, y) {
+            const popup = document.createElement('div');
+            popup.className = 'popup';
+            popup.textContent = text;
+            popup.style.left = x + 'px';
+            popup.style.top = y + 'px';
+            document.getElementById('canvas-container').appendChild(popup);
+            setTimeout(() => popup.remove(), 1000);
+        }
+
+        function shootDart() {
+            if (!gameStarted || !canShoot) return;
+            
+            canShoot = false;
+            
+            // 創建飛鏢投射物
+            const projectile = document.createElement('div');
+            projectile.className = 'projectile';
+            projectile.textContent = '🎯';
+            
+            const dartElement = document.getElementById('dart');
+            const rect = dartElement.getBoundingClientRect();
+            const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
+            
+            projectile.style.left = (rect.left - containerRect.left) + 'px';
+            projectile.style.top = (rect.top - containerRect.top) + 'px';
+            
+            document.getElementById('canvas-container').appendChild(projectile);
+            
+            // 飛鏢動畫
+            let currentY = rect.top - containerRect.top;
+            const targetY = 50;
+            const speed = 15;
+            
+            function moveDart() {
+                currentY -= speed;
+                projectile.style.top = currentY + 'px';
+                
+                // 檢查碰撞
+                const projectileX = centerX;
+                const projectileY = currentY + containerRect.top;
+                
+                for (let balloon of balloons) {
+                    const pos = balloon.getPosition(angle);
+                    const balloonScreenY = pos.y + containerRect.top;
+                    
+                    if (balloon.isHit(projectileX, currentY, angle)) {
+                        balloon.popped = true;
+                        selectedTraits.push(balloon.trait);
+                        showPopup('💥 ' + balloon.trait + ' 💥', centerX + containerRect.left, balloonScreenY);
+                        
+                        projectile.remove();
+                        canShoot = true;
+                        
+                        setTimeout(() => {
+                            if (currentRound < rounds.length - 1) {
+                                currentRound++;
+                                initRound();
+                                updateRoundInfo();
+                            } else {
+                                endGame();
+                            }
+                        }, 800);
+                        return;
+                    }
+                }
+                
+                if (currentY > targetY) {
+                    requestAnimationFrame(moveDart);
+                } else {
+                    projectile.remove();
+                    canShoot = true;
+                }
+            }
+            
+            moveDart();
+        }
+
+        async function generateHusbandImage() {
+            // 根據特質生成符合的圖片描述
+            const traitMap = {
+                '負債1000萬': 'stressed businessman',
+                '口臭': 'man covering mouth',
+                '智力缺陷': 'confused man',
+                '說教男': 'man lecturing',
+                '有腹肌': 'muscular man showing abs',
+                'AA制': 'man calculating bills',
+                '腿毛旺盛': 'hairy legs man',
+                '大男人': 'macho man',
+                '死裝哥': 'pretentious hipster',
+                '身高180': 'tall man',
+                '啤酒肚': 'man with beer belly',
+                '禿頭': 'bald man',
+                '體臭': 'sweaty man',
+                '兜不住使': 'broke man empty pockets',
+                '身價過億': 'rich businessman luxury',
+                '媽寶': 'man with mother',
+                '有前科': 'tough guy tattoos',
+                '考考男': 'testing annoying man',
+                '虛': 'weak tired man',
+                '顏質高': 'handsome man',
+                '低情商': 'awkward man',
+                '腳臭': 'man taking off shoes',
+                '普信': 'overconfident average man',
+                '油膩': 'greasy man',
+                '有家教': 'polite gentleman'
+            };
+            
+            // 選取最突出的特質來生成圖片
+            const keywords = selectedTraits.slice(0, 3).map(t => traitMap[t] || 'man').join(' ');
+            const randomId = Date.now();
+            
+            // 使用 Unsplash API 搜尋相關圖片
+            return `https://source.unsplash.com/400x500/?${encodeURIComponent(keywords)},portrait&sig=${randomId}`;
+        }
+
+        async function endGame() {
+            gameStarted = false;
+            cancelAnimationFrame(animationId);
+            canvas.style.display = 'none';
+            document.getElementById('round-info').style.display = 'none';
+            document.getElementById('dart').style.display = 'none';
+            document.getElementById('instructions').style.display = 'none';
+            
+            const resultContainer = document.getElementById('result-container');
+            const traitsDiv = document.getElementById('selected-traits');
+            traitsDiv.innerHTML = '<h2>妳老公：</h2><p>' + selectedTraits.join(' ✦ ') + '</p>';
+            
+            const photoDiv = document.getElementById('husband-photo');
+            photoDiv.innerHTML = '<img src="data:image/jpeg;base64,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" alt="你的老公">';
+            
+            resultContainer.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>晚餐共識測驗</title>
+    <style>
+        /* 1. 背景：淺灰色 */
+        body {
+            background-color: #D3D3D3;
+            color: #000000;
+            font-family: "Microsoft JhengHei", sans-serif;
+            margin: 0;
+            padding: 50px 20px;
+            text-align: center;
+        }
+
+        /* 2. 標題：黑色 */
+        h1 {
+            color: #000000;
+            margin-bottom: 30px;
+        }
+
+        /* 3. 按鍵：白色底、黑字 */
+        button {
+            background-color: #FFFFFF;
+            color: #000000;
+            border: 2px solid #000000;
+            padding: 15px 30px;
+            font-size: 18px;
+            margin: 10px auto;
+            display: block;
+            width: 100%;
+            max-width: 400px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #F0F0F0;
+        }
+
+        /* 隱藏邏輯 */
+        .page {
+            display: none;
+        }
+
+        .show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="p1" class="page show">
+        <h1>你的晚餐是有社會共識的吃法嗎?</h1>
+        <button onclick="go(2)">開始</button>
+    </div>
+
+    <div id="p2" class="page">
+        <h1>你吃花生冰淇淋會加香菜嗎?</h1>
+        <button onclick="act(1)">明明就很好吃</button>
+        <button onclick="act(2)">為甚麼要加香菜很怪</button>
+    </div>
+
+    <div id="p3" class="page">
+        <h1>火鍋加芋頭嗎?</h1>
+        <button onclick="act(1)">必須!!!</button>
+        <button onclick="act(2)">超噁真的不要</button>
+    </div>
+
+    <div id="p4" class="page">
+        <h1>咖哩飯拌不拌!</h1>
+        <button onclick="act(1)">拌!!</button>
+        <button onclick="act(2)">絕對不拌啦就是要吃白飯</button>
+    </div>
+
+    <div id="p5" class="page">
+        <h1 id="result_msg"></h1>
+        <button onclick="location.reload()">重新測驗</button>
+    </div>
+
+    <script>
+        var score = 0;
+        var now = 1;
+
+        function go(n) {
+            // 隱藏目前的，顯示下一個
+            document.getElementById('p' + now).style.display = 'none';
+            document.getElementById('p' + n).style.display = 'block';
+            now = n;
+        }
+
+        function act(choice) {
+            if (choice === 1) {
+                score = score + 1;
+            }
+
+            if (now < 4) {
+                go(now + 1);
+            } else {
+                finish();
+            }
+        }
+
+        function finish() {
+            var msg = "";
+            if (score >= 2) {
+                msg = "你的晚餐不是有社會共識的吃法喔!";
+            } else if (score === 1) {
+                msg = "還可以 你的晚餐勉強有社會共識。";
+            } else {
+                msg = "你的晚餐是很有社會共識的吃法!";
+            }
+            document.getElementById('result_msg').innerHTML = msg;
+            go(5);
+        }
+    </script>
+
+</body>
+</html>

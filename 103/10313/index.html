@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>八字合婚 - 緣分測算</title>
+    <style>
+        :root {
+            --primary-red: #8b0000;
+            --gold: #d4af37;
+        }
+        body {
+            font-family: "Microsoft JhengHei", sans-serif;
+            background-color: #f4f1ea;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            max-width: 500px;
+            width: 100%;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-top: 8px solid var(--primary-red);
+        }
+        h1 {
+            text-align: center;
+            color: var(--primary-red);
+            margin-bottom: 30px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .input-group h3 {
+            margin-top: 0;
+            color: #555;
+            font-size: 1.1rem;
+        }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--primary-red);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover { background-color: #a50000; }
+        #result {
+            margin-top: 30px;
+            display: none;
+            padding: 20px;
+            background: #fff9f0;
+            border: 1px dashed var(--gold);
+        }
+        .score {
+            font-size: 2.5rem;
+            color: var(--primary-red);
+            text-align: center;
+            font-weight: bold;
+        }
+        .bazi-box {
+            display: flex;
+            justify-content: space-around;
+            margin: 15px 0;
+            background: #eee;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>☯ 八字緣分合婚</h1>
+    
+    <div class="input-group">
+        <h3>甲方（男方/主方）</h3>
+        <label>出生日期</label>
+        <input type="date" id="date1" required>
+    </div>
+
+    <div class="input-group">
+        <h3>乙方（女方/配方）</h3>
+        <label>出生日期</label>
+        <input type="date" id="date2" required>
+    </div>
+
+    <button onclick="calculateMatch()">開始測算緣分</button>
+
+    <div id="result">
+        <h2 style="text-align:center;">測算結果</h2>
+        <div class="score" id="scoreValue">80%</div>
+        <hr>
+        <div id="baziInfo"></div>
+        <p id="analysisText"></p>
+    </div>
+</div>
+
+<script>
+    const gan = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
+    const zhi = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
+
+    // 簡化的干支計演算法 (基於基準日 1900-01-31 為甲辰日)
+    function getBazi(dateStr) {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return null;
+
+        const year = d.getFullYear();
+        // 年柱 (以立春為準會更準確，此處採用簡化農曆年演算法)
+        let yearGan = gan[(year - 4) % 10];
+        let yearZhi = zhi[(year - 4) % 12];
+
+        // 日柱計算 (基數法)
+        const baseDate = new Date('1900-01-31');
+        const diffDays = Math.floor((d - baseDate) / (24 * 60 * 60 * 1000));
+        let dayGan = gan[diffDays % 10];
+        let dayZhi = zhi[diffDays % 12];
+
+        return {
+            year: yearGan + yearZhi,
+            day: dayGan + dayZhi,
+            dayZhi: dayZhi,
+            dayGan: dayGan
+        };
+    }
+
+    function calculateMatch() {
+        const d1 = document.getElementById('date1').value;
+        const d2 = document.getElementById('date2').value;
+
+        if (!d1 || !d2) {
+            alert("請填寫完整的出生日期");
+            return;
+        }
+
+        const bazi1 = getBazi(d1);
+        const bazi2 = getBazi(d2);
+
+        // 核心合婚邏輯 (簡化版：主要看日支與日干)
+        let score = 70; // 基礎分
+        let message = "";
+
+        // 1. 日支合沖 (六合 +15, 六沖 -20)
+        const he = {"子":"丑", "丑":"子", "寅":"亥", "亥":"寅", "卯":"戌", "戌":"卯", "辰":"酉", "酉":"辰", "巳":"申", "申":"巳", "午":"未", "未":"午"};
+        const chong = {"子":"午", "午":"子", "丑":"未", "未":"丑", "寅":"申", "申":"寅", "卯":"酉", "酉":"卯", "辰":"戌", "戌":"辰", "巳":"亥", "亥":"巳"};
+
+        if (he[bazi1.dayZhi] === bazi2.dayZhi) {
+            score += 20;
+            message += "【夫妻宮六合】兩人心靈契合，感情深厚。";
+        } else if (chong[bazi1.dayZhi] === bazi2.dayZhi) {
+            score -= 25;
+            message += "【日支相沖】性格容易產生摩擦，需多包容。";
+        }
+
+        // 2. 日干相合 (天干五合)
+        const ganHe = {"甲":"己", "己":"甲", "乙":"庚", "庚":"乙", "丙":"辛", "辛":"丙", "丁":"壬", "壬":"丁", "戊":"癸", "癸":"戊"};
+        if (ganHe[bazi1.dayGan] === bazi2.dayGan) {
+            score += 10;
+            message += "【天干五合】天作之合，互相吸引。";
+        }
+
+        if (score > 100) score = 98;
+        if (score < 40) score = 45;
+
+        // 顯示結果
+        document.getElementById('result').style.display = 'block';
+        document.getElementById('scoreValue').innerText = score + " 分";
+        document.getElementById('baziInfo').innerHTML = `
+            <div class="bazi-box">
+                <div>甲方日柱：<b>${bazi1.day}</b></div>
+                <div>乙方日柱：<b>${bazi2.day}</b></div>
+            </div>
+        `;
+        document.getElementById('analysisText').innerText = message || "兩人緣分平穩，屬於細水長流型的關係，平時多溝通可增進感情。";
+        
+        window.scrollTo(0, document.body.scrollHeight);
+    }
+</script>
+
+</body>
+</html>

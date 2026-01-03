@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>寵物英雄傳奇：局部毛髮挑戰版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Noto+Sans+TC:wght@400;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --comic-yellow: #ffde00;
+            --comic-red: #ff4d4d;
+            --comic-blue: #2e5bff;
+        }
+        body { 
+            font-family: 'Noto Sans TC', sans-serif; 
+            background-color: #f0f0f0;
+            background-image: radial-gradient(rgba(0,0,0,0.1) 1px, transparent 0);
+            background-size: 25px 25px;
+        }
+        .comic-font { font-family: 'Bangers', 'Noto Sans TC', cursive; }
+        
+        .comic-card {
+            background: #fff;
+            border: 6px solid #000;
+            box-shadow: 12px 12px 0px #000;
+            transform: rotate(-0.5deg);
+        }
+
+        .zoom-window {
+            width: 100%;
+            height: 300px;
+            border: 6px solid #000;
+            overflow: hidden;
+            position: relative;
+            background: #333; 
+        }
+        .zoom-image {
+            width: 100%;
+            height: 100%;
+            background-repeat: no-repeat;
+            image-rendering: auto;
+            transition: all 0.5s ease;
+        }
+        
+        .zap-label {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: var(--comic-red);
+            color: white;
+            font-family: 'Bangers';
+            padding: 5px 20px;
+            border: 4px solid #000;
+            transform: rotate(-8deg);
+            z-index: 10;
+            font-size: 1.5rem;
+        }
+
+        #story-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.98);
+            z-index: 100;
+            overflow-y: auto;
+        }
+
+        .option-btn {
+            background: #fff;
+            border: 4px solid #000;
+            padding: 15px;
+            font-size: 1.5rem;
+            font-weight: 900;
+            transition: 0.1s;
+            cursor: pointer;
+        }
+        .option-btn:hover {
+            background: var(--comic-yellow);
+            transform: scale(1.02);
+            box-shadow: 6px 6px 0px #000;
+        }
+
+        #ai-hint-box {
+            display: none;
+            background: #eef7ff;
+            border: 4px solid #000;
+            padding: 20px;
+            margin-bottom: 25px;
+            position: relative;
+            clip-path: polygon(0% 0%, 100% 0%, 100% 90%, 20% 90%, 10% 100%, 10% 90%, 0% 90%);
+        }
+
+        .loading-dots:after {
+            content: '.';
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+        @keyframes dots { 0%, 20% { content: '.'; } 40% { content: '..'; } 60% { content: '...'; } 80%, 100% { content: ''; } }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="fixed top-5 right-5 z-50">
+        <button onclick="toggleBook(true)" class="bg-yellow-400 border-4 border-black px-4 py-2 comic-font text-2xl shadow-[5px_5px_0px_#000] hover:translate-y-1 hover:shadow-none transition-all">
+            <i class="fas fa-scroll"></i> HERO LOGS
+        </button>
+    </div>
+
+    <div id="story-overlay">
+        <div class="max-w-3xl mx-auto my-10 p-10 bg-white border-8 border-black shadow-[20px_20px_0px_rgba(0,0,0,0.1)]">
+            <div class="flex justify-between items-center border-b-8 border-black pb-4 mb-8">
+                <h1 class="comic-font text-6xl italic">HERO ARCHIVES</h1>
+                <button onclick="toggleBook(false)" class="text-4xl font-black">[X]</button>
+            </div>
+            <section class="mb-10">
+                <h2 class="comic-font text-4xl text-blue-600">巴弟 (GOLDEN RETRIEVER)</h2>
+                <img src="https://placedog.net/800/600?id=12" class="w-full h-72 object-cover border-4 border-black mt-4">
+            </section>
+            <section class="mb-10">
+                <h2 class="comic-font text-4xl text-pink-500">雲朵 (THE SHEEP)</h2>
+                <img src="https://images.unsplash.com/photo-1484557985045-edf25e08da73?auto=format&fit=crop&w=800&q=80" class="w-full h-72 object-cover border-4 border-black mt-4">
+            </section>
+            <section class="mb-10">
+                <h2 class="comic-font text-4xl text-green-700">針鋒 (THE HEDGEHOG)</h2>
+                <img src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80" class="w-full h-72 object-cover border-4 border-black mt-4">
+            </section>
+        </div>
+    </div>
+
+    <div class="max-w-2xl mx-auto mt-16">
+        <header class="text-center mb-10">
+            <h1 class="comic-font text-7xl md:text-9xl text-black leading-none drop-shadow-lg">PET HERO<br><span class="text-red-600">ZOOM!</span></h1>
+            <div class="flex justify-between items-center mt-8 bg-black text-white p-4 border-4 border-white comic-font text-3xl italic">
+                <span>XP: <span id="score">0</span></span>
+                <span>MISSION: <span id="level">1</span>/5</span>
+            </div>
+        </header>
+
+        <main class="comic-card p-6 mb-10">
+            <div id="quiz-ui">
+                <div class="zoom-window mb-6">
+                    <div id="scan-label" class="zap-label">SCANNING...</div>
+                    <div id="target-view" class="zoom-image"></div>
+                </div>
+
+                <button onclick="getAiHint()" id="hint-btn" class="w-full bg-blue-600 text-white py-5 comic-font text-3xl mb-6 border-4 border-black shadow-[6px_6px_0px_#000] hover:bg-black transition-all">
+                    ✨ 巴弟導師分析 (AI HINT)
+                </button>
+
+                <div id="ai-hint-box" class="comic-font text-2xl">
+                    <div id="ai-loading" class="hidden">衛星掃讀中<span class="loading-dots"></span></div>
+                    <div id="ai-text" class="text-blue-800"></div>
+                </div>
+
+                <div id="options-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+            </div>
+
+            <div id="end-ui" class="hidden py-10 text-center">
+                <h2 class="comic-font text-8xl text-red-600 mb-8 italic">MISSION RESULT</h2>
+                <div id="final-report" class="bg-yellow-50 border-4 border-black p-8 text-left italic font-bold text-2xl mb-10"></div>
+                <button onclick="restart()" class="w-full bg-black text-white comic-font text-5xl py-8 border-4 border-black hover:bg-blue-600 transition">NEW MISSION</button>
+            </div>
+        </main>
+
+        <div id="feedback-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/90">
+            <div class="bg-white border-8 border-black p-10 max-w-sm w-full text-center">
+                <div id="fb-icon" class="text-9xl mb-6"></div>
+                <div id="fb-text" class="comic-font text-5xl mb-6 uppercase font-black"></div>
+                <div id="fb-subtext" class="text-xl mb-10 font-bold text-gray-600 italic"></div>
+                <button onclick="nextStage()" class="w-full bg-green-500 border-4 border-black py-5 comic-font text-4xl">CONTINUE >></button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const apiKey = ""; 
+        const modelName = "gemini-2.5-flash-preview-09-2025";
+
+        const stages = [
+            { name: "金毛尋回犬", options: ["金毛尋回犬", "阿富汗獵犬", "柴犬", "獅子"], correct: 0, img: "https://placedog.net/1000/1000?id=12", pos: "50% 30%", zoom: "450%", prompt: "分析：這是一種閃耀著陽光色澤的絲滑長毛。來自偵察英雄巴弟。" },
+            { name: "綿羊", options: ["貴賓狗", "綿羊", "草泥馬", "比熊犬"], correct: 1, img: "https://images.unsplash.com/photo-1484557985045-edf25e08da73?auto=format&fit=crop&w=1200&q=80", pos: "40% 50%", zoom: "450%", prompt: "分析：極度密集的球狀纖維。這是防禦大師雲朵的量子羊毛特寫。" },
+            { name: "波斯貓", options: ["波斯貓", "薩摩耶", "安哥拉兔", "白狐"], correct: 0, img: "https://images.unsplash.com/photo-1591871937573-74dbba515c4c?auto=format&fit=crop&w=1200&q=80", pos: "50% 50%", zoom: "400%", prompt: "分析：極致蓬鬆、纖細如絲的純白長毛。這種貴族般的質感...是凱撒教授沒錯！" },
+            { name: "斑馬", options: ["老虎", "斑馬", "乳牛", "臭鼬"], correct: 1, img: "https://images.unsplash.com/photo-1526438447493-29a36573752e?auto=format&fit=crop&w=1200&q=80", pos: "45% 45%", zoom: "500%", prompt: "分析：典型的黑白相間垂直條紋。這種天然的迷彩是草原上的偽裝大師。" },
+            { name: "刺蝟", options: ["豪豬", "刺蝟", "仙人掌", "海膽"], correct: 2, img: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=1200&q=80", pos: "55% 50%", zoom: "400%", prompt: "分析：掃描到密集的角質尖刺結構。那是針鋒的防禦狀態，別被扎到了！" }
+        ];
+
+        let cur = 0;
+        let score = 0;
+        let isMorphing = false; // 追蹤目前生物是否處於「變形/載入失敗」狀態
+
+        async function fetchAI(p, sys) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+            const body = { contents: [{ parts: [{ text: p }] }], systemInstruction: { parts: [{ text: sys }] } };
+            try {
+                const r = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+                const d = await r.json();
+                return d.candidates?.[0]?.content?.parts?.[0]?.text || "連線受阻...";
+            } catch (e) { return "通訊被敵軍切斷！"; }
+        }
+
+        async function getAiHint() {
+            const b = document.getElementById('ai-hint-box');
+            const l = document.getElementById('ai-loading');
+            const t = document.getElementById('ai-text');
+            b.style.display = 'block'; l.classList.remove('hidden'); t.innerText = "";
+            const res = await fetchAI(stages[cur].prompt, "你是一位熱血的英雄導師巴弟。請用美式漫畫語氣給出提示。如果目前偵測到變形生物，請提醒玩家這可能是凱撒教授的偽裝。");
+            l.classList.add('hidden'); t.innerText = res;
+        }
+
+        function loadStage() {
+            const s = stages[cur];
+            isMorphing = false;
+            document.getElementById('level').innerText = cur + 1;
+            document.getElementById('scan-label').innerText = "SCANNING...";
+            document.getElementById('scan-label').style.background = "var(--comic-red)";
+            
+            const target = document.getElementById('target-view');
+            target.innerHTML = ''; 
+            
+            const imgChecker = new Image();
+            imgChecker.onload = () => {
+                target.style.background = `url('${s.img}')`;
+                target.style.backgroundSize = s.zoom;
+                target.style.backgroundPosition = s.pos;
+            };
+            imgChecker.onerror = () => {
+                isMorphing = true;
+                target.style.background = "linear-gradient(45deg, #222, #444, #222)";
+                document.getElementById('scan-label').innerText = "MORPHING DETECTED!";
+                document.getElementById('scan-label').style.background = "#8b5cf6"; // 變形紫
+                target.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full text-white font-black text-center p-6 italic">
+                        <i class="fas fa-ghost text-5xl mb-4 animate-bounce"></i>
+                        <div class="text-2xl">警告：偵測到空間扭曲！</div>
+                        <div class="text-sm opacity-70">這是一隻會變形的動物，外觀已進入光學迷彩狀態...</div>
+                    </div>
+                `;
+            };
+            imgChecker.src = s.img;
+
+            document.getElementById('ai-hint-box').style.display = 'none';
+            const grid = document.getElementById('options-grid');
+            grid.innerHTML = '';
+            s.options.forEach((opt, i) => {
+                const b = document.createElement('button');
+                b.className = "option-btn comic-font uppercase";
+                b.innerText = opt;
+                b.onclick = () => check(i);
+                grid.appendChild(b);
+            });
+        }
+
+        function check(i) {
+            const s = stages[cur];
+            const modal = document.getElementById('feedback-modal');
+            const icon = document.getElementById('fb-icon');
+            const text = document.getElementById('fb-text');
+            const subtext = document.getElementById('fb-subtext');
+            
+            if (i === s.correct) {
+                score += 20; 
+                document.getElementById('score').innerText = score;
+                icon.innerText = "💥";
+                text.innerText = "CRITICAL HIT!";
+                subtext.innerText = isMorphing 
+                    ? `不愧是英雄！成功識破了這隻「變形動物」的真面目！` 
+                    : `掃描成功！這確實是 ${s.name}！`;
+            } else {
+                icon.innerText = "❌";
+                text.innerText = "MISSION FAIL!";
+                subtext.innerText = isMorphing 
+                    ? `變形生物隱藏得太好了，它剛剛變成了 ${s.name}！` 
+                    : `數據錯誤，這不是對方的真面目。`;
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function nextStage() {
+            cur++; document.getElementById('feedback-modal').classList.add('hidden');
+            if (cur < stages.length) loadStage(); else finishGame();
+        }
+
+        async function finishGame() {
+            document.getElementById('quiz-ui').classList.add('hidden');
+            document.getElementById('end-ui').classList.remove('hidden');
+            const report = document.getElementById('final-report');
+            report.innerHTML = "正在計算戰果評價<span class='loading-dots'></span>";
+            const res = await fetchAI(`得分：${score}/100`, "請撰寫一段漫畫英雄風格的戰報，如果玩家識破了變形生物，請在戰報中特別表揚他的偵察能力。");
+            report.innerText = res;
+        }
+
+        function restart() {
+            cur = 0; score = 0;
+            document.getElementById('score').innerText = 0;
+            document.getElementById('quiz-ui').classList.remove('hidden');
+            document.getElementById('end-ui').classList.add('hidden');
+            loadStage();
+        }
+
+        function toggleBook(show) { document.getElementById('story-overlay').style.display = show ? 'block' : 'none'; }
+        window.onload = loadStage;
+    </script>
+</body>
+</html>

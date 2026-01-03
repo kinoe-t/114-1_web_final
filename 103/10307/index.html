@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 全球旅行規劃師</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; }
+        .hero-gradient { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); }
+        .card-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .card-hover:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <header class="hero-gradient text-white py-16 px-4 text-center shadow-lg">
+        <h1 class="text-4xl md:text-5xl font-bold mb-4 tracking-tight">探索世界，由你定義</h1>
+        <p class="text-slate-300 text-lg max-w-2xl mx-auto">輸入旅行天數與關鍵字，我們將為您規劃一套「絕不重複」的深度旅遊行程。</p>
+    </header>
+
+    <main class="container mx-auto max-w-5xl px-4 -mt-12">
+        <div class="bg-white rounded-3xl shadow-xl p-6 md:p-10 border border-slate-100 mb-12">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <label class="text-sm font-bold text-slate-500 uppercase flex items-center gap-2">
+                        <i class="fa-solid fa-calendar-days"></i> 旅遊天數 (1-10天)
+                    </label>
+                    <input type="number" id="days" min="1" max="10" value="3" 
+                        class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-blue-500 outline-none transition">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-bold text-slate-500 uppercase flex items-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> 想要什麼樣的旅行？
+                    </label>
+                    <input type="text" id="keywords" placeholder="例如：美食, 歷史, 冒險, 放鬆" 
+                        class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-blue-500 outline-none transition">
+                </div>
+            </div>
+            <button onclick="generateTrip()" class="w-full mt-8 bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 rounded-2xl shadow-lg transition duration-300 flex items-center justify-center gap-3">
+                <i class="fa-solid fa-earth-americas"></i> 立即推薦國家與行程
+            </button>
+        </div>
+
+        <div id="result-container" class="hidden">
+            <div class="flex items-center gap-4 mb-8">
+                <div class="h-12 w-2 bg-blue-600 rounded-full"></div>
+                <div>
+                    <h2 id="country-name" class="text-3xl font-black text-slate-900"></h2>
+                    <p id="country-desc" class="text-slate-500 italic"></p>
+                </div>
+            </div>
+
+            <div id="itinerary-grid" class="space-y-8 mb-20">
+                </div>
+        </div>
+    </main>
+
+    <script>
+        const travelData = [
+            {
+                country: "日本 ‧ 東京 (Tokyo)",
+                desc: "極致效率與古老傳統的交會點。",
+                tags: ["美食", "購物", "動漫", "文化"],
+                spots: ["淺草寺", "明治神宮", "澀谷展望台 SHIBUYA SKY", "秋葉原", "築地場外市場", "上野公園", "新宿御苑", "東京鐵塔", "豪德寺", "根津美術館"],
+                restaurants: ["銀座 篝 拉麵", "敘敘苑 燒肉", "壽司大", "淺草 今半", "藍瓶咖啡", "人形町 今半", "沾麵 六厘舍", "米其林拉麵 鳴龍"]
+            },
+            {
+                country: "法國 ‧ 巴黎 (Paris)",
+                desc: "全世界最浪漫的藝術殿堂。",
+                tags: ["浪漫", "藝術", "歷史", "時尚"],
+                spots: ["羅浮宮", "艾菲爾鐵塔", "凱旋門", "奧賽博物館", "蒙馬特高地", "聖母院", "杜樂麗花園", "香榭麗舍大道", "龐畢度中心", "歌劇院"],
+                restaurants: ["花神咖啡館", "Angelina 甜點", "Le Comptoir 小酒館", "L'As du Fallafel", "巴黎最古老餐廳 Procope", "Pink Mamma"]
+            },
+            {
+                country: "澳洲 ‧ 雪梨 (Sydney)",
+                desc: "陽光、沙灘與現代建築的完美結合。",
+                tags: ["冒險", "自然", "海洋", "放鬆"],
+                spots: ["雪梨歌劇院", "攀登雪梨港灣大橋", "邦代海灘", "塔龍加動物園", "岩石區市集", "皇家植物園", "達令港", "藍山國家公園", "曼利海灘"],
+                restaurants: ["Quay 景觀餐廳", "Bills 鬆餅", "The Grounds of Alexandria", "Hurricane's Grill 豬肋排", "Sydney Fish Market"]
+            },
+            {
+                country: "義大利 ‧ 羅馬 (Rome)",
+                desc: "永恆之城，每一塊石頭都是歷史。",
+                tags: ["歷史", "建築", "美食", "宗教"],
+                spots: ["競技場", "萬神殿", "許願池", "特萊維噴泉", "梵蒂岡博物館", "聖彼得大教堂", "古羅馬廣場", "西班牙階梯", "聖天使城堡", "納沃納廣場"],
+                restaurants: ["Roscioli 培根蛋麵", "Pizzarium Bonci", "Two Sizes 提拉米蘇", "Giolitti 冰淇淋", "Da Enzo 小酒館"]
+            },
+            {
+                country: "泰國 ‧ 曼谷 (Bangkok)",
+                desc: "熱情火辣的色彩與無與倫比的街頭美味。",
+                tags: ["美食", "便宜", "夜生活", "寺廟"],
+                spots: ["大皇宮", "鄭王廟", "臥佛寺", "ICONSIAM", "洽圖洽市集", "丹嫩莎朵水上市場", "美功鐵道市場", "考山路", "朱拉隆功大學商圈"],
+                restaurants: ["Jay Fai 蟹肉歐姆蛋", "建興酒家", "Savoey 海鮮", "Mae Varee 芒果糯米", "Here Hai 蟹肉炒飯"]
+            },
+            {
+                country: "韓國 ‧ 首爾 (Seoul)",
+                desc: "K-Pop 潮流與韓屋風情的混搭之旅。",
+                tags: ["購物", "潮流", "美食", "影視"],
+                spots: ["景福宮", "北村韓屋村", "南山塔", "星空圖書館", "廣藏市場", "東大門設計廣場", "益善洞", "漢江公園", "聖水洞咖啡街"],
+                restaurants: ["明洞校村炸雞", "陳玉華一隻雞", "孔陵一隻雞", "哈哈&金鐘國燒肉", "阿峴洞醬蟹"]
+            },
+            {
+                country: "台灣 ‧ 花蓮 (Hualien)",
+                desc: "大自然鬼斧神工的太平洋門戶。",
+                tags: ["自然", "風景", "放鬆", "攝影"],
+                spots: ["太魯閣燕子口", "清水斷崖", "七星潭", "雲山水", "石梯坪", "鯉魚潭", "瑞穗牧場", "松園別館", "翡翠谷", "貨櫃屋星巴克"],
+                restaurants: ["液香扁食", "炸蛋蔥油餅", "鵝肉先生", "欣欣麵館", "東大門夜市各類攤位"]
+            }
+        ];
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[array[i]]];
+            }
+            return array;
+        }
+
+        function generateTrip() {
+            const days = parseInt(document.getElementById('days').value);
+            const userKeywords = document.getElementById('keywords').value.toLowerCase();
+
+            if (!days || days <= 0) { alert("請輸入有效天數"); return; }
+            if (!userKeywords) { alert("請輸入關鍵字讓我們推薦"); return; }
+
+            // 1. 權重匹配推薦
+            let selected = travelData[0];
+            let maxScore = -1;
+
+            travelData.forEach(item => {
+                let score = 0;
+                item.tags.forEach(t => { if (userKeywords.includes(t)) score += 2; });
+                score += Math.random(); // 增加隨機性
+                if (score > maxScore) { maxScore = score; selected = item; }
+            });
+
+            // 2. 顯示國家資訊
+            document.getElementById('result-container').classList.remove('hidden');
+            document.getElementById('country-name').innerText = selected.country;
+            document.getElementById('country-desc').innerText = selected.desc;
+
+            // 3. 隨機打亂景點與餐廳，確保「不重複」
+            let availableSpots = [...selected.spots];
+            let availableFoods = [...selected.restaurants];
+            for (let i = availableSpots.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [availableSpots[i], availableSpots[j]] = [availableSpots[j], availableSpots[i]];
+            }
+            for (let i = availableFoods.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [availableFoods[i], availableFoods[j]] = [availableFoods[j], availableFoods[i]];
+            }
+
+            // 4. 生成行程
+            const grid = document.getElementById('itinerary-grid');
+            grid.innerHTML = "";
+
+            for (let d = 1; d <= days; d++) {
+                // 每次取出 2 個不重複景點與 1 個餐廳
+                const morningSpot = availableSpots.pop() || "當地自由探索區";
+                const afternoonSpot = availableSpots.pop() || "市中心特色街道";
+                const dinner = availableFoods.pop() || "當地評分最高特色料理";
+
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100 card-hover grid grid-cols-1 md:grid-cols-4 gap-6";
+                card.innerHTML = `
+                    <div class="md:col-span-1 flex flex-col justify-center items-center bg-blue-50 rounded-2xl py-6">
+                        <span class="text-blue-600 font-bold uppercase tracking-widest text-xs">Day</span>
+                        <span class="text-5xl font-black text-blue-800">${d}</span>
+                    </div>
+                    <div class="md:col-span-3 space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="p-4 bg-slate-50 rounded-2xl">
+                                <h4 class="text-xs font-bold text-slate-400 mb-2 uppercase">☀️ 上午行程</h4>
+                                <p class="font-bold text-lg text-slate-800">${morningSpot}</p>
+                            </div>
+                            <div class="p-4 bg-slate-50 rounded-2xl">
+                                <h4 class="text-xs font-bold text-slate-400 mb-2 uppercase">🌆 下午行程</h4>
+                                <p class="font-bold text-lg text-slate-800">${afternoonSpot}</p>
+                            </div>
+                        </div>
+                        <div class="border-t border-dashed border-slate-200 pt-4 flex items-center gap-4">
+                            <div class="h-10 w-10 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center">
+                                <i class="fa-solid fa-utensils"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-400 uppercase">精選美食推薦</h4>
+                                <p class="text-slate-800 font-bold">${dinner}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            }
+
+            // 平滑滾動到結果
+            window.scrollTo({ top: document.getElementById('result-container').offsetTop - 50, behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

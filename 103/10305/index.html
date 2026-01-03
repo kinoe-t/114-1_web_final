@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>跳跳球遊戲</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      overflow: hidden;
+      background: linear-gradient(#cfe9ff, #e9f3ff);
+      font-family: system-ui, -apple-system, "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    }
+    canvas { display: block; }
+    #scoreboard {
+      position: absolute; top: 10px; right: 12px;
+      color: #fff; font-size: 18px; padding: 6px 10px;
+      border-radius: 8px; background: rgba(0,0,0,0.35);
+      user-select: none;
+    }
+    #startHint {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      color: #224; font-size: 20px; padding: 10px 16px;
+      border-radius: 10px; background: rgba(255,255,255,0.88);
+      border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      user-select: none;
+    }
+    #popup {
+      position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
+      font-size: 28px; color: #ffd500; text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+      pointer-events: none; user-select: none; display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="scoreboard">總分：0</div>
+  <div id="popup"></div>
+  <div id="startHint">點擊螢幕任何一處以開始</div>
+  <canvas id="game"></canvas>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    resize(); window.addEventListener('resize', resize);
+
+    // World bounds
+    const FLOOR_H = 68;  // lava thickness
+    const SPIKE_H = 56;  // spike depth
+    const floorY = () => canvas.height - FLOOR_H;
+    const ceilingY = () => SPIKE_H;
+
+    // Player (Q版有翅膀的球)
+    const ball = {
+      x: () => canvas.width * 0.28,
+      y: canvas.height * 0.5,
+      r: 22,
+      vy: 0,
+      img: null
+    };
+
+    // Physics：每次跳躍的高度與速度一致（固定脈衝），可累加；未按鍵時緩慢下落
+    const gravity = 0.6;           // 緩慢落下的加速度
+    const jumpImpulse = -11;       // 固定向上速度脈衝（每次點擊都一樣）
+    const maxFall = 10;            // 限制最大下落速度
+
+    // Baskets
+    const baskets = [];
+    const basketSpeed = 3.6;
+    const basketIntervalMs = 2000;
+
+    // Score
+    let totalScore = 0;
+    let gameStarted = false;
+    let popupText = '';
+    let popupTimer = 0;
+
+    function showPopup(text) { popupText = text; popupTimer = 48; }
+    function drawPopup() {
+      const el = document.getElementById('popup');
+      if (popupTimer > 0) { el.textContent = popupText; el.style.display = 'block'; popupTimer--; }
+      else { el.style.display = 'none'; }
+    }
+    function addScore(points) {
+      totalScore += points;
+      document.getElementById('scoreboard').textContent = `總分：${totalScore}`;
+      showPopup(`該球得分：+${points}`);
+    }
+
+    function createBasket() {
+      const w = 120;   // 外圍橢圓寬
+      const h = 30;    // 外圍橢圓高
+      const innerShrink = 0.68; // 內圈判斷空心
+      const yMin = ceilingY() + 70;
+      const yMax = floorY() - 70;
+      const y = Math.random() * (yMax - yMin) + yMin;
+      baskets.push({
+        x: canvas.width + 140,
+        y, w, h,
+        innerW: w * innerShrink,
+        innerH: h * innerShrink,
+        scored: false
+      });
+    }
+
+    // Helpers
+    function pointInEllipse(px, py, cx, cy, rx, ry) {
+      const nx = (px - cx) / rx, ny = (py - cy) / ry;
+      return (nx * nx + ny * ny) <= 1;
+    }
+
+    // Rendering: spikes & lava
+    function drawSpikes() {
+      ctx.fillStyle = '#b0b7c3';
+      for (let i = 0; i < canvas.width + 20; i += 20) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i + 10, SPIKE_H);
+        ctx.lineTo(i + 20, 0);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.fillStyle = 'rgba(0,0,0,0.06)';
+      ctx.fillRect(0, SPIKE_H, canvas.width, 6);
+    }
+    function drawLava() {
+      ctx.fillStyle = '#d6241f';
+      ctx.fillRect(0, floorY(), canvas.width, FLOOR_H);
+      const grad = ctx.createLinearGradient(0, floorY() - 20, 0, floorY() + FLOOR_H);
+      grad.addColorStop(0, 'rgba(255,160,0,0.45)');
+      grad.addColorStop(1, 'rgba(255,70,0,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, floorY() - 20, canvas.width, 20);
+      for (let i = 0; i < canvas.width; i += 40) {
+        ctx.beginPath();
+        ctx.arc(i + (Date.now() / 70 % 40), floorY() + FLOOR_H - 12, 6, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,220,90,0.6)';
+        ctx.fill();
+      }
+    }
+
+    // Rendering: ball (with wings)
+    function drawBall() {
+      if (ball.img) { ctx.drawImage(ball.img, ball.x() - 40, ball.y - 40, 80, 80); return; }
+      ctx.save();
+      // Wings
+      ctx.fillStyle = '#fff'; ctx.strokeStyle = '#999'; ctx.lineWidth = 2;
+      ctx.beginPath(); // Left wing
+      ctx.moveTo(ball.x() - 28, ball.y - 8);
+      ctx.quadraticCurveTo(ball.x() - 48, ball.y - 26, ball.x() - 16, ball.y - 30);
+      ctx.quadraticCurveTo(ball.x() - 44, ball.y - 6, ball.x() - 28, ball.y - 8);
+      ctx.fill(); ctx.stroke();
+      ctx.beginPath(); // Right wing
+      ctx.moveTo(ball.x() + 28, ball.y - 8);
+      ctx.quadraticCurveTo(ball.x() + 48, ball.y - 26, ball.x() + 16, ball.y - 30);
+      ctx.quadraticCurveTo(ball.x() + 44, ball.y - 6, ball.x() + 28, ball.y - 8);
+      ctx.fill(); ctx.stroke();
+      // Ball body
+      ctx.beginPath(); ctx.arc(ball.x(), ball.y, ball.r, 0, Math.PI * 2);
+      ctx.fillStyle = '#ff9a2e'; ctx.fill(); ctx.strokeStyle = '#333'; ctx.stroke();
+      // Face
+      ctx.fillStyle = '#333';
+      ctx.beginPath(); ctx.arc(ball.x() - 8, ball.y - 4, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(ball.x() + 8, ball.y - 4, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#333'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(ball.x(), ball.y + 6, 8, 0, Math.PI); ctx.stroke();
+      ctx.restore();
+    }
+
+    // Rendering: baskets
+    function drawBaskets() {
+      baskets.forEach(b => {
+        ctx.save();
+        // Rim
+        ctx.beginPath();
+        ctx.ellipse(b.x, b.y, b.w / 2, b.h / 2, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = '#7a4b2c'; ctx.lineWidth = 5; ctx.stroke();
+        // Inner swish hint
+        ctx.globalAlpha = 0.09;
+        ctx.beginPath();
+        ctx.ellipse(b.x, b.y, b.innerW / 2, b.innerH / 2, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffe6c9'; ctx.fill();
+        ctx.restore();
+      });
+    }
+
+    // Update physics
+    function updatePhysics() {
+      // 緩慢下落：重力逐步增加下落速度，並限制最大值
+      ball.vy = Math.min(ball.vy + gravity, maxFall);
+      ball.y += ball.vy;
+
+      // Ceiling collision
+      if (ball.y - ball.r < ceilingY()) { ball.y = ceilingY() + ball.r; ball.vy = 0; }
+      // Floor collision
+      if (ball.y + ball.r > floorY()) { ball.y = floorY() - ball.r; ball.vy = 0; }
+    }
+
+    // Update baskets and scoring
+    function updateBaskets() {
+      baskets.forEach(b => b.x -= basketSpeed);
+      for (let i = baskets.length - 1; i >= 0; i--) {
+        if (baskets[i].x + baskets[i].w < -50) baskets.splice(i, 1);
+      }
+      baskets.forEach(b => {
+        if (b.scored) return;
+        const inOuter = pointInEllipse(ball.x(), ball.y, b.x, b.y, b.w / 2, b.h / 2);
+        if (inOuter) {
+          const inInner = pointInEllipse(ball.x(), ball.y, b.x, b.y, b.innerW / 2, b.innerH / 2);
+          // 空心判定：中心在內圈，且球的邊緣不碰到內圈邊界（近似）
+          const edgeClearX = Math.abs(ball.x() - b.x) + ball.r <= b.innerW / 2;
+          const edgeClearY = Math.abs(ball.y - b.y) + ball.r <= b.innerH / 2;
+          const swish = inInner && edgeClearX && edgeClearY;
+          b.scored = true;
+          addScore(swish ? 20 : 10);
+        }
+      });
+    }
+
+    // Game loop
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawSpikes();
+      drawLava();
+      drawBaskets();
+      drawBall();
+      drawPopup();
+    }
+    function loop() {
+      if (!gameStarted) return;
+      updatePhysics();
+      updateBaskets();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    // Click to start + fixed-height jump（可累加）
+    canvas.addEventListener('click', () => {
+      if (!gameStarted) {
+        gameStarted = true;
+        document.getElementById('startHint').style.display = 'none';
+        setInterval(createBasket, basketIntervalMs);
+        loop();
+      }
+      // 每次點擊：速度脈衝相同，可累加（高度與速度一致）
+      ball.vy += jumpImpulse;
+    });
+
+    // Load Q版翼球 SVG（inline）
+    const img = new Image();
+    img.onload = () => { ball.img = img; draw(); };
+    img.src =
+      "data:image/svg+xml;base64," +
+      btoa(`<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80">
+  <defs>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+      <feOffset dx="0" dy="1" result="offsetblur"/>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- Wings -->
+  <path d="M20,38 Q6,22 26,16 Q6,30 18,34 Z" fill="#fff" stroke="#999" stroke-width="2"/>
+  <path d="M60,38 Q74,22 54,16 Q74,30 62,34 Z" fill="#fff" stroke="#999" stroke-width="2"/>
+  <!-- Ball -->
+  <circle cx="40" cy="42" r="22" fill="#ff9a2e" stroke="#333" stroke-width="2" filter="url(#shadow)"/>
+  <!-- Face -->
+  <circle cx="32" cy="38" r="3" fill="#333"/>
+  <circle cx="48" cy="38" r="3" fill="#333"/>
+  <path d="M32,48 Q40,54 48,48" stroke="#333" stroke-width="2" fill="none"/>
+  <!-- Shine -->
+  <path d="M28,30 Q40,20 44,26" stroke="#fff" stroke-width="2" opacity="0.5" fill="none"/>
+</svg>`);
+
+    // Initial frame for start hint visibility
+    draw();
+  </script>
+</body>
+</html>

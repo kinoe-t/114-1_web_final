@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音韻時空：尋找你的本命歌手</title>
+    <style>
+        :root {
+            --primary: #8e44ad;
+            --secondary: #2980b9;
+            --accent: #e74c3c;
+            --bg: #0d0d1a;
+            --text: #ffffff;
+        }
+
+        body {
+            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            background-color: var(--bg);
+            background: radial-gradient(circle at center, #1b1b3a 0%, #0d0d1a 100%);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 650px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            padding: 40px;
+            border-radius: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            border: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: #2c3e50;
+            border-radius: 3px;
+            margin-bottom: 30px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--secondary), var(--primary));
+            border-radius: 3px;
+            transition: 0.5s ease;
+        }
+
+        .story-box {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #bdc3c7;
+            margin-bottom: 25px;
+            min-height: 100px;
+            font-style: italic;
+        }
+
+        .question-box {
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 30px;
+            color: #ecf0f1;
+        }
+
+        .options-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .option-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 18px;
+            border-radius: 15px;
+            color: white;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s;
+            text-align: left;
+        }
+
+        .option-btn:hover {
+            background: rgba(142, 68, 173, 0.4);
+            border-color: var(--primary);
+            transform: scale(1.02);
+        }
+
+        #start-screen h1 { font-size: 2.5rem; background: linear-gradient(to right, #a29bfe, #6c5ce7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        .result-name { font-size: 2.8rem; font-weight: 800; margin: 20px 0; color: #f1c40f; text-shadow: 0 0 20px rgba(241, 196, 15, 0.5); }
+        .result-desc { font-size: 1.1rem; line-height: 1.6; color: #ddd; }
+
+        .hidden { display: none; }
+        .btn-main { background: var(--primary); border: none; padding: 15px 40px; border-radius: 50px; color: white; font-size: 1.2rem; cursor: pointer; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="screen-start">
+        <h1>🌌 音韻時空</h1>
+        <p>你發現了一個失落的音樂電台，頻率中傳來了跨越時空的召喚。你必須穿越五個不同的音頻維度，每個決定都將引領你找到那位與你靈魂共鳴的引路人。</p>
+        <button class="btn-main" onclick="initQuiz()">開始追尋頻率</button>
+    </div>
+
+    <div id="screen-quiz" class="hidden">
+        <div class="progress-container"><div id="progress" class="progress-bar"></div></div>
+        <div id="story" class="story-box"></div>
+        <div id="question" class="question-box"></div>
+        <div id="options" class="options-grid"></div>
+    </div>
+
+    <div id="screen-result" class="hidden">
+        <h2>🎉 匹配成功！你的引路人是：</h2>
+        <div id="result-singer" class="result-name"></div>
+        <p id="result-desc" class="result-desc"></p>
+        <button class="btn-main" onclick="location.reload()">重新穿越</button>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        {
+            story: "你踏入了一個色彩斑斕、充滿霓虹燈與摩天大樓的未來城市。耳邊響起了一種極具節奏感的電子低音。",
+            q: "你會如何與這個城市互動？",
+            options: [
+                { text: "走進最吵鬧的舞廳，用舞蹈主導節奏", scores: { "LISA": 3, "Bruno Mars": 3, "Jungkook": 2, "蔡依林": 2 } },
+                { text: "尋找一個頂樓天台，靜靜看著光影變化", scores: { "米津玄師": 3, "Billie Eilish": 3, "宇多田光": 2, "林俊傑": 1 } },
+                { text: "在巷弄間穿梭，尋找這座城市的歷史痕跡", scores: { "周杰倫": 3, "Taylor Swift": 2, "IU": 2, "陳奕迅": 3 } }
+            ]
+        },
+        {
+            story: "你來到一個巨大的音樂檔案館，這裡收藏著所有人遺落的情感碎片。管理員要你選擇一罐「情感溶劑」。",
+            q: "你會選擇哪一罐液體？",
+            options: [
+                { text: "金色的液體：代表純粹的快樂與自信", scores: { "Sabrina Carpenter": 3, "NewJeans": 3, "IVE": 3, "Bruno Mars": 2 } },
+                { text: "深藍色的液體：代表治癒傷痕的憂鬱", scores: { "Adele": 3, "中島美嘉": 3, "陳奕迅": 3, "Billie Eilish": 2 } },
+                { text: "紫色的液體：代表對夢想的狂熱與執著", scores: { "Lady Gaga": 3, "鄧紫棋": 3, "BTS": 3, "蔡依林": 3 } }
+            ]
+        },
+        {
+            story: "天空突然裂開，降下了文字雨。每一行字都是一段未完成的歌詞。",
+            q: "你下意識伸手接住的那行字寫著：",
+            options: [
+                { text: "「我們是規則的叛逆者，也是自己的神」", scores: { "Billie Eilish": 3, "Lady Gaga": 3, "King Gnu": 3, "LISA": 2 } },
+                { text: "「時光飛逝，但我依然在原處等你」", scores: { "周杰倫": 3, "IU": 3, "Taylor Swift": 3, "張惠妹": 2 } },
+                { text: "「在平凡的呼吸中，感受生命的重量」", scores: { "宇多田光": 3, "米津玄師": 3, "陳奕迅": 3, "林俊傑": 2 } }
+            ]
+        },
+        {
+            story: "你遇到一位失去了樂器的吟遊詩人，他問你什麼才是音樂的靈魂？",
+            q: "你的回答是：",
+            options: [
+                { text: "是那種能讓人血液沸騰的技術與力量", scores: { "鄧紫棋": 3, "Jungkook": 2, "Lady Gaga": 2, "蔡依林": 2 } },
+                { text: "是歌詞中細膩的故事與真摯的情感", scores: { "Taylor Swift": 3, "IU": 3, "Adele": 3, "張惠妹": 2 } },
+                { text: "是氛圍與前衛的編曲組合出的藝術感", scores: { "米津玄師": 3, "NewJeans": 2, "King Gnu": 3, "宇多田光": 2 } }
+            ]
+        },
+        {
+            story: "出口就在眼前，但你需要選擇一個伴侶跟你一起踏上回程的飛船。",
+            q: "你希望這位伴侶具備什麼特質？",
+            options: [
+                { text: "充滿活力，能隨時炒熱氣氛的領袖", scores: { "Bruno Mars": 3, "LISA": 3, "BTS": 3, "蔡依林": 2 } },
+                { text: "溫柔體貼，能看穿我所有心思的知己", scores: { "IU": 3, "林俊傑": 3, "陳奕迅": 3, "NewJeans": 2 } },
+                { text: "個性十足，雖然難以捉摸但才華橫溢", scores: { "Billie Eilish": 3, "周杰倫": 3, "米津玄師": 3, "King Gnu": 2 } }
+            ]
+        }
+    ];
+
+    const singerInfo = {
+        "周杰倫": "你是當之無愧的華語樂壇天王。擅長融合古典與現代，擁有天馬行空的想像力，你的世界觀就是一個傳奇。",
+        "Taylor Swift": "你是故事的敘事者。你的情感細膩且強大，能將生活中的點滴化作全球共鳴的詩篇，勇敢且多變。",
+        "IU": "你是靈魂的療癒師。嗓音甜美卻蘊含深厚的情感能量，你既是溫柔的知己，也是引領潮流的實力派歌手。",
+        "Billie Eilish": "你是規則的破壞者。你不屑於大眾審美，用低喃與獨特的氛圍感，探索人性最真實、最黑暗也最溫柔的一面。",
+        "米津玄師": "你是孤高的藝術天才。你的音樂充滿了對世界的獨特觀察與哲學思考，旋律中藏著不可思議的魔法。",
+        "LISA": "你是舞台的絕對掌控者。擁有無與倫比的氣場與魅力，你是時尚與潮流的化身，代表著極致的爆發力。",
+        "陳奕迅": "你是靈魂的說書人。你的歌聲裡藏著整個人生，無論是痛苦還是喜悅，都能在你那滄桑而溫暖的嗓音中得到釋懷。",
+        "Bruno Mars": "你是快樂的節奏大師。天生具備靈魂樂的律動，你的存在就是一場大型派對，讓所有人忍不住跟著你起舞。",
+        "NewJeans": "你是清新的代名詞。打破了傳統流行樂的繁瑣，用簡約、自然且充滿復古感的氣息，開創了全新的音樂時代。",
+        "鄧紫棋": "你是鐵肺的唱作才女。擁有跨越世代的唱功與強大的創作力，你用音樂展現了現代女性的堅毅與多變。",
+        "蔡依林": "你是完美的實踐者。不斷地自我革命與突破，你用音樂與表演探討社會議題，是勇氣與蛻變的代名詞。",
+        "宇多田光": "你是時代的先行者。你的旋律中帶著一種永恆的憂鬱與優雅，深刻地影響了東亞流行文化的走向。",
+        "Lady Gaga": "你是大膽的藝術家。你不畏懼世俗目光，用最華麗、誇張的形式表達內在最純粹的情感與平等觀念。",
+        "Adele": "你是純粹的情感火山。不需要過多的裝飾，光憑那深沉且充滿穿透力的嗓音，就能震撼每一個人的心靈。",
+        "Jungkook": "你是全能的黃金忙內。在帥氣的外表下擁有極致的專業與全才的實力，代表著 K-Pop 全球化的巔峰力量。",
+        "King Gnu": "你是揉合爵士、搖滾與藝術的變色龍。充滿都市野性與複雜的和弦美感，讓聽眾陷入一種高級的混亂感。",
+        "林俊傑": "你是行走的 CD。擁有最純淨的嗓音與細膩的編曲能力，你的每一首歌都是一段關於溫暖與心碎的極致體驗。",
+        "BTS": "你是集體夢想的縮影。用勇氣與團結的力量，跨越了語言的障礙，成為全世界青少年的心靈支柱。",
+        "IVE": "你是高貴與精緻的代表。在現代流行的旋律中注入了自信與自愛的態度，充滿了閃耀的偶像魅力。",
+        "Sabrina Carpenter": "你是甜美與辛辣的綜合體。擁有極高的親和力與輕快的流行語感，是現代都市中不可或缺的靈動頻率。",
+        "張惠妹": "你是樂壇的至尊天后。無論是震撼的搖滾還是動人的情歌，你的歌聲中永遠充滿了生命力與包容一切的原野力量。"
+    };
+
+    let currentStep = 0;
+    let scores = {};
+
+    function initQuiz() {
+        document.getElementById('screen-start').classList.add('hidden');
+        document.getElementById('screen-quiz').classList.remove('hidden');
+        showStep();
+    }
+
+    function showStep() {
+        if (currentStep >= quizData.length) {
+            calculateResult();
+            return;
+        }
+
+        const data = quizData[currentStep];
+        document.getElementById('progress').style.width = `${(currentStep / quizData.length) * 100}%`;
+        document.getElementById('story').innerText = data.story;
+        document.getElementById('question').innerText = data.q;
+        
+        const optionsDiv = document.getElementById('options');
+        optionsDiv.innerHTML = '';
+        
+        data.options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt.text;
+            btn.onclick = () => {
+                for (let singer in opt.scores) {
+                    scores[singer] = (scores[singer] || 0) + opt.scores[singer];
+                }
+                currentStep++;
+                showStep();
+            };
+            optionsDiv.appendChild(btn);
+        });
+    }
+
+    function calculateResult() {
+        document.getElementById('screen-quiz').classList.add('hidden');
+        document.getElementById('screen-result').classList.remove('hidden');
+
+        let winner = "";
+        let maxScore = -1;
+
+        // 遍歷得分表找出最高分
+        for (let singer in scores) {
+            if (scores[singer] > maxScore) {
+                maxScore = scores[singer];
+                winner = singer;
+            }
+        }
+
+        // 防呆（如果沒選到任何關鍵字，隨機給一個）
+        if (!winner) winner = "周杰倫";
+
+        document.getElementById('result-singer').innerText = winner;
+        document.getElementById('result-desc').innerText = singerInfo[winner];
+    }
+</script>
+
+</body>
+</html>

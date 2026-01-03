@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋王：優雅飛行版</title>
+    <style>
+        :root { --bg: #fdf6e3; --primary: #073642; --board: #dcb35c; --gold: #b58900; --pink: #d33682; }
+        body { display: flex; flex-direction: column; align-items: center; background: var(--bg); font-family: "Microsoft JhengHei", sans-serif; margin: 0; padding: 20px; overflow-x: hidden; }
+        
+        #menu, #bet-menu { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; width: 350px; }
+        .wallet-container { background: #f0f9ff; border: 2px solid #268bd2; border-radius: 10px; padding: 10px; margin-bottom: 20px; transition: all 0.3s; }
+        .wallet-container.update { animation: shake 0.4s ease-in-out; background: #e0f2fe; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        .wallet { color: #268bd2; font-size: 1.8rem; font-weight: bold; }
+        
+        .btn { display: block; width: 100%; padding: 12px; margin: 10px 0; border: none; border-radius: 8px; cursor: pointer; color: white; font-size: 1rem; transition: 0.2s; }
+        .btn-ez { background: #859900; }
+        .btn-ai { background: #268bd2; }
+        .btn-kj { background: #dc322f; font-weight: bold; }
+        .btn-gamble { background: var(--gold); }
+        .btn-skip { background: #6c71c4; font-weight: bold; display: none; margin-top: 10px; }
+
+        #game-container { display: none; text-align: center; }
+        canvas { background: var(--board); box-shadow: 0 10px 40px rgba(0,0,0,0.4); border-radius: 4px; }
+        #status { font-size: 1.1rem; font-style: italic; margin: 15px; height: 50px; color: #586e75; }
+
+        .insect-btn { position: fixed; bottom: 30px; font-size: 50px; background: none; border: none; cursor: pointer; z-index: 100; transition: transform 0.2s; }
+        #btn-bee { left: 30px; }
+        #btn-butterfly { right: 30px; }
+
+        /* 蝴蝶拍動翅膀動畫 */
+        .butterfly-particle {
+            position: fixed;
+            pointer-events: none;
+            z-index: 99;
+            font-size: 30px;
+            will-change: transform;
+            animation: flap 0.2s infinite alternate ease-in-out;
+        }
+        @keyframes flap {
+            from { transform: scaleX(1); }
+            to { transform: scaleX(0.5); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="menu">
+    <h1>五子棋王：優雅飛行</h1>
+    <div class="wallet-container" id="wallet-box">
+        <div style="font-size: 0.8rem; color: #666;">當前餘額</div>
+        <div class="wallet">💰 $<span id="balance">1000</span></div>
+    </div>
+    <button class="btn btn-ez" onclick="start('ai', 1)">簡單模式</button>
+    <button class="btn btn-ai" onclick="start('ai', 3)">一般模式</button>
+    <button class="btn btn-kj" onclick="start('ai', 4)">挑戰模式</button>
+    <hr>
+    <button class="btn btn-gamble" onclick="openBet()">💎 進入賭場</button>
+</div>
+
+<div id="bet-menu" style="display:none;">
+    <h2>🎲 籌碼下注</h2>
+    <div style="margin-bottom:15px">下注: <input type="number" id="bet-amt" value="100" min="10" style="width:100px; text-align:center;"></div>
+    <button class="btn" style="background:black" onclick="startGamble(1)">押黑勝</button>
+    <button class="btn" style="background:#eee; color:black; border:1px solid #ccc" onclick="startGamble(2)">押白勝</button>
+    <button class="btn" style="background:#666" onclick="goHome()">回主頁</button>
+</div>
+
+<div id="game-container">
+    <div id="status">棋局如戲，全靠演技。</div>
+    <canvas id="board" width="600" height="600"></canvas>
+    <button id="skip-btn" class="btn btn-skip" onclick="skipToResult()">跳過過程 (SKIP)</button>
+    <button class="btn" style="background:#073642; width:auto; padding:10px 40px; margin-top:20px" onclick="goHome()">放棄此局</button>
+</div>
+
+<button id="btn-bee" class="insect-btn" onclick="spawnButterfly('🐝', 'left')">🐝</button>
+<button id="btn-butterfly" class="insect-btn" onclick="spawnButterfly('🦋', 'right')">🦋</button>
+
+<script>
+    // 棋盤邏輯 (保持穩定)
+    const canvas = document.getElementById('board');
+    const ctx = canvas.getContext('2d');
+    const statusDiv = document.getElementById('status');
+    const balanceSpan = document.getElementById('balance');
+    const walletBox = document.getElementById('wallet-box');
+    const skipBtn = document.getElementById('skip-btn');
+    
+    const size = 15, padding = 40, spacing = (600 - padding * 2) / (size - 1);
+    let board = [], gameOver = false, mode = 'ai', diff = 1, turn = 1;
+    let balance = 1000, currentBet = 0, betTarget = 0, fixedResult = 0;
+    let lastMove = null, rippleR = 0, rippleO = 0;
+    let autoTimer = null;
+
+    const elegantRoasts = [
+        "這步棋... 展現了一種獨特的「留白」美學。",
+        "閣下的布局，總是讓人難以揣摩其深意。",
+        "我開始相信，閣下是真的不在乎勝負了。",
+        "如此不落俗套的走法，真教人耳目一新。",
+        "在這種地方落子，想必有著我看不透的遠見。"
+    ];
+
+    function updateBalanceDisplay() {
+        balanceSpan.innerText = balance;
+        walletBox.classList.add('update');
+        setTimeout(() => walletBox.classList.remove('update'), 400);
+    }
+
+    function goHome() {
+        clearTimeout(autoTimer);
+        document.getElementById('game-container').style.display = 'none';
+        document.getElementById('bet-menu').style.display = 'none';
+        document.getElementById('menu').style.display = 'block';
+    }
+
+    function start(m, d) {
+        mode = m; diff = d;
+        document.getElementById('menu').style.display = 'none';
+        document.getElementById('game-container').style.display = 'block';
+        skipBtn.style.display = 'none';
+        init();
+    }
+
+    function openBet() {
+        document.getElementById('menu').style.display = 'none';
+        document.getElementById('bet-menu').style.display = 'block';
+    }
+
+    function startGamble(target) {
+        currentBet = parseInt(document.getElementById('bet-amt').value);
+        if(isNaN(currentBet) || currentBet > balance || currentBet <= 0) return alert("錢不夠。");
+        balance -= currentBet; updateBalanceDisplay();
+        betTarget = target; mode = 'gamble';
+        fixedResult = Math.random() < 0.1 ? 0 : (Math.random() < 0.55 ? 1 : 2);
+        document.getElementById('bet-menu').style.display = 'none';
+        document.getElementById('game-container').style.display = 'block';
+        skipBtn.style.display = 'block';
+        init();
+        autoTimer = setTimeout(aiAutoPlay, 800);
+    }
+
+    function init() {
+        board = Array.from({length: size}, () => Array(size).fill(0));
+        gameOver = false; turn = 1; lastMove = null;
+        requestAnimationFrame(drawLoop);
+    }
+
+    function drawLoop() {
+        ctx.clearRect(0,0,600,600);
+        ctx.strokeStyle = "#443322"; ctx.lineWidth = 1;
+        for(let i=0; i<size; i++) {
+            ctx.beginPath(); ctx.moveTo(padding, padding+i*spacing); ctx.lineTo(600-padding, padding+i*spacing); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(padding+i*spacing, padding); ctx.lineTo(padding+i*spacing, 600-padding); ctx.stroke();
+        }
+        for(let r=0; r<size; r++) for(let c=0; c<size; c++) {
+            if(board[r][c]) {
+                ctx.beginPath(); ctx.arc(padding+c*spacing, padding+r*spacing, spacing*0.4, 0, Math.PI*2);
+                ctx.fillStyle = board[r][c]===1 ? "#111" : "#fff"; ctx.fill();
+            }
+        }
+        if(lastMove && rippleO > 0) {
+            ctx.beginPath(); ctx.arc(padding+lastMove.c*spacing, padding+lastMove.r*spacing, rippleR, 0, Math.PI*2);
+            ctx.strokeStyle = `rgba(255,255,255,${rippleO})`; ctx.lineWidth = 3; ctx.stroke();
+            rippleR += 1.5; rippleO -= 0.02;
+        }
+        if(!gameOver) requestAnimationFrame(drawLoop);
+    }
+
+    function makeMove(r, c) {
+        if(board[r][c] || gameOver) return;
+        board[r][c] = turn; lastMove = {r, c}; rippleR = spacing*0.4; rippleO = 1;
+        if(checkWin(r, c, turn)) return endGame(turn);
+        if(board.flat().every(x => x !== 0)) return endGame(0);
+        if(mode === 'ai' && turn === 1) statusDiv.innerText = elegantRoasts[Math.floor(Math.random()*elegantRoasts.length)];
+        turn = turn === 1 ? 2 : 1;
+        if(mode === 'ai' && turn === 2) setTimeout(aiMove, 600);
+        else if(mode === 'gamble' && !gameOver) autoTimer = setTimeout(aiAutoPlay, 800);
+    }
+
+    function skipToResult() { clearTimeout(autoTimer); endGame(fixedResult); }
+
+    function endGame(winner) {
+        if(gameOver) return;
+        gameOver = true;
+        skipBtn.style.display = 'none';
+        if(winner === 0) {
+            statusDiv.innerText = "和局。";
+            if(mode === 'gamble') balance += currentBet;
+        } else {
+            if(mode === 'gamble') {
+                if(winner === betTarget) { balance += currentBet * 2; statusDiv.innerText = "獲勝，收下籌碼。"; }
+                else statusDiv.innerText = "惜敗，籌碼歸我。";
+            } else {
+                statusDiv.innerText = winner === 1 ? "黑勝" : "白勝";
+            }
+        }
+        updateBalanceDisplay();
+    }
+
+    function aiMove() {
+        if (diff === 1 && Math.random() < 0.9) {
+            let r, c; do { r=Math.floor(Math.random()*size); c=Math.floor(Math.random()*size); } while(board[r][c]!==0);
+            makeMove(r,c); return;
+        }
+        let best = -Infinity, ms = [];
+        for(let r=0; r<size; r++) for(let c=0; c<size; c++) {
+            if(board[r][c]===0) {
+                let s = evalPt(r,c,2) + evalPt(r,c,1)*[0,0,0.4,1,1.8][diff];
+                if(s > best) { best=s; ms=[{r,c}]; } else if(s===best) ms.push({r,c});
+            }
+        }
+        const m = ms[Math.floor(Math.random()*ms.length)]; makeMove(m.r, m.c);
+    }
+
+    function aiAutoPlay() {
+        let best = -Infinity, ms = [];
+        for(let r=0; r<size; r++) for(let c=0; c<size; c++) {
+            if(board[r][c]===0) {
+                let s = evalPt(r,c,turn) + evalPt(r,c,turn===1?2:1)*1.1;
+                if(fixedResult !== 0 && fixedResult !== turn) s *= 0.5;
+                if(s > best) { best=s; ms=[{r,c}]; } else if(s===best) ms.push({r,c});
+            }
+        }
+        const m = ms[Math.floor(Math.random()*ms.length)]; makeMove(m.r, m.c);
+    }
+
+    function evalPt(r,c,p) {
+        let score = 0; const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+        for(let [dr,dc] of dirs) {
+            let count=1, block=0;
+            for(let i=1; i<5; i++) {
+                let nr=r+dr*i, nc=c+dc*i;
+                if(nr<0||nr>=size||nc<0||nc>=size){block++; break;}
+                if(board[nr][nc]===p) count++; else if(board[nr][nc]===0) break; else {block++; break;}
+            }
+            for(let i=1; i<5; i++) {
+                let nr=r-dr*i, nc=c-dc*i;
+                if(nr<0||nr>=size||nc<0||nc>=size){block++; break;}
+                if(board[nr][nc]===p) count++; else if(board[nr][nc]===0) break; else {block++; break;}
+            }
+            if(count>=5) score+=10000; else if(count===4) score+=(block===0?5000:800); else if(count===3) score+=(block===0?500:100);
+        }
+        return score;
+    }
+
+    function checkWin(r,c,p) {
+        const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+        for(let [dr,dc] of dirs) {
+            let cnt=1, i=1;
+            while(r+dr*i>=0&&r+dr*i<size&&c+dc*i>=0&&c+dc*i<size&&board[r+dr*i][c+dc*i]===p){cnt++; i++;}
+            i=1; while(r-dr*i>=0&&r-dr*i<size&&c-dc*i>=0&&c-dc*i<size&&board[r-dr*i][c-dc*i]===p){cnt++; i++;}
+            if(cnt>=5) return true;
+        }
+        return false;
+    }
+
+    canvas.addEventListener('mousedown', e => {
+        if(gameOver || mode==='gamble' || (mode==='ai' && turn===2)) return;
+        const rect = canvas.getBoundingClientRect();
+        const c = Math.round((e.clientX-rect.left-padding)/spacing);
+        const r = Math.round((e.clientY-rect.top-padding)/spacing);
+        if(r>=0 && r<size && c>=0 && c<size) makeMove(r,c);
+    });
+
+    // --- 🦋 新版飛行動畫邏輯 ---
+    function spawnButterfly(emoji, side) {
+        for (let i = 0; i < 6; i++) {
+            const el = document.createElement('div');
+            el.className = 'butterfly-particle';
+            el.innerText = emoji;
+            document.body.appendChild(el);
+
+            const startX = side === 'left' ? -50 : window.innerWidth + 50;
+            const startY = window.innerHeight * (0.4 + Math.random() * 0.4);
+            const targetX = side === 'left' ? window.innerWidth + 100 : -100;
+            
+            let progress = 0;
+            const freq = 0.002 + Math.random() * 0.003;
+            const amp = 50 + Math.random() * 100;
+            const speed = 1.5 + Math.random() * 2;
+            const yOffset = (Math.random() - 0.5) * 200;
+
+            function fly() {
+                progress += speed;
+                const curX = side === 'left' ? startX + progress : startX - progress;
+                const curY = startY + Math.sin(progress * freq) * amp + (progress * 0.1);
+                
+                el.style.left = curX + 'px';
+                el.style.top = curY + 'px';
+                el.style.opacity = 1 - (progress / window.innerWidth);
+
+                if (progress < window.innerWidth + 200) {
+                    requestAnimationFrame(fly);
+                } else {
+                    el.remove();
+                }
+            }
+            fly();
+        }
+    }
+</script>
+</body>
+</html>
