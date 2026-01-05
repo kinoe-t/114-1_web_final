@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>五子棋王：優雅飛行版</title>
+    <title>五子棋王：終極囂張版</title>
     <style>
         :root { --bg: #fdf6e3; --primary: #073642; --board: #dcb35c; --gold: #b58900; --pink: #d33682; }
         body { display: flex; flex-direction: column; align-items: center; background: var(--bg); font-family: "Microsoft JhengHei", sans-serif; margin: 0; padding: 20px; overflow-x: hidden; }
@@ -15,70 +15,68 @@
         .wallet { color: #268bd2; font-size: 1.8rem; font-weight: bold; }
         
         .btn { display: block; width: 100%; padding: 12px; margin: 10px 0; border: none; border-radius: 8px; cursor: pointer; color: white; font-size: 1rem; transition: 0.2s; }
-        .btn-ez { background: #859900; }
-        .btn-ai { background: #268bd2; }
-        .btn-kj { background: #dc322f; font-weight: bold; }
-        .btn-gamble { background: var(--gold); }
-        .btn-skip { background: #6c71c4; font-weight: bold; display: none; margin-top: 10px; }
+        .btn-ez { background: #859900; } /* 放水模式 */
+        .btn-mid { background: #b58900; } /* 微放水 */
+        .btn-hard { background: #cb4b16; } /* 不放水 */
+        .btn-kj { background: #dc322f; font-weight: bold; } /* 柯潔 */
+        .btn-pvp { background: #2aa198; } /* 雙人 */
+        .btn-gamble { background: #6c71c4; } /* 賭場 */
+        .btn-skip { background: #268bd2; font-weight: bold; display: none; margin-top: 10px; }
 
         #game-container { display: none; text-align: center; }
-        canvas { background: var(--board); box-shadow: 0 10px 40px rgba(0,0,0,0.4); border-radius: 4px; }
-        #status { font-size: 1.1rem; font-style: italic; margin: 15px; height: 50px; color: #586e75; }
+        canvas { background: var(--board); box-shadow: 0 10px 40px rgba(0,0,0,0.4); border-radius: 4px; cursor: crosshair; }
+        #status { font-size: 1.1rem; font-style: italic; margin: 15px; height: 50px; color: #586e75; line-height: 1.4; }
 
         .insect-btn { position: fixed; bottom: 30px; font-size: 50px; background: none; border: none; cursor: pointer; z-index: 100; transition: transform 0.2s; }
+        .insect-btn:hover { transform: scale(1.1); }
         #btn-bee { left: 30px; }
         #btn-butterfly { right: 30px; }
 
-        /* 蝴蝶拍動翅膀動畫 */
         .butterfly-particle {
-            position: fixed;
-            pointer-events: none;
-            z-index: 99;
-            font-size: 30px;
-            will-change: transform;
+            position: fixed; pointer-events: none; z-index: 99; font-size: 30px; will-change: transform, opacity;
             animation: flap 0.2s infinite alternate ease-in-out;
         }
-        @keyframes flap {
-            from { transform: scaleX(1); }
-            to { transform: scaleX(0.5); }
-        }
+        @keyframes flap { from { transform: scaleX(1); } to { transform: scaleX(0.5); } }
     </style>
 </head>
 <body>
 
 <div id="menu">
-    <h1>五子棋王：優雅飛行</h1>
+    <h1>五子棋王：終極囂張版</h1>
     <div class="wallet-container" id="wallet-box">
-        <div style="font-size: 0.8rem; color: #666;">當前餘額</div>
+        <div style="font-size: 0.8rem; color: #666;">閣下的當前資產</div>
         <div class="wallet">💰 $<span id="balance">1000</span></div>
     </div>
-    <button class="btn btn-ez" onclick="start('ai', 1)">簡單模式</button>
-    <button class="btn btn-ai" onclick="start('ai', 3)">一般模式</button>
-    <button class="btn btn-kj" onclick="start('ai', 4)">挑戰模式</button>
+    
+    <button class="btn btn-ez" onclick="start('ai', 1)">放水模式 (AI：這棋盤讓我都懶得思考了)</button>
+    <button class="btn btn-mid" onclick="start('ai', 2)">微放水模式 (AI：給點面子，別輸太難看)</button>
+    <button class="btn btn-hard" onclick="start('ai', 3)">不放水模式 (AI：是時候展現真正的技術了)</button>
+    <button class="btn btn-kj" onclick="start('ai', 4)">柯潔模式 (AI：感受來自降維打擊的絕望)</button>
     <hr>
-    <button class="btn btn-gamble" onclick="openBet()">💎 進入賭場</button>
+    <button class="btn btn-pvp" onclick="start('pvp')">雙人對戰 (歡迎菜雞互啄)</button>
+    <button class="btn btn-gamble" onclick="openBet()">💎 地下賭場 (AI 互毆，考驗閣下眼光)</button>
 </div>
 
 <div id="bet-menu" style="display:none;">
     <h2>🎲 籌碼下注</h2>
-    <div style="margin-bottom:15px">下注: <input type="number" id="bet-amt" value="100" min="10" style="width:100px; text-align:center;"></div>
-    <button class="btn" style="background:black" onclick="startGamble(1)">押黑勝</button>
-    <button class="btn" style="background:#eee; color:black; border:1px solid #ccc" onclick="startGamble(2)">押白勝</button>
-    <button class="btn" style="background:#666" onclick="goHome()">回主頁</button>
+    <p style="font-size:0.8rem; color:#666">AI對戰模式，平局全額退款</p>
+    <div style="margin-bottom:15px">下注量: <input type="number" id="bet-amt" value="100" min="10" style="width:100px; text-align:center;"></div>
+    <button class="btn" style="background:black" onclick="startGamble(1)">押【黑子】勝 (看好它能險勝)</button>
+    <button class="btn" style="background:#eee; color:black; border:1px solid #ccc" onclick="startGamble(2)">押【白子】勝 (期待它能逆襲)</button>
+    <button class="btn" style="background:#666" onclick="goHome()">回主選單 (逃避雖可恥但有用)</button>
 </div>
 
 <div id="game-container">
-    <div id="status">棋局如戲，全靠演技。</div>
+    <div id="status">棋局如人生，充滿不確定性。</div>
     <canvas id="board" width="600" height="600"></canvas>
-    <button id="skip-btn" class="btn btn-skip" onclick="skipToResult()">跳過過程 (SKIP)</button>
-    <button class="btn" style="background:#073642; width:auto; padding:10px 40px; margin-top:20px" onclick="goHome()">放棄此局</button>
+    <button id="skip-btn" class="btn btn-skip" onclick="skipToResult()">直接開牌 (SKIP)</button>
+    <button class="btn" style="background:#073642; width:auto; padding:10px 40px; margin-top:20px" onclick="goHome()">放棄此局 (趁早止損)</button>
 </div>
 
-<button id="btn-bee" class="insect-btn" onclick="spawnButterfly('🐝', 'left')">🐝</button>
-<button id="btn-butterfly" class="insect-btn" onclick="spawnButterfly('🦋', 'right')">🦋</button>
+<button id="btn-bee" class="insect-btn" onclick="spawnInsect('🐝', 'left')">🐝</button>
+<button id="btn-butterfly" class="insect-btn" onclick="spawnInsect('🦋', 'right')">🦋</button>
 
 <script>
-    // 棋盤邏輯 (保持穩定)
     const canvas = document.getElementById('board');
     const ctx = canvas.getContext('2d');
     const statusDiv = document.getElementById('status');
@@ -87,21 +85,54 @@
     const skipBtn = document.getElementById('skip-btn');
     
     const size = 15, padding = 40, spacing = (600 - padding * 2) / (size - 1);
-    let board = [], gameOver = false, mode = 'ai', diff = 1, turn = 1;
-    let balance = 1000, currentBet = 0, betTarget = 0, fixedResult = 0;
+    let board = [], gameOver = false, mode = 'ai', diff = 1, turn = 1; // diff: 1:easy, 2:mid, 3:hard, 4:kj
+    let balance = parseInt(localStorage.getItem('gobangBalance')) || 1000;
+    let currentBet = 0, betTarget = 0, fixedResult = 0; // 0: draw, 1: black win, 2: white win
     let lastMove = null, rippleR = 0, rippleO = 0;
     let autoTimer = null;
 
-    const elegantRoasts = [
-        "這步棋... 展現了一種獨特的「留白」美學。",
-        "閣下的布局，總是讓人難以揣摩其深意。",
-        "我開始相信，閣下是真的不在乎勝負了。",
-        "如此不落俗套的走法，真教人耳目一新。",
-        "在這種地方落子，想必有著我看不透的遠見。"
-    ];
+    const aiRoasts = {
+        1: [ // Easy
+            "嗯，這一步... 有自己的想法，值得鼓勵。",
+            "看來閣下對勝負有著超脫世俗的淡泊。",
+            "這手棋的靈感，是來自某種行為藝術嗎？",
+            "這種隨心所欲的下法，倒也別具一格。",
+            "棋盤上的詩人，大概就是閣下這般吧。"
+        ],
+        2: [ // Mid
+            "這步棋的思路，似乎在我的預料之中。",
+            "有些意思，但還不足以構成威脅。",
+            "閣下是否考慮過更深遠的布局？嗯，大概沒有。",
+            "這一手... 真是教科書般的平庸啊。",
+            "別急，慢慢下，反正時間很多。"
+        ],
+        3: [ // Hard
+            "這步棋，讓我開始思考您的人生了。",
+            "我不得不承認，這手棋... 勉強還行。",
+            "看來閣下是想挑戰我的耐心嗎？",
+            "每一次落子，都感覺到棋盤在哭泣。",
+            "可惜了，這一步離完美還差了十萬八千里。"
+        ],
+        4: [ // Kejie
+            "這一步... 讓棋盤都感到寂寞了。",
+            "閣下的腦迴路，果然是凡人無法理解的境界。",
+            "恭喜閣下，成功避開了所有的勝利之路。",
+            "在絕對的實力面前，任何掙扎都是徒勞。",
+            "您的每一步，都在為我的勝利鋪墊。",
+            "這就是你全部的實力嗎？真是令人失望。"
+        ]
+    };
+
+    const aiWinRewards = {
+        1: 50,  // Easy
+        2: 150, // Mid
+        3: 300, // Hard
+        4: 500  // Kejie
+    };
 
     function updateBalanceDisplay() {
         balanceSpan.innerText = balance;
+        localStorage.setItem('gobangBalance', balance); // Save balance
         walletBox.classList.add('update');
         setTimeout(() => walletBox.classList.remove('update'), 400);
     }
@@ -128,20 +159,26 @@
 
     function startGamble(target) {
         currentBet = parseInt(document.getElementById('bet-amt').value);
-        if(isNaN(currentBet) || currentBet > balance || currentBet <= 0) return alert("錢不夠。");
+        if(isNaN(currentBet) || currentBet > balance || currentBet <= 0) return alert("閣下的籌碼似乎有些捉襟見肘，請理性下注。");
         balance -= currentBet; updateBalanceDisplay();
         betTarget = target; mode = 'gamble';
-        fixedResult = Math.random() < 0.1 ? 0 : (Math.random() < 0.55 ? 1 : 2);
+        
+        // 隨機結果 (10% 平局, 45% 黑勝, 45% 白勝)
+        const r = Math.random();
+        fixedResult = r < 0.1 ? 0 : (r < 0.55 ? 1 : 2); // 0:draw, 1:black, 2:white
+
         document.getElementById('bet-menu').style.display = 'none';
         document.getElementById('game-container').style.display = 'block';
         skipBtn.style.display = 'block';
         init();
-        autoTimer = setTimeout(aiAutoPlay, 800);
+        autoTimer = setTimeout(aiAutoPlay, 800); // AI auto play
     }
 
     function init() {
         board = Array.from({length: size}, () => Array(size).fill(0));
         gameOver = false; turn = 1; lastMove = null;
+        statusDiv.innerText = mode === 'pvp' ? "黑子先行，請指示。" : 
+                              (mode === 'gamble' ? "AI 之間將展開一場精彩的對決..." : "黑子先行，請開始閣下的表演。");
         requestAnimationFrame(drawLoop);
     }
 
@@ -158,112 +195,185 @@
                 ctx.fillStyle = board[r][c]===1 ? "#111" : "#fff"; ctx.fill();
             }
         }
+        // 落子特效
         if(lastMove && rippleO > 0) {
             ctx.beginPath(); ctx.arc(padding+lastMove.c*spacing, padding+lastMove.r*spacing, rippleR, 0, Math.PI*2);
             ctx.strokeStyle = `rgba(255,255,255,${rippleO})`; ctx.lineWidth = 3; ctx.stroke();
-            rippleR += 1.5; rippleO -= 0.02;
+            rippleR += 1.5; rippleO -= 0.02; // 半徑擴大，透明度降低
         }
         if(!gameOver) requestAnimationFrame(drawLoop);
     }
 
     function makeMove(r, c) {
         if(board[r][c] || gameOver) return;
-        board[r][c] = turn; lastMove = {r, c}; rippleR = spacing*0.4; rippleO = 1;
+        board[r][c] = turn;
+        lastMove = {r, c}; rippleR = spacing*0.4; rippleO = 1; // 啟動特效
+        
         if(checkWin(r, c, turn)) return endGame(turn);
-        if(board.flat().every(x => x !== 0)) return endGame(0);
-        if(mode === 'ai' && turn === 1) statusDiv.innerText = elegantRoasts[Math.floor(Math.random()*elegantRoasts.length)];
+        if(board.flat().every(x => x !== 0)) return endGame(0); // 平局
+
         turn = turn === 1 ? 2 : 1;
-        if(mode === 'ai' && turn === 2) setTimeout(aiMove, 600);
-        else if(mode === 'gamble' && !gameOver) autoTimer = setTimeout(aiAutoPlay, 800);
+        
+        if(mode === 'ai') {
+            if (turn === 2) { // AI的回合
+                statusDiv.innerText = "AI 正在思考... 你還有幾步好棋呢？";
+                setTimeout(aiMove, 1200); // 給AI思考時間
+            } else { // 玩家的回合，顯示AI的嘴砲
+                statusDiv.innerText = aiRoasts[diff][Math.floor(Math.random()*aiRoasts[diff].length)];
+            }
+        } else if (mode === 'gamble' && !gameOver) {
+            autoTimer = setTimeout(aiAutoPlay, 600);
+        } else if (mode === 'pvp') {
+             statusDiv.innerText = turn === 1 ? "黑子請落子。" : "白子請落子。";
+        }
     }
 
-    function skipToResult() { clearTimeout(autoTimer); endGame(fixedResult); }
+    function skipToResult() {
+        clearTimeout(autoTimer);
+        endGame(fixedResult); // 直接揭曉結果
+    }
 
     function endGame(winner) {
         if(gameOver) return;
         gameOver = true;
         skipBtn.style.display = 'none';
-        if(winner === 0) {
-            statusDiv.innerText = "和局。";
-            if(mode === 'gamble') balance += currentBet;
-        } else {
+        let msg = "";
+
+        if(winner === 0) { // 平局
+            msg = "棋逢敵手，這是一場勢均力敵的平局。";
             if(mode === 'gamble') {
-                if(winner === betTarget) { balance += currentBet * 2; statusDiv.innerText = "獲勝，收下籌碼。"; }
-                else statusDiv.innerText = "惜敗，籌碼歸我。";
-            } else {
-                statusDiv.innerText = winner === 1 ? "黑勝" : "白勝";
+                balance += currentBet; // 退還賭金
+                msg += "賭金已全數奉還，下次請繼續。";
+            }
+        } else { // 有勝負
+            const winnerColor = winner === 1 ? "黑子" : "白子";
+            if(mode === 'ai') {
+                if(winner === 1) { // 玩家贏了AI
+                    const reward = aiWinRewards[diff];
+                    balance += reward;
+                    msg = `恭喜閣下，成功擊敗了AI！贏得籌碼 $${reward}！`;
+                } else { // 玩家輸給AI
+                    msg = `很遺憾，閣下的挑戰失敗了。AI表示這只是熱身。`;
+                }
+            } else if(mode === 'gamble') {
+                if(winner === betTarget) {
+                    balance += currentBet * 2; // 賭金加倍
+                    msg = `【${winnerColor}】獲勝！恭喜閣下慧眼識珠，贏得籌碼 $${currentBet * 2}！`;
+                } else {
+                    msg = `【${winnerColor}】獲勝。可惜閣下這次判斷失誤，籌碼就由在下代收了。`;
+                }
+            } else if (mode === 'pvp') {
+                msg = `恭喜【${winnerColor}】獲勝！棋藝高超，令人佩服。`;
             }
         }
         updateBalanceDisplay();
+        statusDiv.innerText = msg;
     }
 
     function aiMove() {
-        if (diff === 1 && Math.random() < 0.9) {
-            let r, c; do { r=Math.floor(Math.random()*size); c=Math.floor(Math.random()*size); } while(board[r][c]!==0);
-            makeMove(r,c); return;
-        }
-        let best = -Infinity, ms = [];
+        if(gameOver) return;
+        let best = -Infinity, moves = [];
+        // AI難度調整，diff越大，AI越強
+        // diff值越高，對玩家威脅度(evalPt(r,c,1))的權重越高，即越會阻擋玩家
+        const playerThreatWeight = [0, 0, 0.4, 1.0, 2.0][diff]; // 調整對手威脅的評估權重
+        
         for(let r=0; r<size; r++) for(let c=0; c<size; c++) {
             if(board[r][c]===0) {
-                let s = evalPt(r,c,2) + evalPt(r,c,1)*[0,0,0.4,1,1.8][diff];
-                if(s > best) { best=s; ms=[{r,c}]; } else if(s===best) ms.push({r,c});
+                // 評估自己落子後的得分 + 評估對手在該位置落子的威脅（乘上權重）
+                let score = evalPoint(r,c,2) + evalPoint(r,c,1) * playerThreatWeight;
+                if(score > best) { best=score; moves=[{r,c}]; } else if(score===best) moves.push({r,c});
             }
         }
-        const m = ms[Math.floor(Math.random()*ms.length)]; makeMove(m.r, m.c);
+        const move = moves[Math.floor(Math.random()*moves.length)];
+        makeMove(move.r, move.c);
     }
 
-    function aiAutoPlay() {
-        let best = -Infinity, ms = [];
+    function aiAutoPlay() { // 用於AI互毆模式
+        if(gameOver) return;
+        let best = -Infinity, moves = [];
         for(let r=0; r<size; r++) for(let c=0; c<size; c++) {
             if(board[r][c]===0) {
-                let s = evalPt(r,c,turn) + evalPt(r,c,turn===1?2:1)*1.1;
-                if(fixedResult !== 0 && fixedResult !== turn) s *= 0.5;
-                if(s > best) { best=s; ms=[{r,c}]; } else if(s===best) ms.push({r,c});
+                let score = evalPoint(r,c,turn) + evalPoint(r,c,turn===1?2:1)*1.1; // 略微看重防守
+                // 如果預設結果是某方勝利，則對反向結果的得分進行懲罰
+                if (fixedResult !== 0 && fixedResult !== turn) {
+                    score *= 0.7; // 稍微降低傾向於獲勝的AI的得分
+                }
+                if(score > best) { best=score; moves=[{r,c}]; } else if(score===best) moves.push({r,c});
             }
         }
-        const m = ms[Math.floor(Math.random()*ms.length)]; makeMove(m.r, m.c);
+        const move = moves[Math.floor(Math.random()*moves.length)];
+        makeMove(move.r, move.c);
     }
 
-    function evalPt(r,c,p) {
-        let score = 0; const dirs = [[0,1],[1,0],[1,1],[1,-1]];
-        for(let [dr,dc] of dirs) {
-            let count=1, block=0;
+    // 評估某個點對於某個玩家的分數
+    function evalPoint(r,c,player) {
+        let score = 0;
+        const directions = [[0,1],[1,0],[1,1],[1,-1]]; // 水平, 垂直, 對角線
+        for(let [dr,dc] of directions) {
+            let count = 1; // 該方向上連子數 (包含當前點)
+            let openEnds = 0; // 開口數量
+
+            // 向一個方向延伸
+            let block1 = false;
             for(let i=1; i<5; i++) {
-                let nr=r+dr*i, nc=c+dc*i;
-                if(nr<0||nr>=size||nc<0||nc>=size){block++; break;}
-                if(board[nr][nc]===p) count++; else if(board[nr][nc]===0) break; else {block++; break;}
+                let nr = r + dr*i, nc = c + dc*i;
+                if(nr<0||nr>=size||nc<0||nc>=size) { block1 = true; break; } // 邊界
+                if(board[nr][nc] === player) count++;
+                else if(board[nr][nc] === 0) { openEnds++; break; } // 遇到空位
+                else { block1 = true; break; } // 遇到對方棋子
             }
+
+            // 向另一個方向延伸
+            let block2 = false;
             for(let i=1; i<5; i++) {
-                let nr=r-dr*i, nc=c-dc*i;
-                if(nr<0||nr>=size||nc<0||nc>=size){block++; break;}
-                if(board[nr][nc]===p) count++; else if(board[nr][nc]===0) break; else {block++; break;}
+                let nr = r - dr*i, nc = c - dc*i;
+                if(nr<0||nr>=size||nc<0||nc>=size) { block2 = true; break; } // 邊界
+                if(board[nr][nc] === player) count++;
+                else if(board[nr][nc] === 0) { openEnds++; break; } // 遇到空位
+                else { block2 = true; break; } // 遇到對方棋子
             }
-            if(count>=5) score+=10000; else if(count===4) score+=(block===0?5000:800); else if(count===3) score+=(block===0?500:100);
+
+            // 根據連子數和開口情況給分
+            if (count >= 5) score += 100000; // 贏了
+            else if (count === 4) {
+                if (openEnds === 2) score += 10000; // 活四
+                else if (openEnds === 1) score += 1000; // 眠四
+            }
+            else if (count === 3) {
+                if (openEnds === 2) score += 1000; // 活三
+                else if (openEnds === 1) score += 100; // 眠三
+            }
+            else if (count === 2 && openEnds === 2) score += 50; // 活二
         }
         return score;
     }
 
-    function checkWin(r,c,p) {
-        const dirs = [[0,1],[1,0],[1,1],[1,-1]];
-        for(let [dr,dc] of dirs) {
-            let cnt=1, i=1;
-            while(r+dr*i>=0&&r+dr*i<size&&c+dc*i>=0&&c+dc*i<size&&board[r+dr*i][c+dc*i]===p){cnt++; i++;}
-            i=1; while(r-dr*i>=0&&r-dr*i<size&&c-dc*i>=0&&c-dc*i<size&&board[r-dr*i][c-dc*i]===p){cnt++; i++;}
-            if(cnt>=5) return true;
+    function checkWin(r,c,player) {
+        const directions = [[0,1],[1,0],[1,1],[1,-1]];
+        for(let [dr,dc] of directions) {
+            let count = 1;
+            for(let i=1; i<5; i++) {
+                let nr = r + dr*i, nc = c + dc*i;
+                if(nr>=0&&nr<size&&nc>=0&&nc<size&&board[nr][nc]===player) count++; else break;
+            }
+            for(let i=1; i<5; i++) {
+                let nr = r - dr*i, nc = c - dc*i;
+                if(nr>=0&&nr<size&&nc>=0&&nc<size&&board[nr][nc]===player) count++; else break;
+            }
+            if(count>=5) return true;
         }
         return false;
     }
 
     canvas.addEventListener('mousedown', e => {
-        if(gameOver || mode==='gamble' || (mode==='ai' && turn===2)) return;
+        if(gameOver || mode === 'gamble' || (mode === 'ai' && turn === 2)) return;
         const rect = canvas.getBoundingClientRect();
         const c = Math.round((e.clientX-rect.left-padding)/spacing);
         const r = Math.round((e.clientY-rect.top-padding)/spacing);
         if(r>=0 && r<size && c>=0 && c<size) makeMove(r,c);
     });
 
-    // --- 🦋 新版飛行動畫邏輯 ---
-    function spawnButterfly(emoji, side) {
+    function spawnInsect(emoji, side) {
         for (let i = 0; i < 6; i++) {
             const el = document.createElement('div');
             el.className = 'butterfly-particle';
@@ -271,25 +381,23 @@
             document.body.appendChild(el);
 
             const startX = side === 'left' ? -50 : window.innerWidth + 50;
-            const startY = window.innerHeight * (0.4 + Math.random() * 0.4);
-            const targetX = side === 'left' ? window.innerWidth + 100 : -100;
+            const startY = window.innerHeight * (0.3 + Math.random() * 0.4);
             
             let progress = 0;
-            const freq = 0.002 + Math.random() * 0.003;
-            const amp = 50 + Math.random() * 100;
-            const speed = 1.5 + Math.random() * 2;
-            const yOffset = (Math.random() - 0.5) * 200;
+            const freq = 0.002 + Math.random() * 0.003; // 波浪頻率
+            const amp = 60 + Math.random() * 120; // 波浪幅度
+            const speed = 2 + Math.random() * 2; // 飛行速度
 
             function fly() {
                 progress += speed;
                 const curX = side === 'left' ? startX + progress : startX - progress;
-                const curY = startY + Math.sin(progress * freq) * amp + (progress * 0.1);
+                const curY = startY + Math.sin(progress * freq) * amp;
                 
                 el.style.left = curX + 'px';
                 el.style.top = curY + 'px';
-                el.style.opacity = 1 - (progress / window.innerWidth);
+                el.style.opacity = 1 - (progress / window.innerWidth); // 逐漸淡出
 
-                if (progress < window.innerWidth + 200) {
+                if (progress < window.innerWidth + 200) { // 飛出螢幕後移除
                     requestAnimationFrame(fly);
                 } else {
                     el.remove();
@@ -298,6 +406,8 @@
             fly();
         }
     }
+
+    updateBalanceDisplay(); // Initial display of balance
 </script>
 </body>
 </html>
