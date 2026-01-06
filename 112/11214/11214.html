@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星塵預言 - 整合版</title>
+
+    <!-- Google Fonts 引入 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=UoqMunThenKhung&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
+
+    <style>
+        /* 全域字體設定 - 使用宇文天穹字體 */
+        * {
+            font-family: 'UoqMunThenKhung', serif;
+        }
+
+        /* 字體平滑處理 */
+        body, h1, h2, h3, h4, h5, h6, p, span, div, button, input, textarea, select, small {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        :root {
+            --gold: #ffd700;
+            --phi: 1.618;
+            --bg-color: #00050a;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* 統一的星空背景畫布 */
+        #starfield {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            pointer-events: none;
+            will-change: auto; /* 優化渲染效能 */
+        }
+
+        /* 星座動畫畫布 */
+        #constellation-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 5;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            will-change: opacity; /* 優化動畫效能 */
+        }
+
+        .container {
+            position: relative;
+            text-align: center;
+            width: 90%;
+            max-width: 600px;
+            z-index: 10;
+            will-change: transform; /* 優化動畫效能 */
+        }
+
+        /* 文字動畫 */
+        #display-text {
+            font-size: 1.8rem;
+            color: var(--gold);
+            min-height: 2.5rem;
+            letter-spacing: 5px;
+            text-shadow: 0 0 15px var(--gold);
+            will-change: transform, opacity;
+            transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 1s ease;
+            transform: translateZ(0); /* 啟用硬體加速 */
+        }
+        .text-rise {
+            transform: translateY(-100px);
+        }
+
+        /* 星座選單 */
+        #zodiac-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 1s ease;
+            margin-top: -50px;
+        }
+        .zodiac-item {
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 215, 0, 0.1);
+            cursor: pointer;
+            transition: 0.3s;
+            border-radius: 8px;
+        }
+        .zodiac-item:hover {
+            border-color: var(--gold);
+            background: rgba(255, 215, 0, 0.2);
+            transform: scale(1.05);
+        }
+
+        /* 分析報告 */
+        #result-screen {
+            display: none;
+            text-align: left;
+            background: rgba(5, 5, 15, 0.95);
+            padding: 40px;
+            border: 1px solid var(--gold);
+            border-radius: 10px;
+            animation: fadeInBlur 2s ease-out forwards;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        @keyframes fadeInBlur {
+            from { opacity: 0; filter: blur(10px); transform: translateY(20px); }
+            to { opacity: 1; filter: blur(0); transform: translateY(0); }
+        }
+
+        .res-row {
+            margin: 18px 0;
+            font-size: 1.1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 8px;
+            opacity: 0;
+            animation: slideInFromLeft 0.8s ease-out forwards;
+        }
+
+        /* 為每個項目設定不同的延遲 */
+        .res-row:nth-child(1) { animation-delay: 0.2s; }
+        .res-row:nth-child(2) { animation-delay: 0.4s; }
+        .res-row:nth-child(3) { animation-delay: 0.6s; }
+        .res-row:nth-child(4) { animation-delay: 0.8s; }
+        .res-row:nth-child(5) { animation-delay: 1s; }
+
+        @keyframes slideInFromLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        .stars-glow {
+            color: var(--gold);
+            text-shadow: 0 0 8px var(--gold);
+            font-size: 1.3rem;
+            display: inline-block;
+        }
+
+        .color-center-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 15px 0;
+        }
+        .color-block {
+            width: 33.33%;
+            height: calc(33.33vw / var(--phi) / 3.5);
+            max-height: 40px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 1px 1px 3px #000;
+            font-size: 1rem;
+            border: 1px solid rgba(255,255,255,0.5);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-ritual {
+            padding: 15px 50px;
+            background: transparent;
+            color: var(--gold);
+            border: 2px solid var(--gold);
+            cursor: pointer;
+            letter-spacing: 10px;
+            transition: 0.5s;
+            border-radius: 30px;
+            font-size: 1.1rem;
+        }
+        .btn-ritual:hover {
+            background: var(--gold);
+            color: black;
+            box-shadow: 0 0 20px var(--gold);
+            transform: scale(1.05);
+        }
+
+        /* 音效開關按鈕 */
+        .audio-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid var(--gold);
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: 0.3s;
+            z-index: 100;
+        }
+        .audio-toggle:hover {
+            background: rgba(255, 215, 0, 0.2);
+            transform: scale(1.1);
+        }
+        .audio-toggle.active {
+            background: rgba(255, 215, 0, 0.3);
+        }
+
+        @media (max-width: 600px) {
+            #zodiac-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            #display-text {
+                font-size: 1.2rem;
+            }
+        }
+
+        /* ========== Loading 動畫樣式 ========== */
+        #loader-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 6, 15, 0.98);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .loader-circle {
+            width: 180px;
+            height: 180px;
+            border: 3px solid transparent;
+            border-top: 3px solid #ffd700;
+            border-bottom: 3px solid #ffd700;
+            border-radius: 50%;
+            animation: spin 2s linear infinite;
+            position: relative;
+        }
+
+        .loader-circle::before {
+            content: "";
+            position: absolute;
+            inset: 15px;
+            border: 3px solid transparent;
+            border-left: 3px solid #fff;
+            border-right: 3px solid #fff;
+            border-radius: 50%;
+            animation: spin-reverse 1.5s linear infinite;
+        }
+
+        .loading-text {
+            margin-top: 40px;
+            font-size: 2.2rem;
+            letter-spacing: 12px;
+            color: #ffd700;
+            text-shadow: 0 0 20px #ffd700;
+            animation: loadingPulse 1.5s ease-in-out infinite;
+            transition: opacity 0.3s ease;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        @keyframes spin-reverse {
+            to { transform: rotate(-360deg); }
+        }
+        @keyframes loadingPulse {
+            0%, 100% {
+                opacity: 0.5;
+                transform: scale(0.95);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.05);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 星空背景畫布 -->
+    <canvas id="starfield"></canvas>
+
+    <!-- 星座動畫畫布 -->
+    <canvas id="constellation-canvas"></canvas>
+
+    <!-- 音效開關按鈕 -->
+    <div class="audio-toggle" id="audioToggle" title="背景音效">🔇</div>
+
+    <div class="container">
+        <div id="welcome-screen">
+            <h2 style="letter-spacing: 15px; font-weight: 400; font-size: 2rem;">命運的星盤正在旋轉</h2>
+            <button class="btn-ritual" onclick="triggerRitual()">感知命運</button>
+        </div>
+
+        <div id="action-area" style="display: none;">
+            <div id="display-text"></div>
+            <div id="zodiac-grid"></div>
+        </div>
+
+        <div id="result-screen">
+            <div id="report-content"></div>
+            <button class="btn-ritual" style="margin-top: 30px; width: 100%; font-size: 0.8rem;" onclick="location.reload()">重新感應</button>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            "use strict";
+
+            // ========== 宇宙背景音效系統 ==========
+            let audioCtx = null;
+            let oscillators = [];
+            let breathIntervals = [];
+
+            function playSpaceAmbient() {
+                if (audioCtx) return;
+
+                try {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const frequencies = [65.41, 98.00];
+
+                    frequencies.forEach((freq, index) => {
+                        const osc = audioCtx.createOscillator();
+                        const gainNode = audioCtx.createGain();
+
+                        osc.type = 'sine';
+                        osc.frequency.value = freq; // 直接設值更快
+                        gainNode.gain.value = 0.01;
+
+                        // 優化的呼吸循環
+                        function createBreathCycle() {
+                            if (!audioCtx || audioCtx.state !== 'running') return;
+                            const now = audioCtx.currentTime;
+                            gainNode.gain.cancelScheduledValues(now);
+                            gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+                            gainNode.gain.linearRampToValueAtTime(0.04, now + 4);
+                            gainNode.gain.linearRampToValueAtTime(0.01, now + 8);
+                        }
+
+                        createBreathCycle();
+                        const interval = setInterval(createBreathCycle, 8000);
+                        breathIntervals.push(interval);
+
+                        osc.connect(gainNode);
+                        gainNode.connect(audioCtx.destination);
+                        osc.start();
+
+                        oscillators.push({ osc, gainNode });
+                    });
+                } catch (error) {
+                    console.warn('音效初始化失敗:', error);
+                }
+            }
+
+            function stopSpaceAmbient() {
+                if (!audioCtx) return;
+
+                // 清除所有間隔
+                breathIntervals.forEach(interval => clearInterval(interval));
+                breathIntervals = [];
+
+                // 停止所有振盪器
+                oscillators.forEach(({ osc, gainNode }) => {
+                    try {
+                        gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
+                        gainNode.gain.setValueAtTime(gainNode.gain.value, audioCtx.currentTime);
+                        gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+                        setTimeout(() => {
+                            try { osc.stop(); } catch(e) {}
+                        }, 500);
+                    } catch(e) {}
+                });
+
+                oscillators = [];
+
+                setTimeout(() => {
+                    if (audioCtx) {
+                        audioCtx.close();
+                        audioCtx = null;
+                    }
+                }, 600);
+            }
+
+            // ========== 星空背景系統 ==========
+            const starfield = document.getElementById('starfield');
+            const starCtx = starfield.getContext('2d');
+            let stars = [];
+            const starCount = 300; // 從 400 降到 300 提升效能
+            let meteors = [];
+            let lastTime = 0;
+
+            function initStarfield() {
+                starfield.width = window.innerWidth;
+                starfield.height = window.innerHeight;
+                stars = [];
+                const width = starfield.width;
+                const height = starfield.height;
+
+                // 批次創建星星，減少迴圈開銷
+                for (let i = 0; i < starCount; i++) {
+                    stars.push({
+                        x: Math.random() * width,
+                        y: Math.random() * height,
+                        size: Math.random() * 0.8 + 0.3,
+                        opacity: Math.random(),
+                        speed: Math.random() * 0.015 + 0.005,
+                        maxOpacity: Math.random() * 0.5 + 0.5 // 預計算最大透明度
+                    });
+                }
+            }
+
+            function drawStarfield(currentTime) {
+                // 使用時間戳控制更新頻率
+                const deltaTime = currentTime - lastTime;
+
+                if (deltaTime < 16) { // 限制在 60 FPS
+                    requestAnimationFrame(drawStarfield);
+                    return;
+                }
+                lastTime = currentTime;
+
+                // 清除畫布
+                starCtx.clearRect(0, 0, starfield.width, starfield.height);
+
+                // 批次設定 shadow 屬性，減少狀態切換
+                const now = Date.now();
+
+                // 繪製星星 - 優化迴圈
+                for (let i = 0; i < stars.length; i++) {
+                    const s = stars[i];
+                    s.opacity += s.speed;
+
+                    if (s.opacity > s.maxOpacity || s.opacity < 0.1) {
+                        s.speed = -s.speed;
+                    }
+
+                    starCtx.fillStyle = `rgba(255, 255, 255, ${s.opacity})`;
+                    starCtx.shadowBlur = s.size * 3;
+                    starCtx.shadowColor = 'white';
+                    starCtx.beginPath();
+                    starCtx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                    starCtx.fill();
+                }
+
+                starCtx.shadowBlur = 0; // 重置 shadow
+
+                // 流星效果 - 降低生成頻率
+                if (Math.random() < 0.005) {
+                    meteors.push({
+                        x: Math.random() * starfield.width,
+                        y: Math.random() * starfield.height * 0.3,
+                        len: Math.random() * 80 + 40,
+                        speed: Math.random() * 10 + 8,
+                        birthTime: now
+                    });
+                }
+
+                // 反向遍歷，避免刪除元素時的索引問題
+                for (let i = meteors.length - 1; i >= 0; i--) {
+                    const m = meteors[i];
+                    const age = now - m.birthTime;
+
+                    if (age > 1000 || m.y > starfield.height || m.x < -m.len) {
+                        meteors.splice(i, 1);
+                        continue;
+                    }
+
+                    m.x -= m.speed;
+                    m.y += m.speed;
+
+                    const opacity = 0.4 * (1 - age / 1000);
+                    starCtx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+                    starCtx.lineWidth = 1.5;
+                    starCtx.beginPath();
+                    starCtx.moveTo(m.x, m.y);
+                    starCtx.lineTo(m.x + m.len, m.y - m.len);
+                    starCtx.stroke();
+                }
+
+                requestAnimationFrame(drawStarfield);
+            }
+
+            // ========== 星座運勢系統 ==========
+            const zodiacs = [
+                { name: "牡羊座", icon: "♈", points: [[100,200], [180,120], [280,150], [320,220]] },
+                { name: "金牛座", icon: "♉", points: [[50,100], [150,200], [230,210], [330,150], [380,80]] },
+                { name: "雙子座", icon: "♊", points: [[120,80], [120,320], [240,80], [240,320], [120,200], [240,200]] },
+                { name: "巨蟹座", icon: "♋", points: [[200,80], [200,200], [140,280], [260,280]] },
+                { name: "獅子座", icon: "♌", points: [[350,250], [250,280], [180,240], [150,150], [250,120], [300,180]] },
+                { name: "處女座", icon: "♍", points: [[80,80], [150,200], [220,200], [280,140], [350,250], [220,320]] },
+                { name: "天秤座", icon: "♎", points: [[200,80], [130,200], [270,200], [200,320]] },
+                { name: "天蠍座", icon: "♏", points: [[80,120], [180,120], [220,220], [190,300], [120,340], [260,340]] },
+                { name: "射手座", icon: "♐", points: [[150,150], [280,150], [210,280], [210,80], [150,340]] },
+                { name: "摩羯座", icon: "♑", points: [[80,150], [200,340], [320,150], [200,210]] },
+                { name: "水瓶座", icon: "♒", points: [[80,150], [150,120], [220,180], [290,150], [360,210]] },
+                { name: "雙魚座", icon: "♓", points: [[80,80], [210,210], [340,80], [210,340]] }
+            ];
+
+            const saturatedColors = [
+                { n: "極致艷紅", c: "#FF0000" },
+                { n: "亮麗靛藍", c: "#0000FF" },
+                { n: "活力亮橘", c: "#FF8C00" },
+                { n: "神祕深紫", c: "#800080" },
+                { n: "螢光翠綠", c: "#00FF00" },
+                { n: "深海湛藍", c: "#1E90FF" },
+                { n: "奢華濃金", c: "#B8860B" },
+                { n: "飽和玫瑰", c: "#E91E63" },
+                { n: "寶石紅", c: "#DC143C" },
+                { n: "孔雀藍", c: "#20B2AA" },
+                { n: "薰衣草紫", c: "#9370DB" },
+                { n: "檸檬黃", c: "#FFD700" },
+                { n: "森林綠", c: "#228B22" },
+                { n: "珊瑚橘", c: "#FF7F50" },
+                { n: "午夜藍", c: "#191970" },
+                { n: "酒紅色", c: "#8B0000" },
+                { n: "湖水綠", c: "#00CED1" },
+                { n: "蜜桃粉", c: "#FFB6C1" },
+                { n: "琥珀金", c: "#FFBF00" },
+                { n: "青瓷綠", c: "#7FFFD4" }
+            ];
+
+            const soupLib = [
+                "「你所追求的，也正火熱地追求著你。」",
+                "「星辰在黑夜最深處，指引最明亮的路。」",
+                "「溫柔的力量，足以抵擋世間所有的寒冷。」",
+                "「勇敢嘗試，命運便會為你開闢新徑。」",
+                "「當你放慢腳步，才能看清星軌的走向。」",
+                "「溫柔地對待自己，是今日最重要的修行。」",
+                "「星空不語，但它給了你所有關於力量的答案。」",
+                "「宇宙從不在此刻止步，你的光芒亦然。」",
+                "「相信過程，每個當下都在為未來鋪路。」",
+                "「你的存在本身，就是宇宙的恩賜。」",
+                "「接納不完美，那是成長的印記。」",
+                "「沉默有時，也是一種深刻的回應。」",
+                "「別怕孤獨，那是與自己對話的時刻。」",
+                "「每個轉折，都藏著新的可能性。」",
+                "「順應潮汐，你會發現更廣闊的海洋。」",
+                "「善待此刻的自己，未來會感謝你。」",
+                "「星光穿越億萬年才抵達你眼中，你的努力也是。」",
+                "「不是所有問題都需要立即的答案。」",
+                "「你擁有的，比你意識到的更多。」",
+                "「風會記得每一朵花的香氣，世界也會記得你的善意。」"
+            ];
+
+            // 運勢描述資料庫（富含情緒價值、生活化、易懂）
+            const fortuneDescriptions = {
+                study: [
+                    "今天的你思路特別清晰，是搞懂難題的好時機",
+                    "記憶力大爆發的一天，趕快複習重要的內容吧",
+                    "學習效率超高，原本看不懂的現在突然就明白了",
+                    "別急著趕進度，慢慢理解比死背更重要",
+                    "找個夥伴一起討論，教別人的過程你會學得更好",
+                    "靈感滿滿的一天，適合學習需要創意的科目",
+                    "試試看換個方式學習，會有意想不到的收穫",
+                    "表達能力變強了，是展現學習成果的好日子",
+                    "藝術和美感類的學習特別有感覺，跟著直覺走",
+                    "專注力在線，適合啃那些需要深度思考的硬骨頭",
+                    "自信心爆棚，勇敢舉手發言吧",
+                    "情緒記憶法很有效，把知識跟感受連結起來",
+                    "學習過程很愉快，保持這份好心情繼續前進",
+                    "行動力十足，主動學習效果加倍",
+                    "照顧好身體，吃飽睡好才能專心讀書",
+                    "策略性思考能力開掛，適合規劃學習計畫",
+                    "減少干擾源，專心做一件事情效果最好",
+                    "團體作業運勢佳，合作學習事半功倍",
+                    "跟著興趣走，學自己喜歡的東西不會累",
+                    "回頭複習舊知識，會發現以前沒注意到的重點"
+                ],
+                money: [
+                    "錢包出入頻繁的一天，記得記帳看清楚流向",
+                    "適合做長遠規劃，別只看眼前的小利",
+                    "相信你的第六感，可能會發現隱藏的小機會",
+                    "理性思考最重要，別被一時衝動影響判斷",
+                    "好好整理一下現有的資源，可能比你想的還多",
+                    "財運有成長空間，保持樂觀但別太貪心",
+                    "穩穩走比冒險好，慢慢累積才是王道",
+                    "可能有意外之財，留意身邊的機會",
+                    "別做太理想化的投資，實際一點更安全",
+                    "可能需要調整理財方式，舊方法不一定適用了",
+                    "今天特別能看清收支狀況，是檢視預算的好日子",
+                    "小心情緒化消費，想買東西前先問自己真的需要嗎",
+                    "適合做財務規劃，列個清單把帳目理清楚",
+                    "積極行動會有回報，該爭取的別客氣",
+                    "可能有小確幸，但別期待太高",
+                    "珍惜手邊的資源，不浪費就是賺到",
+                    "用腦袋賺錢的好日子，聰明理財勝過瞎拚",
+                    "把錢花在刀口上，只買真正需要的東西",
+                    "合夥或共同投資要謹慎評估，別衝動決定",
+                    "重建健康的金錢觀，別讓過去的經驗限制你"
+                ],
+                overall: [
+                    "心情平靜的一天，適合聽聽內心真正的聲音",
+                    "今天緣分特別好，可能會遇到重要的人",
+                    "需要一點安靜空間，獨處也是一種充電",
+                    "活力滿滿，做什麼都順心，盡情展現自己吧",
+                    "慢慢來，不要急，宇宙會給你最好的安排",
+                    "陽光般的一天，充滿希望和正能量",
+                    "情緒感受特別敏銳，好好照顧自己的心",
+                    "溝通表達超順暢，該說的話就大膽說出來",
+                    "做什麼都充滿幹勁，趁著這股熱情多完成點事",
+                    "好運氣在身邊，保持樂觀態度會吸引更多好事",
+                    "踏實做事的一天，努力不會白費",
+                    "保持開放心態，驚喜可能就在轉角",
+                    "相信直覺，你的第六感今天特別準",
+                    "蛻變的關鍵時刻，勇敢面對改變吧",
+                    "魅力爆棚的一天，你會特別吸引別人注意",
+                    "目標清晰，知道自己要什麼就去做",
+                    "人際關係和諧，跟大家相處愉快",
+                    "回家休息特別舒適，好好放鬆享受",
+                    "朝著對的方向前進，相信自己的選擇",
+                    "從過去經驗中學到的智慧，今天用得上"
+                ]
+            };
+
+            async function type(text, elId, speed = 80) {
+                const el = document.getElementById(elId);
+                el.textContent = ""; // 使用 textContent 更快
+
+                // 使用 textContent 逐字添加（比 innerHTML 更快）
+                for (let i = 0; i < text.length; i++) {
+                    el.textContent += text[i];
+                    await new Promise(r => setTimeout(r, speed));
+                }
+                await new Promise(r => setTimeout(r, 800));
+            }
+
+            window.triggerRitual = async function() {
+                document.getElementById('welcome-screen').style.display = 'none';
+                document.getElementById('action-area').style.display = 'block';
+
+                // 顯示日期
+                const now = new Date();
+                const dateStr = `時空座標：${now.getFullYear()} / ${now.getMonth()+1} / ${now.getDate()}`;
+                await type(dateStr, 'display-text', 100);
+
+                // 日期淡出
+                document.getElementById('display-text').style.opacity = "0";
+                await new Promise(r => setTimeout(r, 800));
+                document.getElementById('display-text').innerHTML = "";
+                document.getElementById('display-text').style.opacity = "1";
+
+                // 引導語打字
+                await type("請感應星辰，選擇你的本命星座", 'display-text', 80);
+
+                // 上升動畫
+                document.getElementById('display-text').classList.add('text-rise');
+                await new Promise(r => setTimeout(r, 800));
+
+                const grid = document.getElementById('zodiac-grid');
+                grid.style.visibility = "visible";
+                grid.style.opacity = "1";
+                renderZodiacs();
+            };
+
+            function renderZodiacs() {
+                const grid = document.getElementById('zodiac-grid');
+                if (grid.children.length > 0) return; // 避免重複渲染
+
+                // 使用 DocumentFragment 批次操作 DOM
+                const fragment = document.createDocumentFragment();
+
+                zodiacs.forEach(z => {
+                    const div = document.createElement('div');
+                    div.className = 'zodiac-item';
+                    div.innerHTML = `<span style="font-size:1.6em;display:block;">${z.icon}</span><small>${z.name}</small>`;
+                    div.onclick = () => runConstellation(z);
+                    fragment.appendChild(div);
+                });
+
+                grid.appendChild(fragment); // 一次性插入，減少 reflow
+            }
+
+            async function runConstellation(z) {
+                document.getElementById('zodiac-grid').style.display = 'none';
+                const textEl = document.getElementById('display-text');
+                textEl.classList.remove('text-rise');
+                textEl.style.transform = "translateY(0)";
+                textEl.style.opacity = '0';
+
+                // === 創建 Loading Overlay ===
+                const loaderOverlay = document.createElement('div');
+                loaderOverlay.id = 'loader-overlay';
+                loaderOverlay.innerHTML = `
+                    <div class="loader-circle"></div>
+                    <div class="loading-text">專屬於你的預言正在凝聚</div>
+                `;
+                document.body.appendChild(loaderOverlay);
+
+                // 淡入 Loading
+                setTimeout(() => {
+                    loaderOverlay.style.display = 'flex';
+                    setTimeout(() => { loaderOverlay.style.opacity = '1'; }, 50);
+                }, 300);
+
+                // === 等待 2.5 秒 ===
+                await new Promise(r => setTimeout(r, 2500));
+
+                // === 淡出 Loading，顯示報告 ===
+                loaderOverlay.style.opacity = '0';
+                await new Promise(r => setTimeout(r, 500));
+                loaderOverlay.remove();
+
+                showReport(z.name);
+            }
+
+            function showReport(name) {
+                const actionArea = document.getElementById('action-area');
+                const constCanvas = document.getElementById('constellation-canvas');
+                const resultScreen = document.getElementById('result-screen');
+
+                actionArea.style.display = 'none';
+                constCanvas.style.display = 'none';
+                resultScreen.style.display = 'block';
+
+                const now = new Date();
+
+                // 優化種子計算
+                let nameHash = 0;
+                for (let i = 0; i < name.length; i++) {
+                    nameHash += name.charCodeAt(i) * (i + 1);
+                }
+
+                const baseSeed = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+                const uniqueSeed = baseSeed * 1000 + nameHash;
+
+                // 使用位運算優化隨機函數
+                const rand = (offset) => {
+                    const x = Math.sin(uniqueSeed + offset * 12345) * 10000;
+                    return Math.abs(x - Math.floor(x));
+                };
+
+                // 預計算所有隨機索引
+                const indices = {
+                    study: Math.floor(rand(100) * 20),
+                    money: Math.floor(rand(200) * 20),
+                    overall: Math.floor(rand(300) * 20),
+                    color: Math.floor(rand(400) * 20),
+                    soup: Math.floor(rand(500) * 20)
+                };
+
+                // 生成星級 HTML（快取模板）
+                const starsHTML = (offset) => {
+                    const count = Math.floor(rand(offset) * 6);
+                    return `<span class="stars-glow">${'★'.repeat(count)}</span>${'☆'.repeat(5 - count)}`;
+                };
+
+                // 使用模板字串，一次性生成 HTML
+                const reportHTML = `
+                    <div class="res-row" style="text-align:center; font-size:2rem; color:var(--gold); border:none; letter-spacing:5px;">${name}</div>
+                    <div class="res-row">
+                        <div style="margin-bottom:8px;">學習運勢：${starsHTML(1)}</div>
+                        <div style="font-size:0.9rem; opacity:0.7; line-height:1.6;">${fortuneDescriptions.study[indices.study]}</div>
+                    </div>
+                    <div class="res-row">
+                        <div style="margin-bottom:8px;">金錢運勢：${starsHTML(2)}</div>
+                        <div style="font-size:0.9rem; opacity:0.7; line-height:1.6;">${fortuneDescriptions.money[indices.money]}</div>
+                    </div>
+                    <div class="res-row">
+                        <div style="margin-bottom:8px;">整體運勢：${starsHTML(3)}</div>
+                        <div style="font-size:0.9rem; opacity:0.7; line-height:1.6;">${fortuneDescriptions.overall[indices.overall]}</div>
+                    </div>
+                    <div class="res-row" style="border:none;">
+                        <div class="color-center-box">
+                            <span style="margin-bottom:10px; font-size:0.9rem; opacity:0.8;">今日幸運色</span>
+                            <div class="color-block" style="background:${saturatedColors[indices.color].c}">${saturatedColors[indices.color].n}</div>
+                        </div>
+                    </div>
+                    <div style="text-align:center; font-style:italic; color:#aab; margin-top:20px; font-size:1.1rem; font-family: 'ZCOOL XiaoWei', serif;">${soupLib[indices.soup]}</div>
+                `;
+
+                document.getElementById('report-content').innerHTML = reportHTML;
+            }
+
+            // 初始化與事件監聽
+            initStarfield();
+            drawStarfield(0);
+
+            // 防抖動優化 resize 事件
+            let resizeTimer;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => {
+                    initStarfield();
+                }, 250); // 250ms 防抖動
+            });
+
+            // ========== 音效開關控制 ==========
+            let audioEnabled = false;
+            const audioToggle = document.getElementById('audioToggle');
+
+            audioToggle.addEventListener('click', () => {
+                audioEnabled = !audioEnabled;
+
+                if (audioEnabled) {
+                    playSpaceAmbient();
+                    audioToggle.textContent = '🔊';
+                    audioToggle.classList.add('active');
+                    audioToggle.title = '點擊關閉音效';
+                } else {
+                    stopSpaceAmbient();
+                    audioToggle.textContent = '🔇';
+                    audioToggle.classList.remove('active');
+                    audioToggle.title = '點擊開啟音效';
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
