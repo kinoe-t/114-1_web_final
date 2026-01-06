@@ -98,7 +98,7 @@
 * https://kinoe-t.github.io/114-1_web_final/112/11211/index.html
 * https://kinoe-t.github.io/114-1_web_final/112/11212/index.html
 * https://kinoe-t.github.io/114-1_web_final/112/11213/index.html
-* (Not ready) https://kinoe-t.github.io/114-1_web_final/112/11214/index.html
+* https://kinoe-t.github.io/114-1_web_final/112/11214/index.html
 * https://kinoe-t.github.io/114-1_web_final/112/11215/index.html
 * https://kinoe-t.github.io/114-1_web_final/112/11216/index.html
 * https://kinoe-t.github.io/114-1_web_final/112/11217/index.html
