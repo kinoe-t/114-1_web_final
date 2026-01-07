@@ -4,24 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>星塵預言 - 整合版</title>
-
+    
     <!-- Google Fonts 引入 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=UoqMunThenKhung&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
-
+    
     <style>
         /* 全域字體設定 - 使用宇文天穹字體 */
         * {
             font-family: 'UoqMunThenKhung', serif;
         }
-
+        
         /* 字體平滑處理 */
         body, h1, h2, h3, h4, h5, h6, p, span, div, button, input, textarea, select, small {
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
-
+        
         :root {
             --gold: #ffd700;
             --phi: 1.618;
@@ -29,127 +29,127 @@
         }
 
         body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
+            margin: 0; 
+            padding: 0; 
+            width: 100%; 
             height: 100%;
-            background-color: var(--bg-color);
+            background-color: var(--bg-color); 
             color: white;
-            display: flex;
-            justify-content: center;
+            display: flex; 
+            justify-content: center; 
             align-items: center;
             overflow: hidden;
         }
 
         /* 統一的星空背景畫布 */
         #starfield {
-            position: fixed;
-            top: 0;
-            left: 0;
+            position: fixed; 
+            top: 0; 
+            left: 0; 
             z-index: 1;
             pointer-events: none;
             will-change: auto; /* 優化渲染效能 */
         }
 
         /* 星座動畫畫布 */
-        #constellation-canvas {
+        #constellation-canvas { 
             position: fixed;
             top: 0;
             left: 0;
-            z-index: 5;
+            z-index: 5; 
             pointer-events: none;
             opacity: 0;
             transition: opacity 0.5s ease;
             will-change: opacity; /* 優化動畫效能 */
         }
 
-        .container {
-            position: relative;
-            text-align: center;
-            width: 90%;
-            max-width: 600px;
+        .container { 
+            position: relative; 
+            text-align: center; 
+            width: 90%; 
+            max-width: 600px; 
             z-index: 10;
             will-change: transform; /* 優化動畫效能 */
         }
 
         /* 文字動畫 */
         #display-text {
-            font-size: 1.8rem;
-            color: var(--gold);
+            font-size: 1.8rem; 
+            color: var(--gold); 
             min-height: 2.5rem;
-            letter-spacing: 5px;
+            letter-spacing: 5px; 
             text-shadow: 0 0 15px var(--gold);
             will-change: transform, opacity;
             transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 1s ease;
             transform: translateZ(0); /* 啟用硬體加速 */
             margin-bottom: 50px; /* 與星座選單的固定間距 */
         }
-        .text-rise {
+        .text-rise { 
             transform: translateY(-200px) translateZ(0); /* 大幅上移，避免重疊 */
         }
 
         /* 星座選單 */
         #zodiac-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
             gap: 15px;
-            opacity: 0;
-            visibility: hidden;
+            opacity: 0; 
+            visibility: hidden; 
             transition: opacity 1s ease;
             margin-top: -50px; /* 保持原始間距 */
         }
         .zodiac-item {
-            padding: 15px;
+            padding: 15px; 
             background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 215, 0, 0.1);
-            cursor: pointer;
+            border: 1px solid rgba(255, 215, 0, 0.1); 
+            cursor: pointer; 
             transition: 0.3s;
             border-radius: 8px;
         }
-        .zodiac-item:hover {
-            border-color: var(--gold);
-            background: rgba(255, 215, 0, 0.2);
-            transform: scale(1.05);
+        .zodiac-item:hover { 
+            border-color: var(--gold); 
+            background: rgba(255, 215, 0, 0.2); 
+            transform: scale(1.05); 
         }
 
         /* 分析報告 */
         #result-screen {
-            display: none;
-            text-align: left;
+            display: none; 
+            text-align: left; 
             background: rgba(5, 5, 15, 0.95);
-            padding: 22px 25px; /* 24px × 0.9 ≈ 22px, 28px × 0.9 ≈ 25px */
+            padding: 36px; /* 40px × 0.9 = 36px */
             border: 1px solid var(--gold);
-            border-radius: 7px; /* 8px × 0.9 ≈ 7px */
+            border-radius: 9px; /* 10px × 0.9 = 9px */
             animation: fadeInBlur 2s ease-out forwards;
             backdrop-filter: blur(10px);
             position: relative;
             overflow: hidden;
-            max-width: 360px; /* 400px × 0.9 = 360px */
+            max-width: 540px; /* 600px × 0.9 = 540px（估計初始值） */
             width: 85%;
             margin: 0 auto;
         }
-
+        
         @keyframes fadeInBlur {
             from { opacity: 0; filter: blur(10px); transform: translateY(20px); }
             to { opacity: 1; filter: blur(0); transform: translateY(0); }
         }
 
-        .res-row {
-            margin: 11px 0; /* 12px × 0.9 ≈ 11px */
-            font-size: 0.72rem; /* 0.8rem × 0.9 = 0.72rem */
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            padding-bottom: 5px; /* 6px × 0.9 ≈ 5px */
+        .res-row { 
+            margin: 16px 0; /* 18px × 0.9 ≈ 16px */
+            font-size: 0.99rem; /* 1.1rem × 0.9 = 0.99rem */
+            border-bottom: 1px solid rgba(255,255,255,0.1); 
+            padding-bottom: 7px; /* 8px × 0.9 ≈ 7px */
             opacity: 0;
             animation: slideInFromLeft 0.8s ease-out forwards;
         }
-
+        
         /* 為每個項目設定不同的延遲 */
         .res-row:nth-child(1) { animation-delay: 0.2s; }
         .res-row:nth-child(2) { animation-delay: 0.4s; }
         .res-row:nth-child(3) { animation-delay: 0.6s; }
         .res-row:nth-child(4) { animation-delay: 0.8s; }
         .res-row:nth-child(5) { animation-delay: 1s; }
-
+        
         @keyframes slideInFromLeft {
             from {
                 opacity: 0;
@@ -160,57 +160,57 @@
                 transform: translateX(0);
             }
         }
-        .stars-glow {
-            color: var(--gold);
-            text-shadow: 0 0 5px var(--gold); /* 6px × 0.9 ≈ 5px */
-            font-size: 0.86rem; /* 0.96rem × 0.9 ≈ 0.86rem */
+        .stars-glow { 
+            color: var(--gold); 
+            text-shadow: 0 0 7px var(--gold); /* 8px × 0.9 ≈ 7px */
+            font-size: 1.17rem; /* 1.3rem × 0.9 = 1.17rem */
             display: inline-block;
         }
-
+        
         .color-center-box {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
             justify-content: center;
-            margin: 11px 0; /* 12px × 0.9 ≈ 11px */
+            margin: 13px 0; /* 15px × 0.9 ≈ 13px */
         }
         .color-block {
-            width: 33.33%;
-            height: calc(33.33vw / var(--phi) / 3.5);
-            max-height: 29px; /* 32px × 0.9 ≈ 29px */
-            border-radius: 3px;
-            display: flex;
-            align-items: center;
+            width: 33.33%; 
+            height: calc(33.33vw / var(--phi) / 3.5); 
+            max-height: 36px; /* 40px × 0.9 = 36px */
+            border-radius: 4px;
+            display: flex; 
+            align-items: center; 
             justify-content: center;
-            font-weight: bold;
-            color: #fff;
+            font-weight: bold; 
+            color: #fff; 
             text-shadow: 1px 1px 3px #000;
-            font-size: 0.72rem; /* 0.8rem × 0.9 = 0.72rem */
+            font-size: 0.9rem; /* 1rem × 0.9 = 0.9rem */
             border: 1px solid rgba(255,255,255,0.5);
-            box-shadow: 0 3px 11px rgba(0, 0, 0, 0.3); /* 3px × 0.9 ≈ 3px, 12px × 0.9 ≈ 11px */
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3); /* 4px × 0.9 ≈ 4px, 15px × 0.9 ≈ 14px */
         }
 
         .btn-ritual {
-            padding: 15px 50px;
-            background: transparent;
+            padding: 15px 50px; 
+            background: transparent; 
             color: var(--gold);
-            border: 2px solid var(--gold);
-            cursor: pointer;
-            letter-spacing: 10px;
+            border: 2px solid var(--gold); 
+            cursor: pointer; 
+            letter-spacing: 10px; 
             transition: 0.5s;
             border-radius: 30px;
             font-size: 1.1rem;
         }
-        .btn-ritual:hover {
-            background: var(--gold);
-            color: black;
-            box-shadow: 0 0 20px var(--gold);
+        .btn-ritual:hover { 
+            background: var(--gold); 
+            color: black; 
+            box-shadow: 0 0 20px var(--gold); 
             transform: scale(1.05);
         }
 
-        @media (max-width: 600px) {
-            #zodiac-grid {
-                grid-template-columns: repeat(3, 1fr);
+        @media (max-width: 600px) { 
+            #zodiac-grid { 
+                grid-template-columns: repeat(3, 1fr); 
             }
             #display-text {
                 font-size: 1.2rem;
@@ -263,20 +263,20 @@
             transition: opacity 0.3s ease;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        @keyframes spin { 
+            to { transform: rotate(360deg); } 
         }
-        @keyframes spin-reverse {
-            to { transform: rotate(-360deg); }
+        @keyframes spin-reverse { 
+            to { transform: rotate(-360deg); } 
         }
         @keyframes loadingPulse {
-            0%, 100% {
-                opacity: 0.5;
-                transform: scale(0.95);
+            0%, 100% { 
+                opacity: 0.5; 
+                transform: scale(0.95); 
             }
-            50% {
-                opacity: 1;
-                transform: scale(1.05);
+            50% { 
+                opacity: 1; 
+                transform: scale(1.05); 
             }
         }
     </style>
@@ -285,7 +285,7 @@
 
     <!-- 星空背景畫布 -->
     <canvas id="starfield"></canvas>
-
+    
     <!-- 星座動畫畫布 -->
     <canvas id="constellation-canvas"></canvas>
 
@@ -309,7 +309,7 @@
     <script>
         (function() {
             "use strict";
-
+            
             // ========== 星空背景系統 ==========
             const starfield = document.getElementById('starfield');
             const starCtx = starfield.getContext('2d');
@@ -324,7 +324,7 @@
                 stars = [];
                 const width = starfield.width;
                 const height = starfield.height;
-
+                
                 // 批次創建星星，減少迴圈開銷
                 for (let i = 0; i < starCount; i++) {
                     stars.push({
@@ -341,28 +341,28 @@
             function drawStarfield(currentTime) {
                 // 使用時間戳控制更新頻率
                 const deltaTime = currentTime - lastTime;
-
+                
                 if (deltaTime < 16) { // 限制在 60 FPS
                     requestAnimationFrame(drawStarfield);
                     return;
                 }
                 lastTime = currentTime;
-
+                
                 // 清除畫布
                 starCtx.clearRect(0, 0, starfield.width, starfield.height);
-
+                
                 // 批次設定 shadow 屬性，減少狀態切換
                 const now = Date.now();
-
+                
                 // 繪製星星 - 優化迴圈
                 for (let i = 0; i < stars.length; i++) {
                     const s = stars[i];
                     s.opacity += s.speed;
-
+                    
                     if (s.opacity > s.maxOpacity || s.opacity < 0.1) {
                         s.speed = -s.speed;
                     }
-
+                    
                     starCtx.fillStyle = `rgba(255, 255, 255, ${s.opacity})`;
                     starCtx.shadowBlur = s.size * 3;
                     starCtx.shadowColor = 'white';
@@ -370,33 +370,33 @@
                     starCtx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
                     starCtx.fill();
                 }
-
+                
                 starCtx.shadowBlur = 0; // 重置 shadow
 
                 // 流星效果 - 降低生成頻率
                 if (Math.random() < 0.005) {
-                    meteors.push({
-                        x: Math.random() * starfield.width,
+                    meteors.push({ 
+                        x: Math.random() * starfield.width, 
                         y: Math.random() * starfield.height * 0.3,
-                        len: Math.random() * 80 + 40,
+                        len: Math.random() * 80 + 40, 
                         speed: Math.random() * 10 + 8,
                         birthTime: now
                     });
                 }
-
+                
                 // 反向遍歷，避免刪除元素時的索引問題
                 for (let i = meteors.length - 1; i >= 0; i--) {
                     const m = meteors[i];
                     const age = now - m.birthTime;
-
+                    
                     if (age > 1000 || m.y > starfield.height || m.x < -m.len) {
                         meteors.splice(i, 1);
                         continue;
                     }
-
+                    
                     m.x -= m.speed;
                     m.y += m.speed;
-
+                    
                     const opacity = 0.4 * (1 - age / 1000);
                     starCtx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
                     starCtx.lineWidth = 1.5;
@@ -426,13 +426,13 @@
             ];
 
             const saturatedColors = [
-                { n: "極致艷紅", c: "#FF0000" },
-                { n: "亮麗靛藍", c: "#0000FF" },
+                { n: "極致艷紅", c: "#FF0000" }, 
+                { n: "亮麗靛藍", c: "#0000FF" }, 
                 { n: "活力亮橘", c: "#FF8C00" },
-                { n: "神祕深紫", c: "#800080" },
-                { n: "螢光翠綠", c: "#00FF00" },
+                { n: "神祕深紫", c: "#800080" }, 
+                { n: "螢光翠綠", c: "#00FF00" }, 
                 { n: "深海湛藍", c: "#1E90FF" },
-                { n: "奢華濃金", c: "#B8860B" },
+                { n: "奢華濃金", c: "#B8860B" }, 
                 { n: "飽和玫瑰", c: "#E91E63" },
                 { n: "寶石紅", c: "#DC143C" },
                 { n: "孔雀藍", c: "#20B2AA" },
@@ -470,7 +470,7 @@
                 "「你擁有的，比你意識到的更多。」",
                 "「風會記得每一朵花的香氣，世界也會記得你的善意。」"
             ];
-
+            
             // 運勢描述資料庫（富含情緒價值、生活化、易懂）
             const fortuneDescriptions = {
                 study: [
@@ -544,7 +544,7 @@
             async function type(text, elId, speed = 80) {
                 const el = document.getElementById(elId);
                 el.textContent = ""; // 使用 textContent 更快
-
+                
                 // 使用 textContent 逐字添加（比 innerHTML 更快）
                 for (let i = 0; i < text.length; i++) {
                     el.textContent += text[i];
@@ -561,7 +561,7 @@
                 const now = new Date();
                 const dateStr = `時空座標：${now.getFullYear()} / ${now.getMonth()+1} / ${now.getDate()}`;
                 await type(dateStr, 'display-text', 100);
-
+                
                 // 日期淡出
                 document.getElementById('display-text').style.opacity = "0";
                 await new Promise(r => setTimeout(r, 800));
@@ -570,7 +570,7 @@
 
                 // 引導語打字
                 await type("請感應星辰，選擇你的本命星座", 'display-text', 80);
-
+                
                 // 上升動畫
                 document.getElementById('display-text').classList.add('text-rise');
                 await new Promise(r => setTimeout(r, 800));
@@ -584,10 +584,10 @@
             function renderZodiacs() {
                 const grid = document.getElementById('zodiac-grid');
                 if (grid.children.length > 0) return; // 避免重複渲染
-
+                
                 // 使用 DocumentFragment 批次操作 DOM
                 const fragment = document.createDocumentFragment();
-
+                
                 zodiacs.forEach(z => {
                     const div = document.createElement('div');
                     div.className = 'zodiac-item';
@@ -595,7 +595,7 @@
                     div.onclick = () => runConstellation(z);
                     fragment.appendChild(div);
                 });
-
+                
                 grid.appendChild(fragment); // 一次性插入，減少 reflow
             }
 
@@ -605,7 +605,7 @@
                 textEl.classList.remove('text-rise');
                 textEl.style.transform = "translateY(0)";
                 textEl.style.opacity = '0';
-
+                
                 // === 創建 Loading Overlay ===
                 const loaderOverlay = document.createElement('div');
                 loaderOverlay.id = 'loader-overlay';
@@ -614,21 +614,21 @@
                     <div class="loading-text">專屬於你的預言正在凝聚</div>
                 `;
                 document.body.appendChild(loaderOverlay);
-
+                
                 // 淡入 Loading
-                setTimeout(() => {
+                setTimeout(() => { 
                     loaderOverlay.style.display = 'flex';
                     setTimeout(() => { loaderOverlay.style.opacity = '1'; }, 50);
                 }, 300);
-
+                
                 // === 等待 2.5 秒 ===
                 await new Promise(r => setTimeout(r, 2500));
-
+                
                 // === 淡出 Loading，顯示報告 ===
                 loaderOverlay.style.opacity = '0';
                 await new Promise(r => setTimeout(r, 500));
                 loaderOverlay.remove();
-
+                
                 showReport(z.name);
             }
 
@@ -636,28 +636,28 @@
                 const actionArea = document.getElementById('action-area');
                 const constCanvas = document.getElementById('constellation-canvas');
                 const resultScreen = document.getElementById('result-screen');
-
+                
                 actionArea.style.display = 'none';
                 constCanvas.style.display = 'none';
                 resultScreen.style.display = 'block';
 
                 const now = new Date();
-
+                
                 // 優化種子計算
                 let nameHash = 0;
                 for (let i = 0; i < name.length; i++) {
                     nameHash += name.charCodeAt(i) * (i + 1);
                 }
-
+                
                 const baseSeed = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
                 const uniqueSeed = baseSeed * 1000 + nameHash;
-
+                
                 // 使用位運算優化隨機函數
                 const rand = (offset) => {
                     const x = Math.sin(uniqueSeed + offset * 12345) * 10000;
                     return Math.abs(x - Math.floor(x));
                 };
-
+                
                 // 預計算所有隨機索引
                 const indices = {
                     study: Math.floor(rand(100) * 20),
@@ -666,45 +666,45 @@
                     color: Math.floor(rand(400) * 20),
                     soup: Math.floor(rand(500) * 20)
                 };
-
+                
                 // 生成星級 HTML（快取模板）
                 const starsHTML = (offset) => {
                     const count = Math.floor(rand(offset) * 6);
                     return `<span class="stars-glow">${'★'.repeat(count)}</span>${'☆'.repeat(5 - count)}`;
                 };
-
+                
                 // 使用模板字串，一次性生成 HTML
                 // 使用模板字串，一次性生成 HTML
                 const reportHTML = `
-                    <div class="res-row" style="text-align:center; font-size:1.3rem; color:var(--gold); border:none; letter-spacing:3.6px;">${name}</div>
+                    <div class="res-row" style="text-align:center; font-size:1.8rem; color:var(--gold); border:none; letter-spacing:4.5px;">${name}</div>
                     <div class="res-row">
-                        <div style="margin-bottom:5px;">學習運勢：${starsHTML(1)}</div>
-                        <div style="font-size:0.61rem; opacity:0.7; line-height:1.35;">${fortuneDescriptions.study[indices.study]}</div>
+                        <div style="margin-bottom:7px;">學習運勢：${starsHTML(1)}</div>
+                        <div style="font-size:0.81rem; opacity:0.7; line-height:1.44;">${fortuneDescriptions.study[indices.study]}</div>
                     </div>
                     <div class="res-row">
-                        <div style="margin-bottom:5px;">金錢運勢：${starsHTML(2)}</div>
-                        <div style="font-size:0.61rem; opacity:0.7; line-height:1.35;">${fortuneDescriptions.money[indices.money]}</div>
+                        <div style="margin-bottom:7px;">金錢運勢：${starsHTML(2)}</div>
+                        <div style="font-size:0.81rem; opacity:0.7; line-height:1.44;">${fortuneDescriptions.money[indices.money]}</div>
                     </div>
                     <div class="res-row">
-                        <div style="margin-bottom:5px;">整體運勢：${starsHTML(3)}</div>
-                        <div style="font-size:0.61rem; opacity:0.7; line-height:1.35;">${fortuneDescriptions.overall[indices.overall]}</div>
+                        <div style="margin-bottom:7px;">整體運勢：${starsHTML(3)}</div>
+                        <div style="font-size:0.81rem; opacity:0.7; line-height:1.44;">${fortuneDescriptions.overall[indices.overall]}</div>
                     </div>
                     <div class="res-row" style="border:none;">
                         <div class="color-center-box">
-                            <span style="margin-bottom:7px; font-size:0.61rem; opacity:0.8;">今日幸運色</span>
+                            <span style="margin-bottom:9px; font-size:0.81rem; opacity:0.8;">今日幸運色</span>
                             <div class="color-block" style="background:${saturatedColors[indices.color].c}">${saturatedColors[indices.color].n}</div>
                         </div>
                     </div>
-                    <div style="text-align:center; font-style:italic; color:#aab; margin-top:11px; font-size:0.72rem; font-family: 'ZCOOL XiaoWei', serif;">${soupLib[indices.soup]}</div>
+                    <div style="text-align:center; font-style:italic; color:#aab; margin-top:18px; font-size:0.99rem; font-family: 'ZCOOL XiaoWei', serif;">${soupLib[indices.soup]}</div>
                 `;
-
+                
                 document.getElementById('report-content').innerHTML = reportHTML;
             }
 
             // 初始化與事件監聽
             initStarfield();
             drawStarfield(0);
-
+            
             // 防抖動優化 resize 事件
             let resizeTimer;
             window.addEventListener('resize', () => {
