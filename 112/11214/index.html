@@ -82,9 +82,10 @@
             will-change: transform, opacity;
             transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 1s ease;
             transform: translateZ(0); /* 啟用硬體加速 */
+            margin-bottom: 50px; /* 與星座選單的固定間距 */
         }
         .text-rise {
-            transform: translateY(-100px);
+            transform: translateY(-200px) translateZ(0); /* 大幅上移，避免重疊 */
         }
 
         /* 星座選單 */
@@ -95,7 +96,7 @@
             opacity: 0;
             visibility: hidden;
             transition: opacity 1s ease;
-            margin-top: -50px;
+            margin-top: -50px; /* 保持原始間距 */
         }
         .zodiac-item {
             padding: 15px;
@@ -116,13 +117,16 @@
             display: none;
             text-align: left;
             background: rgba(5, 5, 15, 0.95);
-            padding: 40px;
+            padding: 22px 25px; /* 24px × 0.9 ≈ 22px, 28px × 0.9 ≈ 25px */
             border: 1px solid var(--gold);
-            border-radius: 10px;
+            border-radius: 7px; /* 8px × 0.9 ≈ 7px */
             animation: fadeInBlur 2s ease-out forwards;
             backdrop-filter: blur(10px);
             position: relative;
             overflow: hidden;
+            max-width: 360px; /* 400px × 0.9 = 360px */
+            width: 85%;
+            margin: 0 auto;
         }
 
         @keyframes fadeInBlur {
@@ -131,10 +135,10 @@
         }
 
         .res-row {
-            margin: 18px 0;
-            font-size: 1.1rem;
+            margin: 11px 0; /* 12px × 0.9 ≈ 11px */
+            font-size: 0.72rem; /* 0.8rem × 0.9 = 0.72rem */
             border-bottom: 1px solid rgba(255,255,255,0.1);
-            padding-bottom: 8px;
+            padding-bottom: 5px; /* 6px × 0.9 ≈ 5px */
             opacity: 0;
             animation: slideInFromLeft 0.8s ease-out forwards;
         }
@@ -158,8 +162,8 @@
         }
         .stars-glow {
             color: var(--gold);
-            text-shadow: 0 0 8px var(--gold);
-            font-size: 1.3rem;
+            text-shadow: 0 0 5px var(--gold); /* 6px × 0.9 ≈ 5px */
+            font-size: 0.86rem; /* 0.96rem × 0.9 ≈ 0.86rem */
             display: inline-block;
         }
 
@@ -168,22 +172,22 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            margin: 15px 0;
+            margin: 11px 0; /* 12px × 0.9 ≈ 11px */
         }
         .color-block {
             width: 33.33%;
             height: calc(33.33vw / var(--phi) / 3.5);
-            max-height: 40px;
-            border-radius: 4px;
+            max-height: 29px; /* 32px × 0.9 ≈ 29px */
+            border-radius: 3px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
             color: #fff;
             text-shadow: 1px 1px 3px #000;
-            font-size: 1rem;
+            font-size: 0.72rem; /* 0.8rem × 0.9 = 0.72rem */
             border: 1px solid rgba(255,255,255,0.5);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 3px 11px rgba(0, 0, 0, 0.3); /* 3px × 0.9 ≈ 3px, 12px × 0.9 ≈ 11px */
         }
 
         .btn-ritual {
@@ -202,32 +206,6 @@
             color: black;
             box-shadow: 0 0 20px var(--gold);
             transform: scale(1.05);
-        }
-
-        /* 音效開關按鈕 */
-        .audio-toggle {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            width: 50px;
-            height: 50px;
-            background: rgba(255, 215, 0, 0.1);
-            border: 1px solid var(--gold);
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            transition: 0.3s;
-            z-index: 100;
-        }
-        .audio-toggle:hover {
-            background: rgba(255, 215, 0, 0.2);
-            transform: scale(1.1);
-        }
-        .audio-toggle.active {
-            background: rgba(255, 215, 0, 0.3);
         }
 
         @media (max-width: 600px) {
@@ -311,9 +289,6 @@
     <!-- 星座動畫畫布 -->
     <canvas id="constellation-canvas"></canvas>
 
-    <!-- 音效開關按鈕 -->
-    <div class="audio-toggle" id="audioToggle" title="背景音效">🔇</div>
-
     <div class="container">
         <div id="welcome-screen">
             <h2 style="letter-spacing: 15px; font-weight: 400; font-size: 2rem;">命運的星盤正在旋轉</h2>
@@ -334,80 +309,6 @@
     <script>
         (function() {
             "use strict";
-
-            // ========== 宇宙背景音效系統 ==========
-            let audioCtx = null;
-            let oscillators = [];
-            let breathIntervals = [];
-
-            function playSpaceAmbient() {
-                if (audioCtx) return;
-
-                try {
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                    const frequencies = [65.41, 98.00];
-
-                    frequencies.forEach((freq, index) => {
-                        const osc = audioCtx.createOscillator();
-                        const gainNode = audioCtx.createGain();
-
-                        osc.type = 'sine';
-                        osc.frequency.value = freq; // 直接設值更快
-                        gainNode.gain.value = 0.01;
-
-                        // 優化的呼吸循環
-                        function createBreathCycle() {
-                            if (!audioCtx || audioCtx.state !== 'running') return;
-                            const now = audioCtx.currentTime;
-                            gainNode.gain.cancelScheduledValues(now);
-                            gainNode.gain.setValueAtTime(gainNode.gain.value, now);
-                            gainNode.gain.linearRampToValueAtTime(0.04, now + 4);
-                            gainNode.gain.linearRampToValueAtTime(0.01, now + 8);
-                        }
-
-                        createBreathCycle();
-                        const interval = setInterval(createBreathCycle, 8000);
-                        breathIntervals.push(interval);
-
-                        osc.connect(gainNode);
-                        gainNode.connect(audioCtx.destination);
-                        osc.start();
-
-                        oscillators.push({ osc, gainNode });
-                    });
-                } catch (error) {
-                    console.warn('音效初始化失敗:', error);
-                }
-            }
-
-            function stopSpaceAmbient() {
-                if (!audioCtx) return;
-
-                // 清除所有間隔
-                breathIntervals.forEach(interval => clearInterval(interval));
-                breathIntervals = [];
-
-                // 停止所有振盪器
-                oscillators.forEach(({ osc, gainNode }) => {
-                    try {
-                        gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
-                        gainNode.gain.setValueAtTime(gainNode.gain.value, audioCtx.currentTime);
-                        gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
-                        setTimeout(() => {
-                            try { osc.stop(); } catch(e) {}
-                        }, 500);
-                    } catch(e) {}
-                });
-
-                oscillators = [];
-
-                setTimeout(() => {
-                    if (audioCtx) {
-                        audioCtx.close();
-                        audioCtx = null;
-                    }
-                }, 600);
-            }
 
             // ========== 星空背景系統 ==========
             const starfield = document.getElementById('starfield');
@@ -773,27 +674,28 @@
                 };
 
                 // 使用模板字串，一次性生成 HTML
+                // 使用模板字串，一次性生成 HTML
                 const reportHTML = `
-                    <div class="res-row" style="text-align:center; font-size:2rem; color:var(--gold); border:none; letter-spacing:5px;">${name}</div>
+                    <div class="res-row" style="text-align:center; font-size:1.3rem; color:var(--gold); border:none; letter-spacing:3.6px;">${name}</div>
                     <div class="res-row">
-                        <div style="margin-bottom:8px;">學習運勢：${starsHTML(1)}</div>
-                        <div style="font-size:0.9rem; opacity:0.7; line-height:1.6;">${fortuneDescriptions.study[indices.study]}</div>
+                        <div style="margin-bottom:5px;">學習運勢：${starsHTML(1)}</div>
+                        <div style="font-size:0.61rem; opacity:0.7; line-height:1.35;">${fortuneDescriptions.study[indices.study]}</div>
                     </div>
                     <div class="res-row">
-                        <div style="margin-bottom:8px;">金錢運勢：${starsHTML(2)}</div>
-                        <div style="font-size:0.9rem; opacity:0.7; line-height:1.6;">${fortuneDescriptions.money[indices.money]}</div>
+                        <div style="margin-bottom:5px;">金錢運勢：${starsHTML(2)}</div>
+                        <div style="font-size:0.61rem; opacity:0.7; line-height:1.35;">${fortuneDescriptions.money[indices.money]}</div>
                     </div>
                     <div class="res-row">
-                        <div style="margin-bottom:8px;">整體運勢：${starsHTML(3)}</div>
-                        <div style="font-size:0.9rem; opacity:0.7; line-height:1.6;">${fortuneDescriptions.overall[indices.overall]}</div>
+                        <div style="margin-bottom:5px;">整體運勢：${starsHTML(3)}</div>
+                        <div style="font-size:0.61rem; opacity:0.7; line-height:1.35;">${fortuneDescriptions.overall[indices.overall]}</div>
                     </div>
                     <div class="res-row" style="border:none;">
                         <div class="color-center-box">
-                            <span style="margin-bottom:10px; font-size:0.9rem; opacity:0.8;">今日幸運色</span>
+                            <span style="margin-bottom:7px; font-size:0.61rem; opacity:0.8;">今日幸運色</span>
                             <div class="color-block" style="background:${saturatedColors[indices.color].c}">${saturatedColors[indices.color].n}</div>
                         </div>
                     </div>
-                    <div style="text-align:center; font-style:italic; color:#aab; margin-top:20px; font-size:1.1rem; font-family: 'ZCOOL XiaoWei', serif;">${soupLib[indices.soup]}</div>
+                    <div style="text-align:center; font-style:italic; color:#aab; margin-top:11px; font-size:0.72rem; font-family: 'ZCOOL XiaoWei', serif;">${soupLib[indices.soup]}</div>
                 `;
 
                 document.getElementById('report-content').innerHTML = reportHTML;
@@ -810,26 +712,6 @@
                 resizeTimer = setTimeout(() => {
                     initStarfield();
                 }, 250); // 250ms 防抖動
-            });
-
-            // ========== 音效開關控制 ==========
-            let audioEnabled = false;
-            const audioToggle = document.getElementById('audioToggle');
-
-            audioToggle.addEventListener('click', () => {
-                audioEnabled = !audioEnabled;
-
-                if (audioEnabled) {
-                    playSpaceAmbient();
-                    audioToggle.textContent = '🔊';
-                    audioToggle.classList.add('active');
-                    audioToggle.title = '點擊關閉音效';
-                } else {
-                    stopSpaceAmbient();
-                    audioToggle.textContent = '🔇';
-                    audioToggle.classList.remove('active');
-                    audioToggle.title = '點擊開啟音效';
-                }
             });
         })();
     </script>
