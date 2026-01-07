@@ -103,15 +103,17 @@
             ]
         },
         {
-            img: "4.png",
+            // 第四關現在使用原本第五關的圖 (5.png)
+            img: "5.png", 
             text: "第四關：選擇課後活動",
             options: [
-                { text: "出去散步", correct: true },
-                { text: "在家算數學", correct: false }
+                { text: "在家算數學", correct: true },
+                { text: "出去散步", correct: false }
             ]
         },
         {
-            img: "5.png",
+            // 第五關現在使用原本第四關的圖 (4.png)
+            img: "4.png", 
             text: "第五關：選擇食物",
             options: [
                 { text: "義大利麵", correct: true },
@@ -131,7 +133,7 @@
 
         const q = questions[currentStep];
         container.innerHTML = `
-            <img src="${q.img}" alt="Step Image" class="step-img" onerror="this.src='https://via.placeholder.com/400x200?text=Image+Not+Found'">
+            <img src="${q.img}" alt="Step Image" class="step-img" onerror="this.src='https://via.placeholder.com/400x200?text=Image+${q.img}'">
             <h2>${q.text}</h2>
             <div class="btn-group">
                 <button onclick="checkAnswer(true)">${q.options[0].text}</button>
@@ -141,7 +143,7 @@
     }
 
     function checkAnswer(isFirstOption) {
-        // 根據題目設定，數字 1 (陣列索引 0) 才是正確的
+        // 在目前的設定中，第一個選項（isFirstOption === true）才是家長期望的正確路徑
         if (isFirstOption) {
             currentStep++;
             renderStep();
@@ -152,7 +154,7 @@
 
     function showDeath() {
         container.innerHTML = `
-            <div class="death">死亡</div>
+            <div class="death">失敗</div>
             <p>你未能符合亞洲家長的期待...</p>
             <button class="restart-btn" onclick="restart()">重新投胎</button>
         `;
@@ -161,7 +163,7 @@
     function showSuccess() {
         container.innerHTML = `
             <div class="success">恭喜活到18歲</div>
-            <p>(優秀亞洲小孩)</p>
+            <p>(你是一位優秀的亞洲小孩)</p>
             <button class="restart-btn" onclick="restart()">再玩一次</button>
         `;
     }
@@ -171,7 +173,6 @@
         renderStep();
     }
 
-    // 初始化遊戲
     renderStep();
 </script>
 
