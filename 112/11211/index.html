@@ -2,223 +2,196 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>養成</title>
+    <title>寵物養成</title>
     <style>
-        body {
-            font-family: "Microsoft JhengHei", sans-serif;
-            background-color: #ffffff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            color: #333;
-        }
+        body { background-color: #f0f0f0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: 'Courier New', Courier, monospace; overflow: hidden; }
+        #game-container { text-align: center; background: white; padding: 50px; border: 6px solid #333; box-shadow: 12px 12px 0px #aaa; max-width: 600px; width: 95%; position: relative; }
+        .img-wrapper { width: 350px; height: 350px; margin: 0 auto 30px; display: flex; align-items: center; justify-content: center; }
+        #pet-image { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .fullscreen-img { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 50; }
 
-        #game-container {
-            background-color: #ffffff;
-            padding: 40px;
-            border-radius: 30px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.05);
-            text-align: center;
-            width: 400px;
-            border: 1px solid #f0f0f0;
-        }
+        @keyframes extreme-shake { 0% { transform: translate(6px, 6px); } 25% { transform: translate(-6px, -4px); } 50% { transform: translate(5px, -5px); } 75% { transform: translate(-5px, 5px); } 100% { transform: translate(0, 0); } }
+        .high-freq-vibration { animation: extreme-shake 0.03s infinite; }
 
-        .phase-title {
-            font-size: 1em;
-            letter-spacing: 3px;
-            margin-bottom: 25px;
-            color: #999;
-        }
+        .button-group { display: flex; justify-content: space-around; margin-top: 30px; gap: 15px; }
+        .img-btn { background: #fff; border: 3px solid #000; padding: 10px; cursor: pointer; box-shadow: 5px 5px 0px #000; display: flex; flex-direction: column; align-items: center; width: 150px; }
+        .img-btn img { width: 70px; height: 70px; object-fit: contain; }
 
-        #image-holder {
-            background: #fafafa;
-            border-radius: 20px;
-            margin-bottom: 30px;
-            width: 280px;
-            height: 320px;
-            margin-left: auto;
-            margin-right: auto;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border: 1px solid #eee;
-        }
+        #contract-layer { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 200; align-items: center; justify-content: center; }
+        .contract-btn { padding: 15px 50px; font-size: 24px; border: 4px solid black; cursor: pointer; position: absolute; width: 150px; height: 65px; box-sizing: border-box; }
+        #yes-btn { background: #fff; bottom: 30%; left: 30%; z-index: 210; }
+        #no-btn { background: #f00; bottom: 30%; right: 30%; color: white; transition: 0s; z-index: 210; }
+        
+        .cloned-yes { position: fixed; background: #fff; border: 4px solid black; padding: 15px 50px; font-size: 24px; cursor: pointer; width: 150px; height: 65px; text-align: center; line-height: 30px; box-sizing: border-box; z-index: 9000; }
 
-        #character-img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-            display: block;
-        }
+        #ui-end { z-index: 300; position: relative; }
+        #ui-end.e5-style { color: white; text-shadow: 2px 2px 5px black; }
 
-        .options-area {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            min-height: 120px;
-        }
-
-        .option-card {
-            cursor: pointer;
-            text-align: center;
-            background: #fff;
-            padding: 15px;
-            border-radius: 15px;
-            width: 90px;
-            transition: all 0.2s ease;
-            border: 1px solid #eee;
-        }
-
-        .option-card:hover {
-            background-color: #f9f9f9;
-            transform: translateY(-3px);
-            border-color: #ddd;
-        }
-
-        .option-card img {
-            width: 40px;
-            height: 40px;
-            display: block;
-            margin: 0 auto 10px;
-        }
-
-        .option-card span {
-            font-size: 0.85em;
-            color: #666;
-        }
-
-        #overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.95);
-            color: white;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            cursor: pointer;
-        }
-
-        .dialog-text {
-            font-size: 1.5em;
-            letter-spacing: 2px;
-            text-align: center;
-        }
+        #novel-dialog { display: none; position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); width: 90%; min-height: 120px; background: rgba(0,0,0,0.9); border: 4px solid #fff; color: white; padding: 25px; z-index: 100; cursor: pointer; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
-<div id="overlay" onclick="closeOverlay()">
-    <div class="dialog-text">你是認真的嗎…..</div>
-</div>
-
 <div id="game-container">
-    <div class="phase-title">PHASE <span id="current-phase">1</span></div>
-    
-    <div id="image-holder">
-        <img id="character-img" src="" alt="人物狀態">
-    </div>
+    <div id="stage-info" style="font-size:24px; font-weight:bold; margin-bottom:20px;">第一階段</div>
+    <img id="jumpscare-5" class="fullscreen-img" src="5.png">
+    <img id="jumpscare-6" class="fullscreen-img" src="6.png">
+    <div class="img-wrapper"><img id="pet-image" src="2.png"></div>
 
-    <div class="options-area" id="options-container"></div>
+    <div id="ui-stage1">
+        <div class="button-group">
+            <div class="img-btn" onclick="handleS1('cake')"><img src="cake.png"><span>蛋糕</span></div>
+            <div class="img-btn" onclick="handleS1('candy')"><img src="candy.png"><span>糖果</span></div>
+            <div class="img-btn" onclick="handleS1('ignore')"><img src="ignore.png"><span>不給</span></div>
+        </div>
+    </div>
+    <div id="ui-stage2" class="hidden">
+        <div class="button-group">
+            <div class="img-btn" onclick="handleS2('book')"><img src="book.png"><span>書</span></div>
+            <div class="img-btn" onclick="handleS2('meat')"><img src="meat.png"><span>肉</span></div>
+            <div class="img-btn" onclick="handleS2('parts')"><img src="parts.png"><span style="font-size: 11px;">不知名的人體部件</span></div>
+        </div>
+    </div>
+    <div id="ui-end" class="hidden">
+        <h2 id="end-title"></h2>
+        <p id="end-slogan" style="margin-top:20px; font-style: italic;"></p>
+        <button onclick="location.reload()" style="background:#ccffcc; padding:15px 30px; border:3px solid #000; cursor:pointer;">重新開始</button>
+    </div>
 </div>
+
+<div id="contract-layer">
+    <h1 style="color:white; position: absolute; top: 20%;">你願意永遠照顧牠嗎？</h1>
+    <button id="yes-btn" class="contract-btn" onclick="finalCommit()">是</button>
+    <button id="no-btn" class="contract-btn" onmouseenter="dodgeNo()">否</button>
+</div>
+
+<div id="novel-dialog" onclick="this.style.display='none'"><div id="dialog-text" style="font-size:22px;"></div></div>
 
 <script>
-    // 圖片 ID 設定
-    const IMG_NORMAL = "136m06iScyMIv-8I3DU9ihvoVaSb7q0SK";
-    const IMG_SPECIAL = "1pqbx9wu_W8OVzv8e0OKtePKFUFghNn57";
+    let s1_ign=0, s1_cake=0, s1_candy=0, s1_sweet_tot=0;
+    let s2_mt=0, s2_pt=0, s2_bk=0;
+    let isOver=false, fillInterval, contractTimer, currentZ = 9000;
+    const pet = document.getElementById('pet-image'), diag = document.getElementById('novel-dialog'), dText = document.getElementById('dialog-text'), cont = document.getElementById('game-container');
 
-    function getDriveUrl(id) {
-        return `https://drive.google.com/uc?export=view&id=${id}`;
-    }
+    function showMsg(m) { if(m && !isOver) { dText.innerText = m; diag.style.display = 'block'; } }
 
-    let phase = 1;
-    let totalClicks = 0;
-    let refuseCount = 0;
-    let isTriggered = false;
+    function handleS1(type) {
+        if(isOver) return;
+        const msgs = {
+            cake: ["牠高興地搖了搖尾巴。", "甜味讓牠顯得很興奮。", "牠吃得滿臉都是奶油。", "這已經是第四個蛋糕了。", "牠的呼吸變得有些沈重。", "牠已經撐到動不了了..."],
+            candy: ["糖果在嘴裡發出清脆的聲音。", "牠似乎很喜歡這種甜膩感。", "牠的眼神閃爍著異樣的光。", "牠不停地咀嚼著。", "牠的牙齒發出咯吱聲。", "太甜了，甜到讓牠顫抖..."],
+            ignore: ["牠歪著頭，疑惑地看著你。", "發出了一聲小小的嗚咽聲。", "牠開始不安地抓地板。", "空氣變得有些凝固。", "為什麼...還不給我吃東西？", "這就是你最後的回答嗎？"]
+        };
+        showMsg(msgs[type][(type==='ignore'?s1_ign:(type==='cake'?s1_cake:s1_candy))]);
 
-    function renderOptions() {
-        const container = document.getElementById('options-container');
-        container.innerHTML = ''; 
-
-        let items = [];
-        if (phase === 1) {
-            items = [
-                { id: 'cake', name: '蛋糕', img: 'https://cdn-icons-png.flaticon.com/512/992/992717.png' },
-                { id: 'milk', name: '牛奶', img: 'https://cdn-icons-png.flaticon.com/512/372/372971.png' },
-                { id: 'none', name: '不給', img: 'https://cdn-icons-png.flaticon.com/512/1828/1828843.png' }
-            ];
-        } else if (phase === 2) {
-            items = [
-                { id: 'book', name: '書本', img: 'https://cdn-icons-png.flaticon.com/512/2702/2702134.png' },
-                { id: 'head', name: '人頭', img: 'https://cdn-icons-png.flaticon.com/512/1077/1077114.png' }
-            ];
-        } else {
-            container.innerHTML = '<div style="color:#bbb; margin-top:20px;">進入最終階段</div>';
-            return;
-        }
-
-        items.forEach(item => {
-            const card = document.createElement('div');
-            card.className = 'option-card';
-            card.onclick = () => handleAction(item.id);
-            card.innerHTML = `<img src="${item.img}"><span>${item.name}</span>`;
-            container.appendChild(card);
-        });
-    }
-
-    function handleAction(choice) {
-        totalClicks++;
-
-        // 第一階段不給次數邏輯
-        if (phase === 1 && choice === 'none') {
-            refuseCount++;
-            if (refuseCount === 3) {
-                isTriggered = true;
-                updateCharacterImage();
-                document.getElementById('overlay').style.display = 'flex';
+        if(type === 'cake' || type === 'candy') {
+            if(type === 'cake') s1_cake++; else s1_candy++;
+            s1_sweet_tot++;
+            if(s1_sweet_tot === 6) {
+                if(s1_candy > s1_cake) triggerEnd("結局 4：腐爛的甜味", "過多的糖分讓牠由內而外地崩潰了。", "sweet.png");
+                else triggerEnd("壞結局 2：你的寵物撐死了", "暴飲暴食有害身體健康", "1.png");
+                return;
             }
+        } else if(type === 'ignore') {
+            s1_ign++;
+            if(s1_ign === 5) pet.src = "3.png";
+            if(s1_ign === 6) { triggerEnd("壞結局 1：你的寵物餓死了", "沒有錢請不要養寵物...", "not eat.png"); return; }
         }
 
-        // 階段切換邏輯 (6次點擊)
-        if (phase === 1 && totalClicks >= 6) {
-            alert("第一階段完成");
-            phase = 2;
-            totalClicks = 0;
-            updateUI();
-        } else if (phase === 2 && totalClicks >= 6) {
-            alert("第二階段完成");
-            phase = 3;
-            totalClicks = 0;
-            updateUI();
+        if((s1_sweet_tot + s1_ign) === 6 && !isOver) {
+            document.getElementById('ui-stage1').classList.add('hidden');
+            document.getElementById('ui-stage2').classList.remove('hidden');
+            document.getElementById('stage-info').innerText = "第二階段";
+            pet.src = "2.png";
         }
     }
 
-    function updateCharacterImage() {
-        const imgElement = document.getElementById('character-img');
-        imgElement.src = isTriggered ? getDriveUrl(IMG_SPECIAL) : getDriveUrl(IMG_NORMAL);
+    function handleS2(type) {
+        if(isOver) return;
+        const msgs = {
+            book: ["牠咬了咬書角，隨後吐了出來。牠看不懂內容。", "牠把書推到一邊，覺得這堆紙很無聊。", "牠開始煩躁地撕扯封面，紙屑散落一地。", "牠發出低吼，完全不想再看到這堆無用的東西！"],
+            meat: ["生肉的味道讓牠瞬間變得異常亢奮。", "牠幾乎是用搶的奪走了肉塊。", "牠吞嚥的速度極快，眼神中充滿了貪婪。", "更多的肉...牠需要更多的肉！"],
+            parts: ["牠盯著這些殘缺的物件看了很久。", "這些東西散發著一股令寵物不安的氣息。", "「不是，你哪來的這個？」你有些驚訝地問道。", "牠的視線無法離開這些不知名的部件。"]
+        };
+        showMsg(msgs[type][(type==='meat'?s2_mt:(type==='book'?s2_bk:s2_pt))]);
+
+        if(type === 'parts') {
+            s2_pt++;
+            if(s2_pt === 3) triggerEvent(document.getElementById('jumpscare-5'), null, 400);
+            if(s2_pt === 4) triggerEvent(document.getElementById('jumpscare-5'), "E5", 400); 
+        } else if(type === 'book') {
+            s2_bk++;
+            if(s2_bk === 4) triggerEvent(document.getElementById('jumpscare-6'), "E3", 400);
+        } else if(type === 'meat') {
+            s2_mt++;
+            if(s2_mt === 2) {
+                document.getElementById('contract-layer').style.display = 'flex';
+                contractTimer = setTimeout(startForcedFill, 15000);
+            }
+            if(s2_mt === 4) triggerEnd("結局 6：無法填補的空洞", "無論你餵給牠多少肉，牠看你的眼神依然像是在看著一塊肉。", "3.png");
+        }
     }
 
-    function closeOverlay() {
-        document.getElementById('overlay').style.display = 'none';
+    function dodgeNo() {
+        const b = document.getElementById('no-btn');
+        b.style.left = Math.random() * (window.innerWidth - 150) + 'px';
+        b.style.top = Math.random() * (window.innerHeight - 65) + 'px';
     }
 
-    function updateUI() {
-        document.getElementById('current-phase').innerText = phase;
-        updateCharacterImage();
-        renderOptions();
+    function startForcedFill() {
+        if(isOver) return;
+        fillInterval = setInterval(() => {
+            for(let i=0; i<5; i++) {
+                const c = document.createElement('div');
+                c.className = 'cloned-yes';
+                c.innerText = '是';
+                c.style.left = (Math.random() * (window.innerWidth - 150)) + 'px';
+                c.style.top = (Math.random() * (window.innerHeight - 65)) + 'px';
+                c.style.zIndex = currentZ++;
+                c.onclick = finalCommit;
+                document.body.appendChild(c);
+            }
+        }, 50);
     }
 
-    // 初始化介面
-    window.onload = updateUI;
+    function finalCommit() {
+        clearTimeout(contractTimer);
+        clearInterval(fillInterval);
+        document.querySelectorAll('.cloned-yes').forEach(el => el.remove());
+        triggerEnd('結局 7：溫情的結局', '每天下班回家可以看到一直在等待著自己歸家的寵物不是很棒嗎', 'home.png');
+    }
+
+    function triggerEvent(el, endType, dur) {
+        diag.style.display = 'none'; el.style.display = 'block';
+        el.classList.add('high-freq-vibration'); cont.classList.add('high-freq-vibration');
+        setTimeout(() => {
+            el.classList.remove('high-freq-vibration');
+            cont.classList.remove('high-freq-vibration');
+            if(endType === "E3") {
+                el.style.display = 'none';
+                triggerEnd("壞結局 3：兔子急了會咬人", "…知識不能當飯吃", "4.png");
+            } else if(endType === "E5") {
+                document.getElementById('ui-end').classList.add('e5-style');
+                triggerEnd("結局 5：不知名部件的凝視", "既然你這麼好奇，那就讓牠們永遠看著你吧。", "5.png");
+                el.style.display = 'block';
+            } else {
+                el.style.display = 'none';
+            }
+        }, dur);
+    }
+
+    function triggerEnd(t, s, img) {
+        isOver = true; diag.style.display = 'none';
+        pet.src = img;
+        document.getElementById('ui-stage1').classList.add('hidden');
+        document.getElementById('ui-stage2').classList.add('hidden');
+        document.getElementById('contract-layer').style.display = 'none';
+        const endUI = document.getElementById('ui-end');
+        endUI.classList.remove('hidden');
+        document.getElementById('end-title').innerText = t;
+        document.getElementById('end-slogan').innerText = s;
+    }
 </script>
-
 </body>
 </html>
